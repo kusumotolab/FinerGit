@@ -14,11 +14,12 @@ import org.eclipse.jdt.core.formatter.DefaultCodeFormatterConstants;
 
 public class FinerJavaFileBuilder {
 
-  public List<FinerJavaModule> constructAST(final Map<String, String> pathToTextMap) {
+  public List<FinerJavaModule> constructASTs(final Map<String, String> pathToTextMap) {
 
     List<FinerJavaModule> files = new ArrayList<>();
 
     final FileASTRequestor requestor = new FileASTRequestor() {
+
       @Override
       public void acceptAST(final String sourceFilePath, final CompilationUnit ast) {
         final String text = pathToTextMap.get(sourceFilePath);
@@ -33,7 +34,9 @@ public class FinerJavaFileBuilder {
     };
 
     final ASTParser parser = createNewParser();
-    final String[] filePaths = pathToTextMap.keySet().stream().toArray(String[]::new);
+    final String[] filePaths = pathToTextMap.keySet()
+        .stream()
+        .toArray(String[]::new);
     parser.createASTs(filePaths, null, new String[] {}, requestor, null);
 
     return files;

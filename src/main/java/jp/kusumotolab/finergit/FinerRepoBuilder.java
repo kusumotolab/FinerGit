@@ -160,18 +160,20 @@ public class FinerRepoBuilder {
       // に含まれないファイルに対して git-rm コマンドを実行
       final Set<String> finerJavaFilesInWorkingDir =
           this.getWorkingFiles(this.desPath, "fjava", "mjava");
-      final Set<String> modifiedJavaFilePrefixes =
-          modifiedFiles.stream().filter(file -> file.endsWith(".java"))
-              .map(file -> file.substring(0, file.lastIndexOf('.'))).collect(Collectors.toSet());
+      final Set<String> modifiedJavaFilePrefixes = modifiedFiles.stream()
+          .filter(file -> file.endsWith(".java"))
+          .map(file -> file.substring(0, file.lastIndexOf('.')))
+          .collect(Collectors.toSet());
       final Set<String> finerJavaFilesInWorkingDirFromModifiedFiles =
           this.getFilesHavingPrefix(finerJavaFilesInWorkingDir, modifiedJavaFilePrefixes);
       finerJavaFilesInWorkingDirFromModifiedFiles.removeAll(finerJavaFilesInModifiedFiles.keySet());
       this.removeFiles(finerJavaFilesInWorkingDirFromModifiedFiles);
 
       // 削除されたファイルから以前に生成された細粒度ファイルに対して，git-rm コマンドを実行
-      final Set<String> deletedJavaFilePrefixes =
-          deletedFiles.stream().filter(file -> file.endsWith(".java"))
-              .map(file -> file.substring(0, file.lastIndexOf('.'))).collect(Collectors.toSet());
+      final Set<String> deletedJavaFilePrefixes = deletedFiles.stream()
+          .filter(file -> file.endsWith(".java"))
+          .map(file -> file.substring(0, file.lastIndexOf('.')))
+          .collect(Collectors.toSet());
       final Set<String> finerJavaFilesInWorkingDirFromDeletedFiles =
           this.getFilesHavingPrefix(finerJavaFilesInWorkingDir, deletedJavaFilePrefixes);
       this.removeFiles(finerJavaFilesInWorkingDirFromDeletedFiles);
@@ -215,11 +217,21 @@ public class FinerRepoBuilder {
       final PersonIdent authorIdent = targetCommit.getAuthorIdent();
       newCommit = this.desRepo.doCommitCommand(authorIdent, message);
 
-      System.out.println(targetCommit.abbreviate(7).name() + "("
-          + srcParents.get(0).abbreviate(7).name() + ", " + srcParents.get(1).abbreviate(7).name()
-          + ")" + " : " + newCommit.abbreviate(7).name() + "(" + desParents[0].abbreviate(7).name()
-          + ", " + desParents[1].abbreviate(7).name() + ")" + " : " + branchID + "--"
-          + this.branchMap.get(desParents[1]) + " : "
+      System.out.println(targetCommit.abbreviate(7)
+          .name() + "("
+          + srcParents.get(0)
+              .abbreviate(7)
+              .name()
+          + ", " + srcParents.get(1)
+              .abbreviate(7)
+              .name()
+          + ")" + " : " + newCommit.abbreviate(7)
+              .name()
+          + "(" + desParents[0].abbreviate(7)
+              .name()
+          + ", " + desParents[1].abbreviate(7)
+              .name()
+          + ")" + " : " + branchID + "--" + this.branchMap.get(desParents[1]) + " : "
           + new Date(targetCommit.getCommitTime() * 1000L) + " : " + mergeStatus);
     }
 
@@ -278,8 +290,10 @@ public class FinerRepoBuilder {
 
         for (final FinerJavaModule module : finerJavaModules) {
           final Path finerPath = module.getPath();
-          final byte[] finerData = String.join(File.separator, module.getLines()).getBytes("utf-8");
+          final byte[] finerData = String.join(File.pathSeparator, module.getLines())
+              .getBytes("utf-8");
           finerJavaData.put(finerPath.toString(), finerData);
+          // System.err.println(String.join("|", module.getLines()));
         }
 
       } catch (final UnsupportedEncodingException e) {
@@ -292,7 +306,9 @@ public class FinerRepoBuilder {
 
   // 第一引数で与えられたファイルのうち，第二引数で与えられたいずれかの接頭辞をもつものを抽出
   private Set<String> getFilesHavingPrefix(final Set<String> files, final Set<String> prefixes) {
-    return files.stream().filter(f -> prefixes.stream().anyMatch(p -> f.startsWith(f)))
+    return files.stream()
+        .filter(f -> prefixes.stream()
+            .anyMatch(p -> f.startsWith(f)))
         .collect(Collectors.toSet());
   }
 
@@ -343,27 +359,36 @@ public class FinerRepoBuilder {
   // 引数で指定されたディレクトリ以下にある全ファイルを取得する．ただし，".git"以下は除く．
   private Set<String> getWorkingFiles(final Path repoPath, final String... extensions) {
     return FileUtils
-        .listFiles(repoPath.toFile(), (0 == extensions.length ? null : extensions), true).stream()
+        .listFiles(repoPath.toFile(), (0 == extensions.length ? null : extensions), true)
+        .stream()
         .map(f -> Paths.get(f.getAbsolutePath()))
-        .filter(ap -> !ap.startsWith(repoPath.resolve(".git"))).map(ap -> repoPath.relativize(ap))
-        .map(lp -> lp.toString()).collect(Collectors.toSet());
+        .filter(ap -> !ap.startsWith(repoPath.resolve(".git")))
+        .map(ap -> repoPath.relativize(ap))
+        .map(lp -> lp.toString())
+        .collect(Collectors.toSet());
   }
 
   // 引数で与えられたDiffEntryのうち，ChangeTypeがADDなもののパスを取得する
   private Set<String> getAddedFiles(final List<DiffEntry> diffEntries) {
-    return diffEntries.stream().filter(d -> ChangeType.ADD == d.getChangeType())
-        .map(d -> d.getNewPath()).collect(Collectors.toSet());
+    return diffEntries.stream()
+        .filter(d -> ChangeType.ADD == d.getChangeType())
+        .map(d -> d.getNewPath())
+        .collect(Collectors.toSet());
   }
 
   // 引数で与えられたDiffEntryのうち，ChangeTypeがMODIFYなもののパスを取得する
   private Set<String> getModifiedFiles(final List<DiffEntry> diffEntries) {
-    return diffEntries.stream().filter(d -> ChangeType.MODIFY == d.getChangeType())
-        .map(d -> d.getNewPath()).collect(Collectors.toSet());
+    return diffEntries.stream()
+        .filter(d -> ChangeType.MODIFY == d.getChangeType())
+        .map(d -> d.getNewPath())
+        .collect(Collectors.toSet());
   }
 
   // 引数で与えられたDiffEntryのうち，ChangeTypeがDELETEなもののパスを取得する
   private Set<String> getDeletedFiles(final List<DiffEntry> diffEntries) {
-    return diffEntries.stream().filter(d -> ChangeType.DELETE == d.getChangeType())
-        .map(d -> d.getOldPath()).collect(Collectors.toSet());
+    return diffEntries.stream()
+        .filter(d -> ChangeType.DELETE == d.getChangeType())
+        .map(d -> d.getOldPath())
+        .collect(Collectors.toSet());
   }
 }

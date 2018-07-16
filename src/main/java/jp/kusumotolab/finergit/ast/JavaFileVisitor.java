@@ -6,18 +6,37 @@ import java.util.List;
 import java.util.Stack;
 import org.apache.commons.io.FilenameUtils;
 import org.eclipse.jdt.core.dom.*;
+import jp.kusumotolab.finergit.ast.token.CLASS;
+import jp.kusumotolab.finergit.ast.token.CLASSNAME;
+import jp.kusumotolab.finergit.ast.token.COMMA;
+import jp.kusumotolab.finergit.ast.token.DOT;
+import jp.kusumotolab.finergit.ast.token.EXTENDS;
+import jp.kusumotolab.finergit.ast.token.IMPLEMENTS;
+import jp.kusumotolab.finergit.ast.token.IMPORT;
+import jp.kusumotolab.finergit.ast.token.IMPORTNAME;
+import jp.kusumotolab.finergit.ast.token.JavaToken;
+import jp.kusumotolab.finergit.ast.token.LEFTBRACKET;
+import jp.kusumotolab.finergit.ast.token.ModifierFactory;
+import jp.kusumotolab.finergit.ast.token.PACKAGE;
+import jp.kusumotolab.finergit.ast.token.PACKAGENAME;
+import jp.kusumotolab.finergit.ast.token.RIGHTBRACKET;
+import jp.kusumotolab.finergit.ast.token.STATIC;
+import jp.kusumotolab.finergit.ast.token.TYPENAME;
+import jp.kusumotolab.finergit.ast.token.VARIABLENAME;
 
 public class JavaFileVisitor extends ASTVisitor {
 
   public final Path path;
   private final Stack<FinerJavaModule> moduleStack;
   private final List<FinerJavaModule> moduleList;
+  private final Stack<Class> contexts;
 
   public JavaFileVisitor(final Path path) {
 
     this.path = path;
     this.moduleStack = new Stack<>();
     this.moduleList = new ArrayList<>();
+    this.contexts = new Stack<>();
 
     final Path parent = path.getParent();
     final String fileName = FilenameUtils.getBaseName(path.toString());
@@ -241,9 +260,24 @@ public class JavaFileVisitor extends ASTVisitor {
   }
 
   @Override
-  public boolean visit(ImportDeclaration node) {
-    // TODO Auto-generated method stub
+  public boolean visit(final ImportDeclaration node) {
+
+    if (node.isStatic()) {
+      this.moduleStack.peek()
+          .addToken(new STATIC());
+    }
+
+    this.moduleStack.peek()
+        .addToken(new IMPORT());
+
+    this.contexts.push(IMPORTNAME.class);
     return super.visit(node);
+  }
+
+  @Override
+  public void endVisit(final ImportDeclaration node) {
+    final Class<?> c = this.contexts.pop();
+    assert c == IMPORTNAME.class : "context error.";
   }
 
   @Override
@@ -410,9 +444,19 @@ public class JavaFileVisitor extends ASTVisitor {
   }
 
   @Override
-  public boolean visit(PackageDeclaration node) {
-    // TODO Auto-generated method stub
+  public boolean visit(final PackageDeclaration node) {
+
+    this.moduleStack.peek()
+        .addToken(new PACKAGE());
+
+    this.contexts.push(PACKAGENAME.class);
     return super.visit(node);
+  }
+
+  @Override
+  public void endVisit(final PackageDeclaration node) {
+    final Class<?> context = this.contexts.pop();
+    assert PACKAGENAME.class == context : "context error at endVisit(PackageDeclaration)";
   }
 
   @Override
@@ -452,9 +496,18 @@ public class JavaFileVisitor extends ASTVisitor {
   }
 
   @Override
-  public boolean visit(QualifiedName node) {
-    // TODO Auto-generated method stub
-    return super.visit(node);
+  public boolean visit(final QualifiedName node) {
+
+    final Name qualifier = node.getQualifier();
+    qualifier.accept(this);
+
+    this.moduleStack.peek()
+        .addToken(new DOT());
+
+    final SimpleName name = node.getName();
+    name.accept(this);
+
+    return false;
   }
 
   @Override
@@ -476,8 +529,34 @@ public class JavaFileVisitor extends ASTVisitor {
   }
 
   @Override
-  public boolean visit(SimpleName node) {
-    // TODO Auto-generated method stub
+  public boolean visit(final SimpleName node) {
+
+    if (this.contexts.isEmpty()) {
+      return super.visit(node);
+    }
+
+    final Class<?> context = this.contexts.peek();
+    final String identifier = node.getIdentifier();
+    if (VARIABLENAME.class == context) {
+      this.moduleStack.peek()
+          .addToken(new VARIABLENAME(identifier));
+    }
+
+    else if (TYPENAME.class == context) {
+      this.moduleStack.peek()
+          .addToken(new TYPENAME(identifier));
+    }
+
+    else if (PACKAGENAME.class == context) {
+      this.moduleStack.peek()
+          .addToken(new PACKAGENAME(identifier));
+    }
+
+    else if (IMPORTNAME.class == context) {
+      this.moduleStack.peek()
+          .addToken(new IMPORTNAME(identifier));
+    }
+
     return super.visit(node);
   }
 
@@ -578,9 +657,73 @@ public class JavaFileVisitor extends ASTVisitor {
   }
 
   @Override
-  public boolean visit(TypeDeclaration node) {
-    // TODO Auto-generated method stub
-    return super.visit(node);
+  public boolean visit(final TypeDeclaration node) {
+
+    // 修飾子の処理
+    for (final Object modifier : node.modifiers()) {
+      final JavaToken modifierToken = ModifierFactory.create(modifier.toString());
+      this.moduleStack.peek()
+          .addToken(modifierToken);
+    }
+
+    // "class"の処理
+    this.moduleStack.peek()
+        .addToken(new CLASS());
+
+    // クラス名の処理
+    this.contexts.push(CLASSNAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> nameContext = this.contexts.pop();
+    assert CLASSNAME.class == nameContext : "error happened at visit(TypeDeclaration)";
+
+    // extends 節の処理
+    final Type superType = node.getSuperclassType();
+    if (null != superType) {
+      this.moduleStack.peek()
+          .addToken(new EXTENDS());
+      this.contexts.push(TYPENAME.class);
+      superType.accept(this);
+      final Class<?> extendsContext = this.contexts.pop();
+      assert TYPENAME.class == extendsContext : "error happened at visit(TypeDeclaration)";
+    }
+
+    // implements 節の処理
+    @SuppressWarnings("rawtypes")
+    final List interfaces = node.superInterfaceTypes();
+    if (null != interfaces && 0 < interfaces.size()) {
+
+      this.contexts.push(TYPENAME.class);
+
+      this.moduleStack.peek()
+          .addToken(new IMPLEMENTS());
+      ((Type) interfaces.get(0)).accept(this);
+
+      for (int index = 1; index < interfaces.size(); index++) {
+        this.moduleStack.peek()
+            .addToken(new COMMA());
+        ((Type) interfaces.get(index)).accept(this);
+      }
+
+      final Class<?> implementsContext = this.contexts.pop();
+      assert TYPENAME.class == implementsContext : "error happened at visit(TypeDeclaration)";
+    }
+
+    // "{"の処理
+    this.moduleStack.peek()
+        .addToken(new LEFTBRACKET());
+
+    // 中身の処理
+    for (final Object o : node.bodyDeclarations()) {
+      final BodyDeclaration bodyDeclaration = (BodyDeclaration) o;
+      bodyDeclaration.accept(this);
+    }
+
+    // "}"の処理
+    this.moduleStack.peek()
+        .addToken(new RIGHTBRACKET());
+
+    return false;
   }
 
   @Override
