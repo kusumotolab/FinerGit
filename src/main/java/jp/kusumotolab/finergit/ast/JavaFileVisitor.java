@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+import org.apache.commons.io.FilenameUtils;
 import org.eclipse.jdt.core.dom.*;
 
 public class JavaFileVisitor extends ASTVisitor {
@@ -18,8 +19,9 @@ public class JavaFileVisitor extends ASTVisitor {
     this.moduleStack = new Stack<>();
     this.moduleList = new ArrayList<>();
 
-    final String fileName = path.getFileName().toString();
-    final FinerJavaFile finerJavaFile = new FinerJavaFile(path.getParent(), fileName);
+    final Path parent = path.getParent();
+    final String fileName = FilenameUtils.getBaseName(path.toString());
+    final FinerJavaFile finerJavaFile = new FinerJavaFile(parent, fileName);
     this.moduleStack.push(finerJavaFile);
     this.moduleList.add(finerJavaFile);
   }
@@ -323,9 +325,34 @@ public class JavaFileVisitor extends ASTVisitor {
   }
 
   @Override
-  public boolean visit(MethodDeclaration node) {
-    // TODO Auto-generated method stub
+  public boolean visit(final MethodDeclaration node) {
+
+    final StringBuilder text = new StringBuilder();
+    final String methodName = node.getName()
+        .getIdentifier();
+    text.append(methodName);
+    text.append("(");
+    final List<String> types = new ArrayList<>();
+    for (final Object parameter : node.parameters()) {
+      final SingleVariableDeclaration svd = (SingleVariableDeclaration) parameter;
+      final String type = svd.getType()
+          .toString();
+      types.add(type);
+    }
+    text.append(String.join("-", types));
+    text.append(")");
+
+    final FinerJavaModule outerModule = this.moduleStack.peek();
+    final FinerJavaMethod methodModule = new FinerJavaMethod(text.toString(), outerModule);
+    this.moduleStack.push(methodModule);
+    this.moduleList.add(methodModule);
+
     return super.visit(node);
+  }
+
+  @Override
+  public void endVisit(final MethodDeclaration node) {
+    this.moduleStack.pop();
   }
 
   @Override

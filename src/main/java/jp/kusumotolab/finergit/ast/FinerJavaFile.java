@@ -30,7 +30,7 @@ public class FinerJavaFile extends FinerJavaModule {
 
   @Override
   public String getFileName() {
-    return this.name + this.getExtension();
+    return this.getBaseName() + this.getExtension();
   }
 
   @Override

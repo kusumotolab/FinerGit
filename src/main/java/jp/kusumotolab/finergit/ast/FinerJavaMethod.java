@@ -15,7 +15,7 @@ public class FinerJavaMethod extends FinerJavaModule {
 
   @Override
   public String getFileName() {
-    return this.outerModule.getFileName() + "_" + this.name + this.getExtension();
+    return this.outerModule.getBaseName() + "$" + this.name + this.getExtension();
   }
 
   @Override

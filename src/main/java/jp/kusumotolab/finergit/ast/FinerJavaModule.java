@@ -13,7 +13,7 @@ public abstract class FinerJavaModule {
   private final List<JavaToken> tokens;
 
   FinerJavaModule(final String name, final FinerJavaModule outerModule) {
-    this.name = name.substring(0, name.lastIndexOf("."));
+    this.name = name;
     this.outerModule = outerModule;
     this.tokens = new ArrayList<>();
   }
@@ -27,15 +27,22 @@ public abstract class FinerJavaModule {
   }
 
   public List<String> getLines() {
-    return this.tokens.stream().map(t -> t.value).collect(Collectors.toList());
+    return this.tokens.stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
   }
 
   public abstract Path getDirectory();
 
   public abstract String getFileName();
 
+  public final String getBaseName() {
+    return this.name;
+  }
+
   public final Path getPath() {
-    return this.getDirectory().resolve(this.getFileName());
+    return this.getDirectory()
+        .resolve(this.getFileName());
   }
 
   public abstract String getExtension();
