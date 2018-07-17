@@ -9,18 +9,24 @@ import org.eclipse.jdt.core.dom.*;
 import jp.kusumotolab.finergit.ast.token.CLASS;
 import jp.kusumotolab.finergit.ast.token.CLASSNAME;
 import jp.kusumotolab.finergit.ast.token.COMMA;
+import jp.kusumotolab.finergit.ast.token.DECLAREDMETHODNAME;
 import jp.kusumotolab.finergit.ast.token.DOT;
 import jp.kusumotolab.finergit.ast.token.EXTENDS;
 import jp.kusumotolab.finergit.ast.token.IMPLEMENTS;
 import jp.kusumotolab.finergit.ast.token.IMPORT;
 import jp.kusumotolab.finergit.ast.token.IMPORTNAME;
+import jp.kusumotolab.finergit.ast.token.INVOKEDMETHODNAME;
 import jp.kusumotolab.finergit.ast.token.JavaToken;
 import jp.kusumotolab.finergit.ast.token.LEFTBRACKET;
+import jp.kusumotolab.finergit.ast.token.LEFTPAREN;
 import jp.kusumotolab.finergit.ast.token.ModifierFactory;
 import jp.kusumotolab.finergit.ast.token.PACKAGE;
 import jp.kusumotolab.finergit.ast.token.PACKAGENAME;
 import jp.kusumotolab.finergit.ast.token.RIGHTBRACKET;
+import jp.kusumotolab.finergit.ast.token.RIGHTPAREN;
+import jp.kusumotolab.finergit.ast.token.SEMICOLON;
 import jp.kusumotolab.finergit.ast.token.STATIC;
+import jp.kusumotolab.finergit.ast.token.THROWS;
 import jp.kusumotolab.finergit.ast.token.TYPENAME;
 import jp.kusumotolab.finergit.ast.token.VARIABLENAME;
 
@@ -104,9 +110,18 @@ public class JavaFileVisitor extends ASTVisitor {
   }
 
   @Override
-  public boolean visit(Block node) {
-    // TODO Auto-generated method stub
+  public boolean visit(final Block node) {
+
+    this.moduleStack.peek()
+        .addToken(new LEFTBRACKET());
+
     return super.visit(node);
+  }
+
+  @Override
+  public void endVisit(final Block node) {
+    this.moduleStack.peek()
+        .addToken(new RIGHTBRACKET());
   }
 
   @Override
@@ -361,6 +376,74 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final MethodDeclaration node) {
 
+    { // ダミーメソッドを生成し，モジュールスタックに追加
+      final FinerJavaModule outerModule = this.moduleStack.peek();
+      final FinerJavaMethod dummyMethod = new FinerJavaMethod("DummyMethod", outerModule);
+      this.moduleStack.push(dummyMethod);
+    }
+
+    // 修飾子の処理（ダミーメソッドに追加）
+    for (final Object modifier : node.modifiers()) {
+      final JavaToken modifierToken = ModifierFactory.create(modifier.toString());
+      this.moduleStack.peek()
+          .addToken(modifierToken);
+    }
+
+    // 返り値の処理（ダミーメソッドに追加）
+    final Type returnType = node.getReturnType2();
+    if (null != returnType) { // コンストラクタのときは returnType が null
+      this.contexts.push(TYPENAME.class);
+      node.getReturnType2()
+          .accept(this);
+      final Class<?> context = this.contexts.pop();
+      assert TYPENAME.class == context : "error happend at visit(MethodDeclaration)";
+    }
+
+    {// メソッド名の処理（ダミーメソッドに追加）
+      this.contexts.push(DECLAREDMETHODNAME.class);
+      node.getName()
+          .accept(this);
+      final Class<?> context = this.contexts.pop();
+      assert DECLAREDMETHODNAME.class == context : "error happend at visit(MethodDeclaration)";
+    }
+
+    // "(" の処理（ダミーメソッドに追加）
+    this.moduleStack.peek()
+        .addToken(new LEFTPAREN());
+
+    // 引数の処理（ダミーメソッドに追加）
+    final List<?> parameters = node.parameters();
+    if (!parameters.isEmpty()) {
+      ((SingleVariableDeclaration) parameters.get(0)).accept(this);
+      for (int index = 1; index < parameters.size(); index++) {
+        this.moduleStack.peek()
+            .addToken(new COMMA());
+        ((SingleVariableDeclaration) parameters.get(index)).accept(this);
+      }
+    }
+
+    // ")" の処理（ダミーメソッドに追加）
+    this.moduleStack.peek()
+        .addToken(new RIGHTPAREN());
+
+    // throws 節の処理
+    final List<?> exceptions = node.thrownExceptionTypes();
+    if (null != exceptions && !exceptions.isEmpty()) {
+      this.moduleStack.peek()
+          .addToken(new THROWS());
+      this.contexts.push(TYPENAME.class);
+      ((Type) exceptions.get(0)).accept(this);
+      for (int index = 1; index < exceptions.size(); index++) {
+        this.moduleStack.peek()
+            .addToken(new COMMA());
+        ((Type) exceptions.get(index)).accept(this);
+      }
+      final Class<?> context = this.contexts.pop();
+      assert TYPENAME.class == context : "error happened at visit(MethodDeclaration)";
+    }
+
+
+    // メソッドモジュールの名前を生成
     final StringBuilder text = new StringBuilder();
     final String methodName = node.getName()
         .getIdentifier();
@@ -376,17 +459,32 @@ public class JavaFileVisitor extends ASTVisitor {
     text.append(String.join("-", types));
     text.append(")");
 
+    // ダミーメソッドをスタックから取り除く
+    final FinerJavaModule dummyMethod = this.moduleStack.pop();
+
+    // 現在パース中のメソッドのモジュールを作成し，モジュールスタックに追加
     final FinerJavaModule outerModule = this.moduleStack.peek();
     final FinerJavaMethod methodModule = new FinerJavaMethod(text.toString(), outerModule);
     this.moduleStack.push(methodModule);
     this.moduleList.add(methodModule);
 
-    return super.visit(node);
-  }
+    // ダミーメソッド内のトークンを新しいメソッドモジュールに移行
+    dummyMethod.getTokens()
+        .stream()
+        .forEach(methodModule::addToken);
 
-  @Override
-  public void endVisit(final MethodDeclaration node) {
+    // メソッドの中身の処理
+    final Block body = node.getBody();
+    if (null != body) {
+      body.accept(this);
+    } else {
+      this.moduleStack.peek()
+          .addToken(new SEMICOLON());
+    }
+
     this.moduleStack.pop();
+
+    return false;
   }
 
   @Override
@@ -547,6 +645,16 @@ public class JavaFileVisitor extends ASTVisitor {
           .addToken(new TYPENAME(identifier));
     }
 
+    else if (DECLAREDMETHODNAME.class == context) {
+      this.moduleStack.peek()
+          .addToken(new DECLAREDMETHODNAME(identifier));
+    }
+
+    else if (INVOKEDMETHODNAME.class == context) {
+      this.moduleStack.peek()
+          .addToken(new INVOKEDMETHODNAME(identifier));
+    }
+
     else if (PACKAGENAME.class == context) {
       this.moduleStack.peek()
           .addToken(new PACKAGENAME(identifier));
@@ -573,8 +681,31 @@ public class JavaFileVisitor extends ASTVisitor {
   }
 
   @Override
-  public boolean visit(SingleVariableDeclaration node) {
-    // TODO Auto-generated method stub
+  public boolean visit(final SingleVariableDeclaration node) {
+
+    // 修飾子の処理
+    for (final Object modifier : node.modifiers()) {
+      final JavaToken modifierToken = ModifierFactory.create(modifier.toString());
+      this.moduleStack.peek()
+          .addToken(modifierToken);
+    }
+
+    {// 型の処理
+      this.contexts.push(TYPENAME.class);
+      node.getType()
+          .accept(this);
+      final Class<?> context = this.contexts.pop();
+      assert TYPENAME.class == context : "error happend at visit(SingleVariableDeclaration";
+    }
+
+    {// 変数名の処理
+      this.contexts.push(VARIABLENAME.class);
+      node.getName()
+          .accept(this);
+      final Class<?> context = this.contexts.pop();
+      assert VARIABLENAME.class == context : "error happend at visit(SingleVariableDeclaration";
+    }
+
     return super.visit(node);
   }
 

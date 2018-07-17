@@ -18,8 +18,7 @@ public class ModifierFactory {
       case "static":
         return new STATIC();
       default:
-        System.err.println("error happened at ModifiedFactory: " + modifierName);
-        return null;
+        return new ANNOTATION(modifierName);
     }
   }
 }

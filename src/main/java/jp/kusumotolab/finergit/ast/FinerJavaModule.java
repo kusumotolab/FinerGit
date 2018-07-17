@@ -18,8 +18,8 @@ public abstract class FinerJavaModule {
     this.tokens = new ArrayList<>();
   }
 
-  public void addToken(final JavaToken token) {
-    this.tokens.add(token);
+  public boolean addToken(final JavaToken token) {
+    return this.tokens.add(token);
   }
 
   public List<JavaToken> getTokens() {
