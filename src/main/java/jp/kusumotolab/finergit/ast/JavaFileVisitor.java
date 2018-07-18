@@ -12,6 +12,7 @@ import jp.kusumotolab.finergit.ast.token.COMMA;
 import jp.kusumotolab.finergit.ast.token.DECLAREDMETHODNAME;
 import jp.kusumotolab.finergit.ast.token.DOT;
 import jp.kusumotolab.finergit.ast.token.EXTENDS;
+import jp.kusumotolab.finergit.ast.token.GREAT;
 import jp.kusumotolab.finergit.ast.token.IMPLEMENTS;
 import jp.kusumotolab.finergit.ast.token.IMPORT;
 import jp.kusumotolab.finergit.ast.token.IMPORTNAME;
@@ -19,11 +20,16 @@ import jp.kusumotolab.finergit.ast.token.INVOKEDMETHODNAME;
 import jp.kusumotolab.finergit.ast.token.JavaToken;
 import jp.kusumotolab.finergit.ast.token.LEFTBRACKET;
 import jp.kusumotolab.finergit.ast.token.LEFTPAREN;
+import jp.kusumotolab.finergit.ast.token.LEFTSQUAREBRACKET;
+import jp.kusumotolab.finergit.ast.token.LESS;
 import jp.kusumotolab.finergit.ast.token.ModifierFactory;
 import jp.kusumotolab.finergit.ast.token.PACKAGE;
 import jp.kusumotolab.finergit.ast.token.PACKAGENAME;
+import jp.kusumotolab.finergit.ast.token.PrimitiveTypeFactory;
+import jp.kusumotolab.finergit.ast.token.QUESTION;
 import jp.kusumotolab.finergit.ast.token.RIGHTBRACKET;
 import jp.kusumotolab.finergit.ast.token.RIGHTPAREN;
+import jp.kusumotolab.finergit.ast.token.RIGHTSQUAREBRACKET;
 import jp.kusumotolab.finergit.ast.token.SEMICOLON;
 import jp.kusumotolab.finergit.ast.token.STATIC;
 import jp.kusumotolab.finergit.ast.token.THROWS;
@@ -35,7 +41,7 @@ public class JavaFileVisitor extends ASTVisitor {
   public final Path path;
   private final Stack<FinerJavaModule> moduleStack;
   private final List<FinerJavaModule> moduleList;
-  private final Stack<Class> contexts;
+  private final Stack<Class<?>> contexts;
 
   public JavaFileVisitor(final Path path) {
 
@@ -197,9 +203,25 @@ public class JavaFileVisitor extends ASTVisitor {
   }
 
   @Override
-  public boolean visit(Dimension node) {
-    // TODO Auto-generated method stub
-    return super.visit(node);
+  public boolean visit(final Dimension node) {
+
+    this.moduleStack.peek()
+        .addToken(new LEFTSQUAREBRACKET());
+
+    final List<?> annotations = node.annotations();
+    if (null != annotations && !annotations.isEmpty()) {
+      ((Annotation) annotations.get(0)).accept(this);
+      for (int index = 1; index < annotations.size(); index++) {
+        this.moduleStack.peek()
+            .addToken(new COMMA());
+        ((Annotation) annotations.get(index)).accept(this);
+      }
+    }
+
+    this.moduleStack.peek()
+        .addToken(new RIGHTSQUAREBRACKET());
+
+    return false;
   }
 
   @Override
@@ -313,6 +335,7 @@ public class JavaFileVisitor extends ASTVisitor {
     return super.visit(node);
   }
 
+  // テストしていない
   @Override
   public boolean visit(IntersectionType node) {
     // TODO Auto-generated method stub
@@ -442,7 +465,6 @@ public class JavaFileVisitor extends ASTVisitor {
       assert TYPENAME.class == context : "error happened at visit(MethodDeclaration)";
     }
 
-
     // メソッドモジュールの名前を生成
     final StringBuilder text = new StringBuilder();
     final String methodName = node.getName()
@@ -511,6 +533,7 @@ public class JavaFileVisitor extends ASTVisitor {
     return super.visit(node);
   }
 
+  // テストしていない
   @Override
   public boolean visit(NameQualifiedType node) {
     // TODO Auto-generated method stub
@@ -558,9 +581,28 @@ public class JavaFileVisitor extends ASTVisitor {
   }
 
   @Override
-  public boolean visit(ParameterizedType node) {
-    // TODO Auto-generated method stub
-    return super.visit(node);
+  public boolean visit(final ParameterizedType node) {
+
+    node.getType()
+        .accept(this);
+
+    this.moduleStack.peek()
+        .addToken(new LESS());
+
+    final List<?> typeArguments = node.typeArguments();
+    if (null != typeArguments && !typeArguments.isEmpty()) {
+      ((Type) typeArguments.get(0)).accept(this);
+      for (int index = 1; index < typeArguments.size(); index++) {
+        this.moduleStack.peek()
+            .addToken(new COMMA());
+        ((Type) typeArguments.get(index)).accept(this);
+      }
+    }
+
+    this.moduleStack.peek()
+        .addToken(new GREAT());
+
+    return false;
   }
 
   @Override
@@ -588,8 +630,13 @@ public class JavaFileVisitor extends ASTVisitor {
   }
 
   @Override
-  public boolean visit(PrimitiveType node) {
-    // TODO Auto-generated method stub
+  public boolean visit(final PrimitiveType node) {
+
+    final JavaToken primitiveTypeToken = PrimitiveTypeFactory.create(node.getPrimitiveTypeCode()
+        .toString());
+    this.moduleStack.peek()
+        .addToken(primitiveTypeToken);
+
     return super.visit(node);
   }
 
@@ -608,6 +655,7 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
+  // テストしていない
   @Override
   public boolean visit(QualifiedType node) {
     // TODO Auto-generated method stub
@@ -669,9 +717,14 @@ public class JavaFileVisitor extends ASTVisitor {
   }
 
   @Override
-  public boolean visit(SimpleType node) {
-    // TODO Auto-generated method stub
-    return super.visit(node);
+  public boolean visit(final SimpleType node) {
+    this.contexts.push(TYPENAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> context = this.contexts.pop();
+    assert TYPENAME.class == context : "error happend at visit(SimpleType)";
+
+    return false;
   }
 
   @Override
@@ -690,13 +743,9 @@ public class JavaFileVisitor extends ASTVisitor {
           .addToken(modifierToken);
     }
 
-    {// 型の処理
-      this.contexts.push(TYPENAME.class);
-      node.getType()
-          .accept(this);
-      final Class<?> context = this.contexts.pop();
-      assert TYPENAME.class == context : "error happend at visit(SingleVariableDeclaration";
-    }
+    // 型の処理
+    node.getType()
+        .accept(this);
 
     {// 変数名の処理
       this.contexts.push(VARIABLENAME.class);
@@ -706,7 +755,7 @@ public class JavaFileVisitor extends ASTVisitor {
       assert VARIABLENAME.class == context : "error happend at visit(SingleVariableDeclaration";
     }
 
-    return super.visit(node);
+    return false;
   }
 
   @Override
@@ -918,8 +967,9 @@ public class JavaFileVisitor extends ASTVisitor {
   }
 
   @Override
-  public boolean visit(WildcardType node) {
-    // TODO Auto-generated method stub
+  public boolean visit(final WildcardType node) {
+    this.moduleStack.peek()
+        .addToken(new QUESTION());
     return super.visit(node);
   }
 
