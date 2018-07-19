@@ -7,6 +7,7 @@ import java.util.Stack;
 import org.apache.commons.io.FilenameUtils;
 import org.eclipse.jdt.core.dom.*;
 import org.eclipse.jdt.core.dom.InfixExpression.Operator;
+import jp.kusumotolab.finergit.ast.token.AND;
 import jp.kusumotolab.finergit.ast.token.ANNOTATION;
 import jp.kusumotolab.finergit.ast.token.ASSERT;
 import jp.kusumotolab.finergit.ast.token.ASSIGN;
@@ -23,6 +24,7 @@ import jp.kusumotolab.finergit.ast.token.COMMA;
 import jp.kusumotolab.finergit.ast.token.CONTINUE;
 import jp.kusumotolab.finergit.ast.token.DECLAREDMETHODNAME;
 import jp.kusumotolab.finergit.ast.token.DEFAULT;
+import jp.kusumotolab.finergit.ast.token.DO;
 import jp.kusumotolab.finergit.ast.token.DOT;
 import jp.kusumotolab.finergit.ast.token.ELSE;
 import jp.kusumotolab.finergit.ast.token.EXTENDS;
@@ -95,25 +97,84 @@ public class JavaFileVisitor extends ASTVisitor {
     return this.moduleList;
   }
 
-  // TODO テストしていない
   @Override
-  public boolean visit(AnnotationTypeDeclaration node) {
-    // TODO Auto-generated method stub
-    return super.visit(node);
+  public boolean visit(final AnnotationTypeDeclaration node) {
+
+    // 修飾子の処理
+    for (final Object modifier : node.modifiers()) {
+      final JavaToken modifierToken = ModifierFactory.create(modifier.toString());
+      this.moduleStack.peek()
+          .addToken(modifierToken);
+    }
+
+    this.contexts.push(CLASSNAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> context = this.contexts.pop();
+    assert CLASSNAME.class == context : "error happened at JavaFileVisitor#visit(AnnotationTypeDeclaration)";
+
+    this.moduleStack.peek()
+        .addToken(new LEFTBRACKET());
+
+    final List<?> bodies = node.bodyDeclarations();
+    for (final Object body : bodies) {
+      ((BodyDeclaration) body).accept(this);
+    }
+
+    this.moduleStack.peek()
+        .addToken(new RIGHTBRACKET());
+
+    return false;
   }
 
-  // TODO テストしていない
   @Override
-  public boolean visit(AnnotationTypeMemberDeclaration node) {
-    // TODO Auto-generated method stub
-    return super.visit(node);
+  public boolean visit(final AnnotationTypeMemberDeclaration node) {
+
+    // 修飾子の処理
+    for (final Object modifier : node.modifiers()) {
+      final JavaToken modifierToken = ModifierFactory.create(modifier.toString());
+      this.moduleStack.peek()
+          .addToken(modifierToken);
+    }
+
+    node.getType()
+        .accept(this);
+
+    this.contexts.push(VARIABLENAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> context = this.contexts.pop();
+    assert VARIABLENAME.class == context : "error happened at JavaFileVisitor#visit(AnnotationTypeMemberDeclaration)";
+
+    final Expression defaultValue = node.getDefault();
+    if (null != defaultValue) {
+      this.moduleStack.peek()
+          .addToken(new ASSIGN());
+      defaultValue.accept(this);
+    }
+
+    this.moduleStack.peek()
+        .addToken(new SEMICOLON());
+
+    return false;
   }
 
-  // TODO テストしていない
+
   @Override
-  public boolean visit(AnonymousClassDeclaration node) {
-    // TODO Auto-generated method stub
-    return super.visit(node);
+  public boolean visit(final AnonymousClassDeclaration node) {
+
+    this.moduleStack.peek()
+        .addToken(new LEFTBRACKET());
+
+    final List<?> bodies = node.bodyDeclarations();
+    for (final Object body : bodies) {
+      ((BodyDeclaration) body).accept(this);
+    }
+
+    this.moduleStack.peek()
+        .addToken(new RIGHTBRACKET());
+
+    return false;
   }
 
   @Override
@@ -345,14 +406,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final AnonymousClassDeclaration acd = node.getAnonymousClassDeclaration();
     if (null != acd) {
-
-      this.moduleStack.peek()
-          .addToken(new LEFTBRACKET());
-
       acd.accept(this);
-
-      this.moduleStack.peek()
-          .addToken(new RIGHTBRACKET());
     }
 
     return false;
@@ -388,8 +442,28 @@ public class JavaFileVisitor extends ASTVisitor {
   // TODO テストしていない
   @Override
   public boolean visit(final ConstructorInvocation node) {
-    // TODO Auto-generated method stub
-    return super.visit(node);
+
+    this.moduleStack.peek()
+        .addToken(new THIS());
+    this.moduleStack.peek()
+        .addToken(new LEFTPAREN());
+
+    final List<?> arguments = node.arguments();
+    if (null != arguments && !arguments.isEmpty()) {
+      ((Expression) arguments.get(0)).accept(this);
+      for (int index = 1; index < arguments.size(); index++) {
+        this.moduleStack.peek()
+            .addToken(new COMMA());
+        ((Expression) arguments.get(index)).accept(this);
+      }
+    }
+
+    this.moduleStack.peek()
+        .addToken(new RIGHTPAREN());
+    this.moduleStack.peek()
+        .addToken(new SEMICOLON());
+
+    return false;
   }
 
   @Override
@@ -450,11 +524,29 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストしていない
   @Override
-  public boolean visit(DoStatement node) {
-    // TODO Auto-generated method stub
-    return super.visit(node);
+  public boolean visit(final DoStatement node) {
+
+    this.moduleStack.peek()
+        .addToken(new DO());
+
+    node.getBody()
+        .accept(this);
+
+    this.moduleStack.peek()
+        .addToken(new WHILE());
+    this.moduleStack.peek()
+        .addToken(new LEFTPAREN());
+
+    node.getExpression()
+        .accept(this);
+
+    this.moduleStack.peek()
+        .addToken(new RIGHTPAREN());
+    this.moduleStack.peek()
+        .addToken(new SEMICOLON());
+
+    return false;
   }
 
   @Override
@@ -490,16 +582,74 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
   @Override
-  public boolean visit(EnumConstantDeclaration node) {
-    return super.visit(node);
+  public boolean visit(final EnumConstantDeclaration node) {
+
+    // 修飾子の処理
+    for (final Object modifier : node.modifiers()) {
+      final JavaToken modifierToken = ModifierFactory.create(modifier.toString());
+      this.moduleStack.peek()
+          .addToken(modifierToken);
+    }
+
+    this.contexts.push(CLASSNAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> context = this.contexts.pop();
+    assert CLASSNAME.class == context : "error happend at JavaFileVisitor#visit(EnumConstantDeclaration)";
+
+    final List<?> arguments = node.arguments();
+    if (null != arguments && !arguments.isEmpty()) {
+
+      this.moduleStack.peek()
+          .addToken(new LEFTPAREN());
+
+      ((Expression) arguments.get(0)).accept(this);
+      for (int index = 1; index < arguments.size(); index++) {
+        this.moduleStack.peek()
+            .addToken(new COMMA());
+        ((Expression) arguments.get(index)).accept(this);
+      }
+
+      this.moduleStack.peek()
+          .addToken(new RIGHTPAREN());
+    }
+
+    final AnonymousClassDeclaration acd = node.getAnonymousClassDeclaration();
+    if (acd != null) {
+      acd.accept(this);
+    }
+
+    return false;
   }
 
-  // TODO テストできていない
   @Override
-  public boolean visit(EnumDeclaration node) {
-    return super.visit(node);
+  public boolean visit(final EnumDeclaration node) {
+
+    // 修飾子の処理
+    for (final Object modifier : node.modifiers()) {
+      final JavaToken modifierToken = ModifierFactory.create(modifier.toString());
+      this.moduleStack.peek()
+          .addToken(modifierToken);
+    }
+
+    this.contexts.push(CLASSNAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> context = this.contexts.pop();
+    assert CLASSNAME.class == context : "error happend at JavaFileVisitor#visit(EnumDeclaration)";
+
+    this.moduleStack.peek()
+        .addToken(new LEFTBRACKET());
+
+    for (final Object enumConstant : node.enumConstants()) {
+      ((EnumConstantDeclaration) enumConstant).accept(this);
+    }
+
+    this.moduleStack.peek()
+        .addToken(new RIGHTBRACKET());
+
+    return false;
   }
 
   // TODO テストできていない
@@ -572,6 +722,9 @@ public class JavaFileVisitor extends ASTVisitor {
     for (final Object fragment : node.fragments()) {
       ((VariableDeclarationFragment) fragment).accept(this);
     }
+
+    this.moduleStack.peek()
+        .addToken(new SEMICOLON());
 
     return false;
   }
@@ -703,11 +856,19 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
   @Override
-  public boolean visit(Initializer node) {
-    // TODO Auto-generated method stub
-    return super.visit(node);
+  public boolean visit(final Initializer node) {
+
+    for (final Object modifier : node.modifiers()) {
+      final JavaToken modifierToken = ModifierFactory.create(modifier.toString());
+      this.moduleStack.peek()
+          .addToken(modifierToken);
+    }
+
+    node.getBody()
+        .accept(this);
+
+    return false;
   }
 
   @Override
@@ -725,11 +886,19 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストしていない
   @Override
-  public boolean visit(IntersectionType node) {
-    // TODO Auto-generated method stub
-    return super.visit(node);
+  public boolean visit(final IntersectionType node) {
+
+    final List<?> types = node.types();
+    ((Type) types.get(0)).accept(this);
+
+    for (int index = 1; index < types.size(); index++) {
+      this.moduleStack.peek()
+          .addToken(new AND());
+      ((Type) types.get(index)).accept(this);
+    }
+
+    return false;
   }
 
   @Override
@@ -785,11 +954,11 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
   @Override
-  public boolean visit(MarkerAnnotation node) {
-    // TODO Auto-generated method stub
-    return super.visit(node);
+  public boolean visit(final MarkerAnnotation node) {
+    this.moduleStack.peek()
+        .addToken(new ANNOTATION(node.toString()));
+    return false;
   }
 
   // TODO テストできていない
@@ -1551,10 +1720,9 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
+  // 変更の必要なし
   @Override
-  public boolean visit(TypeDeclarationStatement node) {
-    // TODO Auto-generated method stub
+  public boolean visit(final TypeDeclarationStatement node) {
     return super.visit(node);
   }
 
