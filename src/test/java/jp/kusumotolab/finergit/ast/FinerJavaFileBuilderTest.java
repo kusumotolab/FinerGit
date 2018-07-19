@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import org.junit.Test;
 
@@ -21,7 +22,11 @@ public class FinerJavaFileBuilderTest {
 
     final Map<String, String> pathToTextMap = new HashMap<>();
     final Collection<File> javaFiles =
-        FileUtils.listFiles(currentDirectory, new String[] {"java"}, true);
+        FileUtils.listFiles(currentDirectory, new String[] {"java"}, true)
+            .stream()
+            .filter(f -> !f.getAbsolutePath()
+                .contains("token"))
+            .collect(Collectors.toList());
     for (final File javaFile : javaFiles) {
       final Path path = javaFile.toPath();
       final List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
