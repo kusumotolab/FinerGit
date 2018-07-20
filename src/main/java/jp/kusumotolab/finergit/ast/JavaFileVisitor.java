@@ -40,6 +40,7 @@ import jp.kusumotolab.finergit.ast.token.INSTANCEOF;
 import jp.kusumotolab.finergit.ast.token.INVOKEDMETHODNAME;
 import jp.kusumotolab.finergit.ast.token.JAVADOCCOMMENT;
 import jp.kusumotolab.finergit.ast.token.JavaToken;
+import jp.kusumotolab.finergit.ast.token.LABELNAME;
 import jp.kusumotolab.finergit.ast.token.LEFTBRACKET;
 import jp.kusumotolab.finergit.ast.token.LEFTPAREN;
 import jp.kusumotolab.finergit.ast.token.LEFTSQUAREBRACKET;
@@ -50,6 +51,7 @@ import jp.kusumotolab.finergit.ast.token.ModifierFactory;
 import jp.kusumotolab.finergit.ast.token.NEW;
 import jp.kusumotolab.finergit.ast.token.NULL;
 import jp.kusumotolab.finergit.ast.token.NUMBERLITERAL;
+import jp.kusumotolab.finergit.ast.token.OR;
 import jp.kusumotolab.finergit.ast.token.OperatorFactory;
 import jp.kusumotolab.finergit.ast.token.PACKAGE;
 import jp.kusumotolab.finergit.ast.token.PACKAGENAME;
@@ -65,7 +67,9 @@ import jp.kusumotolab.finergit.ast.token.STATIC;
 import jp.kusumotolab.finergit.ast.token.STRINGLITERAL;
 import jp.kusumotolab.finergit.ast.token.SUPER;
 import jp.kusumotolab.finergit.ast.token.SWITCH;
+import jp.kusumotolab.finergit.ast.token.SYNCHRONIZED;
 import jp.kusumotolab.finergit.ast.token.THIS;
+import jp.kusumotolab.finergit.ast.token.THROW;
 import jp.kusumotolab.finergit.ast.token.THROWS;
 import jp.kusumotolab.finergit.ast.token.TRY;
 import jp.kusumotolab.finergit.ast.token.TYPENAME;
@@ -378,9 +382,15 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO node.getExpression() が null 出ない場合をテストしていない
   @Override
   public boolean visit(final ClassInstanceCreation node) {
+
+    final Expression expression = node.getExpression();
+    if (null != expression) {
+      expression.accept(this);
+      this.moduleStack.peek()
+          .addToken(new DOT());
+    }
 
     this.moduleStack.peek()
         .addToken(new NEW());
@@ -439,7 +449,6 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストしていない
   @Override
   public boolean visit(final ConstructorInvocation node) {
 
@@ -486,7 +495,6 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO node.getTypeArguments() が null 出ない場合のテストができていない
   @Override
   public boolean visit(final CreationReference node) {
 
@@ -908,11 +916,22 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
   @Override
-  public boolean visit(LabeledStatement node) {
-    // TODO Auto-generated method stub
-    return super.visit(node);
+  public boolean visit(final LabeledStatement node) {
+
+    this.contexts.push(LABELNAME.class);
+    node.getLabel()
+        .accept(this);
+    final Class<?> context = this.contexts.pop();
+    assert LABELNAME.class == context : "error happened at JavaFileVisitor#visit(LabeledStatement)";
+
+    this.moduleStack.peek()
+        .addToken(new COLON());
+
+    node.getBody()
+        .accept(this);
+
+    return false;
   }
 
   @Override
@@ -1173,11 +1192,29 @@ public class JavaFileVisitor extends ASTVisitor {
     return super.visit(node);
   }
 
-  // TODO テストしていない
   @Override
-  public boolean visit(NameQualifiedType node) {
-    // TODO Auto-generated method stub
-    return super.visit(node);
+  public boolean visit(final NameQualifiedType node) {
+
+    this.contexts.push(INVOKEDMETHODNAME.class);
+    node.getQualifier()
+        .accept(this);
+    final Class<?> qualifierText = this.contexts.pop();
+    assert INVOKEDMETHODNAME.class == qualifierText : "error happened at visit(NameQualifiedType)";
+
+    this.moduleStack.peek()
+        .addToken(new DOT());
+
+    for (final Object annotation : node.annotations()) {
+      ((Annotation) annotation).accept(this);
+    }
+
+    this.contexts.push(INVOKEDMETHODNAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> nameContext = this.contexts.pop();
+    assert INVOKEDMETHODNAME.class == nameContext : "error happened at visit(NameQualifiedType)";
+
+    return false;
   }
 
   // TODO テストできていない
@@ -1320,11 +1357,22 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストしていない
   @Override
-  public boolean visit(QualifiedType node) {
-    // TODO Auto-generated method stub
-    return super.visit(node);
+  public boolean visit(final QualifiedType node) {
+
+    node.getQualifier()
+        .accept(this);
+
+    this.moduleStack.peek()
+        .addToken(new DOT());
+
+    this.contexts.push(TYPENAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> context = this.contexts.pop();
+    assert TYPENAME.class == context : "error happened at JavaFileVisitor#visit(QualifiedType)";
+
+    return false;
   }
 
   // TODO テストできていない
@@ -1391,6 +1439,11 @@ public class JavaFileVisitor extends ASTVisitor {
     else if (IMPORTNAME.class == context) {
       this.moduleStack.peek()
           .addToken(new IMPORTNAME(identifier));
+    }
+
+    else if (LABELNAME.class == context) {
+      this.moduleStack.peek()
+          .addToken(new LABELNAME(identifier));
     }
 
     return false;
@@ -1473,11 +1526,21 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
   @Override
-  public boolean visit(SuperFieldAccess node) {
-    // TODO Auto-generated method stub
-    return super.visit(node);
+  public boolean visit(final SuperFieldAccess node) {
+
+    this.moduleStack.peek()
+        .addToken(new SUPER());
+    this.moduleStack.peek()
+        .addToken(new DOT());
+
+    this.contexts.push(VARIABLENAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> context = this.contexts.pop();
+    assert VARIABLENAME.class == context : "error happend at visit(SuperFieldAccess";
+
+    return false;
   }
 
   // TODO node.getQualifier が null でない場合はテストできていない
@@ -1572,11 +1635,24 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
   @Override
-  public boolean visit(SynchronizedStatement node) {
-    // TODO Auto-generated method stub
-    return super.visit(node);
+  public boolean visit(final SynchronizedStatement node) {
+
+    this.moduleStack.peek()
+        .addToken(new SYNCHRONIZED());
+    this.moduleStack.peek()
+        .addToken(new LEFTPAREN());
+
+    node.getExpression()
+        .accept(this);
+
+    this.moduleStack.peek()
+        .addToken(new RIGHTPAREN());
+
+    node.getBody()
+        .accept(this);
+
+    return false;
   }
 
   // TODO テストできていない
@@ -1600,11 +1676,19 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
   @Override
-  public boolean visit(ThrowStatement node) {
-    // TODO Auto-generated method stub
-    return super.visit(node);
+  public boolean visit(final ThrowStatement node) {
+
+    this.moduleStack.peek()
+        .addToken(new THROW());
+
+    node.getExpression()
+        .accept(this);
+
+    this.moduleStack.peek()
+        .addToken(new SEMICOLON());
+
+    return false;
   }
 
   @Override
@@ -1740,10 +1824,21 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
   @Override
-  public boolean visit(TypeMethodReference node) {
-    // TODO Auto-generated method stub
+  public boolean visit(final TypeMethodReference node) {
+
+    node.getType()
+        .accept(this);
+
+    this.moduleStack.peek()
+        .addToken(new METHODREFERENCE());
+
+    this.contexts.push(INVOKEDMETHODNAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> context = this.contexts.pop();
+    assert INVOKEDMETHODNAME.class == context : "error happened at visit(TypeMethodReference)";
+
     return super.visit(node);
   }
 
@@ -1756,9 +1851,18 @@ public class JavaFileVisitor extends ASTVisitor {
 
   // TODO テストできていない
   @Override
-  public boolean visit(UnionType node) {
-    // TODO Auto-generated method stub
-    return super.visit(node);
+  public boolean visit(final UnionType node) {
+
+    final List<?> types = node.types();
+    ((Type) types.get(0)).accept(this);
+
+    for (int index = 1; index < types.size(); index++) {
+      this.moduleStack.peek()
+          .addToken(new OR());
+      ((Type) types.get(index)).accept(this);
+    }
+
+    return false;
   }
 
   // TODO テストできていない
