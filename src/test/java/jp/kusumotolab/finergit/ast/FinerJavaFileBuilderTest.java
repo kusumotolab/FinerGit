@@ -98,7 +98,7 @@ public class FinerJavaFileBuilderTest {
 
     for (final FinerJavaModule module : modules) {
       System.out.println("---------- " + module.getFileName() + " ----------");
-      System.out.println(String.join(System.lineSeparator(), module.getLines()));
+      //System.out.println(String.join(System.lineSeparator(), module.getLines()));
     }
   }
 }

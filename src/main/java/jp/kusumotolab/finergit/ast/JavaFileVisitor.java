@@ -663,6 +663,7 @@ public class JavaFileVisitor extends ASTVisitor {
   // TODO テストできていない
   @Override
   public boolean visit(ExportsDirective node) {
+    System.err.println("JavaFileVisitor#visit(ExportsDirective) is not implemented yet.");
     return super.visit(node);
   }
 
@@ -983,28 +984,28 @@ public class JavaFileVisitor extends ASTVisitor {
   // TODO テストできていない
   @Override
   public boolean visit(MemberRef node) {
-    // TODO Auto-generated method stub
+    System.err.println("JavaFileVisitor#visit(MemberRef) is not implemented yet.");
     return super.visit(node);
   }
 
   // TODO テストできていない
   @Override
   public boolean visit(MemberValuePair node) {
-    // TODO Auto-generated method stub
+    System.err.println("JavaFileVisitor#visit(MemberValuePair) is not implemented yet.");
     return super.visit(node);
   }
 
   // TODO テストできていない
   @Override
   public boolean visit(MethodRef node) {
-    // TODO Auto-generated method stub
+    System.err.println("JavaFileVisitor#visit(MemberRef) is not implemented yet.");
     return super.visit(node);
   }
 
   // TODO テストできていない
   @Override
   public boolean visit(MethodRefParameter node) {
-    // TODO Auto-generated method stub
+    System.err.println("JavaFileVisitor#visit(MethodRefParameter) is not implemented yet.");
     return super.visit(node);
   }
 
@@ -1181,14 +1182,14 @@ public class JavaFileVisitor extends ASTVisitor {
   // TODO テストできていない
   @Override
   public boolean visit(ModuleDeclaration node) {
-    // TODO Auto-generated method stub
+    System.err.println("JavaFileVisitor#visit(ModuleDeclaration) is not implemented yet.");
     return super.visit(node);
   }
 
   // TODO テストできていない
   @Override
   public boolean visit(ModuleModifier node) {
-    // TODO Auto-generated method stub
+    System.err.println("JavaFileVisitor#visit(ModuleModifier) is not implemented yet.");
     return super.visit(node);
   }
 
@@ -1220,7 +1221,7 @@ public class JavaFileVisitor extends ASTVisitor {
   // TODO テストできていない
   @Override
   public boolean visit(NormalAnnotation node) {
-    // TODO Auto-generated method stub
+    System.err.println("JavaFileVisitor#visit(NormalAnnotation) is not implemented yet.");
     return super.visit(node);
   }
 
@@ -1241,7 +1242,7 @@ public class JavaFileVisitor extends ASTVisitor {
   // TODO テストできていない
   @Override
   public boolean visit(OpensDirective node) {
-    // TODO Auto-generated method stub
+    System.err.println("JavaFileVisitor#visit(OpensDirective) is not implemented yet.");
     return super.visit(node);
   }
 
@@ -1327,7 +1328,7 @@ public class JavaFileVisitor extends ASTVisitor {
   // TODO テストできていない
   @Override
   public boolean visit(ProvidesDirective node) {
-    // TODO Auto-generated method stub
+    System.err.println("JavaFileVisitor#visit(ProvidesDirective) is not implemented yet.");
     return super.visit(node);
   }
 
@@ -1366,6 +1367,10 @@ public class JavaFileVisitor extends ASTVisitor {
     this.moduleStack.peek()
         .addToken(new DOT());
 
+    for (final Object annotation : node.annotations()) {
+      ((Annotation) annotation).accept(this);
+    }
+
     this.contexts.push(TYPENAME.class);
     node.getName()
         .accept(this);
@@ -1378,7 +1383,7 @@ public class JavaFileVisitor extends ASTVisitor {
   // TODO テストできていない
   @Override
   public boolean visit(RequiresDirective node) {
-    // TODO Auto-generated method stub
+    System.err.println("JavaFileVisitor#visit(RequiresDirective) is not implemented yet.");
     return super.visit(node);
   }
 
@@ -1503,6 +1508,10 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final SuperConstructorInvocation node) {
 
+    if (null != node.getExpression()) {
+      System.err.println("JavaFileVisitor#visit(SuperConstructorInvocation) is not tested well.");
+    }
+
     this.moduleStack.peek()
         .addToken(new SUPER());
     this.moduleStack.peek()
@@ -1547,6 +1556,10 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final SuperMethodInvocation node) {
 
+    if (null != node.getQualifier()) {
+      System.err.println("JavaFileVisitor#visit(SuperMethodInvocation) is not tested well.");
+    }
+
     this.moduleStack.peek()
         .addToken(new SUPER());
     this.moduleStack.peek()
@@ -1555,6 +1568,7 @@ public class JavaFileVisitor extends ASTVisitor {
     this.contexts.push(INVOKEDMETHODNAME.class);
     node.getName()
         .accept(this);
+
     final Class<?> context = this.contexts.pop();
     assert INVOKEDMETHODNAME.class == context : "error happend at JavaFileVisitor#visit(SuperMethodInvocation)";
 
@@ -1580,7 +1594,7 @@ public class JavaFileVisitor extends ASTVisitor {
   // TODO テストできていない
   @Override
   public boolean visit(SuperMethodReference node) {
-    // TODO Auto-generated method stub
+    System.err.println("JavaFileVisitor#visit(SuperMethodReference) is not implemented yet.");
     return super.visit(node);
   }
 
@@ -1658,14 +1672,14 @@ public class JavaFileVisitor extends ASTVisitor {
   // TODO テストできていない
   @Override
   public boolean visit(TagElement node) {
-    // TODO Auto-generated method stub
+    System.err.println("JavaFileVisitor#visit(TagElement) is not implemented yet.");
     return super.visit(node);
   }
 
   // TODO テストできていない
   @Override
   public boolean visit(TextElement node) {
-    // TODO Auto-generated method stub
+    System.err.println("JavaFileVisitor#visit(TextElement) is not implemented yet.");
     return super.visit(node);
   }
 
@@ -1845,11 +1859,10 @@ public class JavaFileVisitor extends ASTVisitor {
   // TODO テストできていない
   @Override
   public boolean visit(TypeParameter node) {
-    // TODO Auto-generated method stub
+    System.err.println("JavaFileVisitor#visit(TypeParameter) is not implemented yet.");
     return super.visit(node);
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(final UnionType node) {
 
@@ -1868,7 +1881,7 @@ public class JavaFileVisitor extends ASTVisitor {
   // TODO テストできていない
   @Override
   public boolean visit(UsesDirective node) {
-    // TODO Auto-generated method stub
+    System.err.println("JavaFileVisitor#visit(UsesDirective) is not implemented yet.");
     return super.visit(node);
   }
 
