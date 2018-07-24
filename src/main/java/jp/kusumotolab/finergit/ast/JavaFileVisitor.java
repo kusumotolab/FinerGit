@@ -104,6 +104,12 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final AnnotationTypeDeclaration node) {
 
+    final Javadoc javadoc = node.getJavadoc();
+    if (null != javadoc) {
+      this.moduleStack.peek()
+          .addToken(new JAVADOCCOMMENT(javadoc.toString()));
+    }
+
     // 修飾子の処理
     for (final Object modifier : node.modifiers()) {
       final JavaToken modifierToken = ModifierFactory.create(modifier.toString());
@@ -133,6 +139,13 @@ public class JavaFileVisitor extends ASTVisitor {
 
   @Override
   public boolean visit(final AnnotationTypeMemberDeclaration node) {
+
+    // Javadoc コメントの処理
+    final Javadoc javadoc = node.getJavadoc();
+    if (null != javadoc) {
+      this.moduleStack.peek()
+          .addToken(new JAVADOCCOMMENT(javadoc.toString()));
+    }
 
     // 修飾子の処理
     for (final Object modifier : node.modifiers()) {
@@ -593,6 +606,13 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final EnumConstantDeclaration node) {
 
+    // Javadoc コメントの処理
+    final Javadoc javadoc = node.getJavadoc();
+    if (null != javadoc) {
+      this.moduleStack.peek()
+          .addToken(new JAVADOCCOMMENT(javadoc.toString()));
+    }
+
     // 修飾子の処理
     for (final Object modifier : node.modifiers()) {
       final JavaToken modifierToken = ModifierFactory.create(modifier.toString());
@@ -633,6 +653,13 @@ public class JavaFileVisitor extends ASTVisitor {
 
   @Override
   public boolean visit(final EnumDeclaration node) {
+
+    // Javadoc コメントの処理
+    final Javadoc javadoc = node.getJavadoc();
+    if (null != javadoc) {
+      this.moduleStack.peek()
+          .addToken(new JAVADOCCOMMENT(javadoc.toString()));
+    }
 
     // 修飾子の処理
     for (final Object modifier : node.modifiers()) {
@@ -717,6 +744,13 @@ public class JavaFileVisitor extends ASTVisitor {
 
   @Override
   public boolean visit(final FieldDeclaration node) {
+
+    // Javadoc コメントの処理
+    final Javadoc javadoc = node.getJavadoc();
+    if (null != javadoc) {
+      this.moduleStack.peek()
+          .addToken(new JAVADOCCOMMENT(javadoc.toString()));
+    }
 
     // 修飾子の処理
     for (final Object modifier : node.modifiers()) {
@@ -868,6 +902,13 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final Initializer node) {
 
+    // Javadoc コメントの処理
+    final Javadoc javadoc = node.getJavadoc();
+    if (null != javadoc) {
+      this.moduleStack.peek()
+          .addToken(new JAVADOCCOMMENT(javadoc.toString()));
+    }
+
     for (final Object modifier : node.modifiers()) {
       final JavaToken modifierToken = ModifierFactory.create(modifier.toString());
       this.moduleStack.peek()
@@ -976,6 +1017,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
   @Override
   public boolean visit(final MarkerAnnotation node) {
+
     this.moduleStack.peek()
         .addToken(new ANNOTATION(node.toString()));
     return false;
@@ -1016,6 +1058,13 @@ public class JavaFileVisitor extends ASTVisitor {
       final FinerJavaModule outerModule = this.moduleStack.peek();
       final FinerJavaMethod dummyMethod = new FinerJavaMethod("DummyMethod", outerModule);
       this.moduleStack.push(dummyMethod);
+    }
+
+    // Javadoc コメントの処理
+    final Javadoc javadoc = node.getJavadoc();
+    if (null != javadoc) {
+      this.moduleStack.peek()
+          .addToken(new JAVADOCCOMMENT(javadoc.toString()));
     }
 
     // 修飾子の処理（ダミーメソッドに追加）
@@ -1221,6 +1270,7 @@ public class JavaFileVisitor extends ASTVisitor {
   // TODO テストできていない
   @Override
   public boolean visit(NormalAnnotation node) {
+
     System.err.println("JavaFileVisitor#visit(NormalAnnotation) is not implemented yet.");
     return super.visit(node);
   }
@@ -1467,6 +1517,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
   @Override
   public boolean visit(final SingleMemberAnnotation node) {
+
     this.moduleStack.peek()
         .addToken(new ANNOTATION(node.toString()));
     return false;
@@ -1750,6 +1801,12 @@ public class JavaFileVisitor extends ASTVisitor {
 
   @Override
   public boolean visit(final TypeDeclaration node) {
+
+    final Javadoc javadoc = node.getJavadoc();
+    if (null != javadoc) {
+      this.moduleStack.peek()
+          .addToken(new JAVADOCCOMMENT(javadoc.toString()));
+    }
 
     // 修飾子の処理
     for (final Object modifier : node.modifiers()) {
