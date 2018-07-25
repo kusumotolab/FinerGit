@@ -1555,12 +1555,14 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO node.getExpression が null でない場合はテストしていない
   @Override
   public boolean visit(final SuperConstructorInvocation node) {
 
-    if (null != node.getExpression()) {
-      System.err.println("JavaFileVisitor#visit(SuperConstructorInvocation) is not tested well.");
+    final Expression qualifier = node.getExpression();
+    if (null != qualifier) {
+      qualifier.accept(this);
+      this.moduleStack.peek()
+          .addToken(new DOT());
     }
 
     this.moduleStack.peek()
