@@ -34,9 +34,7 @@ public class FinerJavaFileBuilder {
     };
 
     final ASTParser parser = createNewParser();
-    final String[] filePaths = pathToTextMap.keySet()
-        .stream()
-        .toArray(String[]::new);
+    final String[] filePaths = pathToTextMap.keySet().stream().toArray(String[]::new);
     parser.createASTs(filePaths, null, new String[] {}, requestor, null);
 
     return files;
@@ -54,10 +52,12 @@ public class FinerJavaFileBuilder {
   private ASTParser createNewParser() {
     ASTParser parser = ASTParser.newParser(AST.JLS10);
 
+    @SuppressWarnings("unchecked")
     final Map<String, String> options = DefaultCodeFormatterConstants.getEclipseDefaultSettings();
     options.put(JavaCore.COMPILER_COMPLIANCE, JavaCore.VERSION_1_8);
     options.put(JavaCore.COMPILER_CODEGEN_TARGET_PLATFORM, JavaCore.VERSION_1_8);
     options.put(JavaCore.COMPILER_SOURCE, JavaCore.VERSION_1_8);
+    options.put(JavaCore.COMPILER_DOC_COMMENT_SUPPORT, JavaCore.ENABLED);
     parser.setCompilerOptions(options);
 
     // TODO: Bindingが必要か検討
