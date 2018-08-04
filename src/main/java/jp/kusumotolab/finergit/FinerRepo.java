@@ -26,7 +26,10 @@ public class FinerRepo {
 
   public boolean initialize() {
     try {
-      this.git = Git.init().setDirectory(this.path.toFile()).setBare(false).call();
+      this.git = Git.init()
+          .setDirectory(this.path.toFile())
+          .setBare(false)
+          .call();
       return true;
     } catch (final Exception e) {
       System.err
@@ -39,7 +42,9 @@ public class FinerRepo {
   public boolean doCheckoutCommand(final String branchName, final boolean create,
       final RevCommit startPoint) {
     final CheckoutCommand checkoutCommand = this.git.checkout();
-    checkoutCommand.setCreateBranch(create).setName(branchName).setStartPoint(startPoint);
+    checkoutCommand.setCreateBranch(create)
+        .setName(branchName)
+        .setStartPoint(startPoint);
     try {
       checkoutCommand.call();
       return true;
@@ -58,7 +63,8 @@ public class FinerRepo {
     }
 
     final AddCommand addCommand = this.git.add();
-    paths.stream().forEach(addCommand::addFilepattern);
+    paths.stream()
+        .forEach(addCommand::addFilepattern);
     try {
       addCommand.call();
       return true;
@@ -77,7 +83,8 @@ public class FinerRepo {
     }
 
     final RmCommand rmCommand = this.git.rm();
-    paths.stream().forEach(rmCommand::addFilepattern);
+    paths.stream()
+        .forEach(rmCommand::addFilepattern);
     try {
       rmCommand.call();
       return true;
@@ -88,10 +95,14 @@ public class FinerRepo {
     }
   }
 
-  public RevCommit doCommitCommand(final PersonIdent personIdent, final String message) {
+  public RevCommit doCommitCommand(final PersonIdent personIdent, final String originalCommitID,
+      final String originalCommitMessage) {
     final CommitCommand commitCommand = this.git.commit();
+    final String message = "<OriginalCommitID:" + originalCommitID + "> " + originalCommitMessage;
     try {
-      final RevCommit commit = commitCommand.setAuthor(personIdent).setMessage(message).call();
+      final RevCommit commit = commitCommand.setAuthor(personIdent)
+          .setMessage(message)
+          .call();
       return commit;
     } catch (final Exception e) {
       System.err.println("git-commit command failed.");
@@ -103,8 +114,10 @@ public class FinerRepo {
   public MergeStatus doMergeCommand(final RevCommit targetCommit) {
     final MergeCommand mergeCommit = this.git.merge();
     try {
-      final MergeResult mergeResult = mergeCommit.include(targetCommit).setCommit(false)
-          .setFastForward(FastForwardMode.NO_FF).call();
+      final MergeResult mergeResult = mergeCommit.include(targetCommit)
+          .setCommit(false)
+          .setFastForward(FastForwardMode.NO_FF)
+          .call();
       return mergeResult.getMergeStatus();
     } catch (final Exception e) {
       System.err.println("git-commit command failed.");
