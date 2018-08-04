@@ -107,7 +107,8 @@ public class GitRepo {
 
         // ファイルの中身を取得
         final TreeWalk nodeWalk = TreeWalk.forPath(this.jgitObjectReader, path, tree);
-        final byte[] data = this.jgitObjectReader.open(nodeWalk.getObjectId(0)).getBytes();
+        final byte[] data = this.jgitObjectReader.open(nodeWalk.getObjectId(0))
+            .getBytes();
 
         files.put(path, data);
       }
@@ -133,8 +134,10 @@ public class GitRepo {
       newParser.reset(this.jgitObjectReader, commit.getTree());
 
       final DiffCommand diffCommand = git.diff();
-      final List<DiffEntry> diffEntries = diffCommand.setOldTree(oldParser).setNewTree(newParser)
-          .setShowNameAndStatusOnly(true).call();
+      final List<DiffEntry> diffEntries = diffCommand.setOldTree(oldParser)
+          .setNewTree(newParser)
+          .setShowNameAndStatusOnly(true)
+          .call();
       return diffEntries;
 
     } catch (final Exception e) {

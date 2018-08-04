@@ -1609,8 +1609,11 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final SuperMethodInvocation node) {
 
-    if (null != node.getQualifier()) {
-      System.err.println("JavaFileVisitor#visit(SuperMethodInvocation) is not tested well.");
+    final Name qualifier = node.getQualifier();
+    if (null != qualifier) {
+      qualifier.accept(this);
+      this.moduleStack.peek()
+          .addToken(new DOT());
     }
 
     this.moduleStack.peek()
@@ -1646,9 +1649,20 @@ public class JavaFileVisitor extends ASTVisitor {
 
   // TODO テストできていない
   @Override
-  public boolean visit(SuperMethodReference node) {
-    System.err.println("JavaFileVisitor#visit(SuperMethodReference) is not implemented yet.");
-    return super.visit(node);
+  public boolean visit(final SuperMethodReference node) {
+
+    this.moduleStack.peek()
+        .addToken(new SUPER());
+    this.moduleStack.peek()
+        .addToken(new METHODREFERENCE());
+
+    this.contexts.push(INVOKEDMETHODNAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> context = this.contexts.pop();
+    assert INVOKEDMETHODNAME.class == context : "error happened at visit(SuperMethodReference)";
+
+    return false;
   }
 
   @Override

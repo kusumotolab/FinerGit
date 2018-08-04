@@ -97,7 +97,7 @@ public class FinerJavaFileBuilderTest {
     final List<FinerJavaModule> modules = builder.constructASTs(pathToTextMap);
 
     for (final FinerJavaModule module : modules) {
-      System.out.println("---------- " + module.getFileName() + " ----------");
+      //System.out.println("---------- " + module.getFileName() + " ----------");
       //System.out.println(String.join(System.lineSeparator(), module.getLines()));
     }
   }
