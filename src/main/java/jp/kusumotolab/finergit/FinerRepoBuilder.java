@@ -113,8 +113,10 @@ public class FinerRepoBuilder {
 
       // git-commitコマンドの実行
       final PersonIdent authorIdent = targetCommit.getAuthorIdent();
+      final String id = targetCommit.abbreviate(7)
+          .name();
       final String message = targetCommit.getFullMessage();
-      newCommit = this.desRepo.doCommitCommand(authorIdent, message);
+      newCommit = this.desRepo.doCommitCommand(authorIdent, id, message);
     }
 
     // 親が1つのとき（normal commit）の処理
@@ -180,8 +182,10 @@ public class FinerRepoBuilder {
 
       // git-commitコマンドの実行
       final PersonIdent authorIdent = targetCommit.getAuthorIdent();
+      final String id = targetCommit.abbreviate(7)
+          .name();
       final String message = targetCommit.getFullMessage();
-      newCommit = this.desRepo.doCommitCommand(authorIdent, message);
+      newCommit = this.desRepo.doCommitCommand(authorIdent, id, message);
     }
 
     // 親が2つのとき（merge commit）の処理
@@ -213,9 +217,11 @@ public class FinerRepoBuilder {
       }
 
       // targetCommitの内容でコミット
-      final String message = targetCommit.getFullMessage();
       final PersonIdent authorIdent = targetCommit.getAuthorIdent();
-      newCommit = this.desRepo.doCommitCommand(authorIdent, message);
+      final String id = targetCommit.abbreviate(7)
+          .name();
+      final String message = targetCommit.getFullMessage();
+      newCommit = this.desRepo.doCommitCommand(authorIdent, id, message);
 
       System.out.println(targetCommit.abbreviate(7)
           .name() + "("
