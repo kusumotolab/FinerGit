@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.MergeResult.MergeStatus;
@@ -104,11 +105,18 @@ public class FinerRepoBuilder {
     // 親がないとき（initial commit）の処理
     if (0 == srcParents.size()) {
 
-      // 対象コミットのファイル群を取得し，リポジトリに追加
+      // 対象コミットのファイル群を取得
       final Map<String, byte[]> dataInCommit = this.srcRepo.getFiles(targetCommit);
+      final Map<String, byte[]> javaDataInCommit = this.filterMap(dataInCommit, e -> e.getKey()
+          .endsWith(".java"));
+      final Map<String, byte[]> nonjavaDataInCommit = this.filterMap(dataInCommit, e -> !e.getKey()
+          .endsWith(".java"));
+
+      // 対象ファイルのファイル群をリポジトリに追加
       if (this.isJavaIncluded) {
-        this.addFiles(dataInCommit);
+        this.addFiles(javaDataInCommit);
       }
+      this.addFiles(nonjavaDataInCommit);
 
       // 対象コミットのファイル群から，細粒度Javaファイルを作成し，git-add コマンドを実行
       final Map<String, byte[]> finerJavaData = this.generateFinerJavaModules(dataInCommit);
@@ -136,29 +144,50 @@ public class FinerRepoBuilder {
       final Set<String> addedFiles = this.getAddedFiles(diffEntries);
       final Set<String> modifiedFiles = this.getModifiedFiles(diffEntries);
       final Set<String> deletedFiles = this.getDeletedFiles(diffEntries);
+      final Set<String> deletedJavaFiles = deletedFiles.stream()
+          .filter(f -> f.endsWith(".java"))
+          .collect(Collectors.toSet());
+      final Set<String> deletedNonjavaFiles = deletedFiles.stream()
+          .filter(f -> !f.endsWith(".java"))
+          .collect(Collectors.toSet());
 
       // 対象コミットのファイルの一覧を取得
       final Map<String, byte[]> dataInCommit = this.srcRepo.getFiles(targetCommit);
-      final Map<String, byte[]> addedData = this.retainAll(dataInCommit, addedFiles);
-      final Map<String, byte[]> modifiedData = this.retainAll(dataInCommit, modifiedFiles);
+      final Map<String, byte[]> addedDataInCommit = this.retainAll(dataInCommit, addedFiles);
+      final Map<String, byte[]> modifiedDataInCommit = this.retainAll(dataInCommit, modifiedFiles);
+      final Map<String, byte[]> addedJavaDataInCommit =
+          this.filterMap(addedDataInCommit, e -> e.getKey()
+              .endsWith(".java"));
+      final Map<String, byte[]> addedNonjavaDataInCommit =
+          this.filterMap(addedDataInCommit, e -> !e.getKey()
+              .endsWith(".java"));
+      final Map<String, byte[]> modifiedJavaDataInCommit =
+          this.filterMap(modifiedDataInCommit, e -> e.getKey()
+              .endsWith(".java"));
+      final Map<String, byte[]> modifiedNonjavaDataInCommit =
+          this.filterMap(modifiedDataInCommit, e -> !e.getKey()
+              .endsWith(".java"));
 
       // 対象コミットに含まれるファイルのうち，
       // 追加されたファイルおよび修正されたファイルに対して，git-add コマンドを実行
       // 削除されたファイルに対して，git-rm コマンドを実行
       if (this.isJavaIncluded) {
-        this.addFiles(addedData);
-        this.addFiles(modifiedData);
-        this.removeFiles(deletedFiles);
+        this.addFiles(addedJavaDataInCommit);
+        this.addFiles(modifiedJavaDataInCommit);
+        this.removeFiles(deletedJavaFiles);
       }
+      this.addFiles(addedNonjavaDataInCommit);
+      this.addFiles(modifiedNonjavaDataInCommit);
+      this.removeFiles(deletedNonjavaFiles);
 
       // 追加されたファイルから細粒度ファイルを生成し，git-add コマンドを実行
       final Map<String, byte[]> finerJavaFilesInAddedFiles =
-          this.generateFinerJavaModules(addedData);
+          this.generateFinerJavaModules(addedDataInCommit);
       this.addFiles(finerJavaFilesInAddedFiles);
 
       // 修正されたファイルから細粒度ファイルを生成し，git-add コマンドを実行
       final Map<String, byte[]> finerJavaFilesInModifiedFiles =
-          this.generateFinerJavaModules(modifiedData);
+          this.generateFinerJavaModules(modifiedDataInCommit);
       this.addFiles(finerJavaFilesInModifiedFiles);
 
       // 修正されたファイルから以前に生成された細粒度ファイルのうち，
@@ -205,9 +234,16 @@ public class FinerRepoBuilder {
 
         // 対象コミットのファイルの一覧を取得し，新しいリポジトリに追加
         final Map<String, byte[]> dataInCommit = this.srcRepo.getFiles(targetCommit);
+        final Map<String, byte[]> javaDataInCommit = this.filterMap(dataInCommit, e -> e.getKey()
+            .endsWith(".java"));
+        final Map<String, byte[]> nonjavaDataInCommit =
+            this.filterMap(dataInCommit, e -> !e.getKey()
+                .endsWith(".java"));
+
         if (this.isJavaIncluded) {
-          this.addFiles(dataInCommit);
+          this.addFiles(javaDataInCommit);
         }
+        this.addFiles(nonjavaDataInCommit);
 
         // 対象コミットのファイル群から，細粒度Javaファイルを作成し，新しいリポジトリに追加
         final Map<String, byte[]> finerJavaData = this.generateFinerJavaModules(dataInCommit);
@@ -401,5 +437,13 @@ public class FinerRepoBuilder {
         .filter(d -> ChangeType.DELETE == d.getChangeType())
         .map(d -> d.getOldPath())
         .collect(Collectors.toSet());
+  }
+
+  private Map<String, byte[]> filterMap(final Map<String, byte[]> map,
+      final Predicate<Entry<String, byte[]>> p) {
+    return map.entrySet()
+        .stream()
+        .filter(p)
+        .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
   }
 }
