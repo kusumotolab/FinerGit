@@ -4,6 +4,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -97,8 +98,25 @@ public class FinerJavaFileBuilderTest {
     final List<FinerJavaModule> modules = builder.constructASTs(pathToTextMap);
 
     for (final FinerJavaModule module : modules) {
-      //System.out.println("---------- " + module.getFileName() + " ----------");
-      //System.out.println(String.join(System.lineSeparator(), module.getLines()));
+      // System.out.println("---------- " + module.getFileName() + " ----------");
+      // System.out.println(String.join(System.lineSeparator(), module.getLines()));
     }
   }
+
+  @Test
+  public void test_constructASTs_04() throws Exception {
+
+    final Path path = Paths
+        .get("/Users/higo/git/kGenProg/src/main/java/jp/kusumotolab/kgenprog/KGenProgMain.java");
+    final List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
+    final String text = String.join(System.lineSeparator(), lines);
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder();
+    final List<FinerJavaModule> modules = builder.constructAST(path.toString(), text);
+
+    for (final FinerJavaModule module : modules) {
+      System.out.println("---------- " + module.getFileName() + " ----------");
+      System.out.println(String.join(System.lineSeparator(), module.getLines()));
+    }
+  }
+
 }
