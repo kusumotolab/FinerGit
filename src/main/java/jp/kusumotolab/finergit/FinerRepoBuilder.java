@@ -159,7 +159,7 @@ public class FinerRepoBuilder {
       this.addFiles(finerJavaFilesInModifiedFiles);
 
       // 修正されたファイルから以前に生成された細粒度ファイルのうち，
-      // に含まれないファイルに対して git-rm コマンドを実行
+      // 修正されたファイルから今回生成された細粒度ファイルに含まれないファイルに対して git-rm コマンドを実行
       final Set<String> finerJavaFilesInWorkingDir =
           this.getWorkingFiles(this.desPath, "fjava", "mjava");
       final Set<String> modifiedJavaFilePrefixes = modifiedFiles.stream()
@@ -314,7 +314,7 @@ public class FinerRepoBuilder {
   private Set<String> getFilesHavingPrefix(final Set<String> files, final Set<String> prefixes) {
     return files.stream()
         .filter(f -> prefixes.stream()
-            .anyMatch(p -> f.startsWith(f)))
+            .anyMatch(p -> f.startsWith(p)))
         .collect(Collectors.toSet());
   }
 
