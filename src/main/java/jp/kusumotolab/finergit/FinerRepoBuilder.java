@@ -1,6 +1,5 @@
 package jp.kusumotolab.finergit;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
@@ -27,15 +26,17 @@ public class FinerRepoBuilder {
 
   public final Path srcPath;
   public final Path desPath;
+  public final boolean isJavaIncluded;
   private GitRepo srcRepo;
   private FinerRepo desRepo;
   private final BranchName branchID;
   private final Map<RevCommit, RevCommit> commitMap;
   private final Map<RevCommit, Integer> branchMap;
 
-  public FinerRepoBuilder(final Path srcPath, final Path desPath) {
+  public FinerRepoBuilder(final Path srcPath, final Path desPath, final boolean isJavaIncluded) {
     this.srcPath = srcPath;
     this.desPath = desPath;
+    this.isJavaIncluded = isJavaIncluded;
     this.srcRepo = null;
     this.desRepo = null;
     this.branchID = new BranchName();
@@ -105,7 +106,9 @@ public class FinerRepoBuilder {
 
       // 対象コミットのファイル群を取得し，リポジトリに追加
       final Map<String, byte[]> dataInCommit = this.srcRepo.getFiles(targetCommit);
-      this.addFiles(dataInCommit);
+      if (this.isJavaIncluded) {
+        this.addFiles(dataInCommit);
+      }
 
       // 対象コミットのファイル群から，細粒度Javaファイルを作成し，git-add コマンドを実行
       final Map<String, byte[]> finerJavaData = this.generateFinerJavaModules(dataInCommit);
@@ -136,17 +139,17 @@ public class FinerRepoBuilder {
 
       // 対象コミットのファイルの一覧を取得
       final Map<String, byte[]> dataInCommit = this.srcRepo.getFiles(targetCommit);
-
-      // 対象コミットに含まれるファイルのうち，追加されたファイルのみを抽出し，git-add コマンドを実行
       final Map<String, byte[]> addedData = this.retainAll(dataInCommit, addedFiles);
-      this.addFiles(addedData);
-
-      // 対象コミットに含まれるファイルのうち，修正されたファイルのみを抽出し，git-add コマンドを実行
       final Map<String, byte[]> modifiedData = this.retainAll(dataInCommit, modifiedFiles);
-      this.addFiles(modifiedData);
 
-      // 対象コミットで削除されたファイルに対して，git-rm コマンドを実行
-      this.removeFiles(deletedFiles);
+      // 対象コミットに含まれるファイルのうち，
+      // 追加されたファイルおよび修正されたファイルに対して，git-add コマンドを実行
+      // 削除されたファイルに対して，git-rm コマンドを実行
+      if (this.isJavaIncluded) {
+        this.addFiles(addedData);
+        this.addFiles(modifiedData);
+        this.removeFiles(deletedFiles);
+      }
 
       // 追加されたファイルから細粒度ファイルを生成し，git-add コマンドを実行
       final Map<String, byte[]> finerJavaFilesInAddedFiles =
@@ -202,7 +205,9 @@ public class FinerRepoBuilder {
 
         // 対象コミットのファイルの一覧を取得し，新しいリポジトリに追加
         final Map<String, byte[]> dataInCommit = this.srcRepo.getFiles(targetCommit);
-        this.addFiles(dataInCommit);
+        if (this.isJavaIncluded) {
+          this.addFiles(dataInCommit);
+        }
 
         // 対象コミットのファイル群から，細粒度Javaファイルを作成し，新しいリポジトリに追加
         final Map<String, byte[]> finerJavaData = this.generateFinerJavaModules(dataInCommit);
@@ -296,7 +301,7 @@ public class FinerRepoBuilder {
 
         for (final FinerJavaModule module : finerJavaModules) {
           final Path finerPath = module.getPath();
-          final byte[] finerData = String.join(File.pathSeparator, module.getLines())
+          final byte[] finerData = String.join(System.lineSeparator(), module.getLines())
               .getBytes("utf-8");
           finerJavaData.put(finerPath.toString(), finerData);
           // System.err.println(String.join("|", module.getLines()));
