@@ -1,7 +1,7 @@
 package jp.kusumotolab.finergit;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -143,12 +142,9 @@ public class FinerRepoBuilder {
       final Set<String> addedFiles = this.getAddedFiles(diffEntries);
       final Set<String> modifiedFiles = this.getModifiedFiles(diffEntries);
       final Set<String> deletedFiles = this.getDeletedFiles(diffEntries);
-      final Set<String> deletedJavaFiles = deletedFiles.stream()
-          .filter(f -> f.endsWith(".java"))
-          .collect(Collectors.toSet());
-      final Set<String> deletedNonjavaFiles = deletedFiles.stream()
-          .filter(f -> !f.endsWith(".java"))
-          .collect(Collectors.toSet());
+      final Set<String> deletedJavaFiles = this.filterSet(deletedFiles, f -> f.endsWith(".java"));
+      final Set<String> deletedNonjavaFiles =
+          this.filterSet(deletedFiles, f -> !f.endsWith(".java"));
 
       // 対象コミットのファイルの一覧を取得
       final Map<String, byte[]> dataInCommit = this.srcRepo.getFiles(targetCommit);
@@ -253,20 +249,11 @@ public class FinerRepoBuilder {
       newCommit = this.desRepo.doCommitCommand(authorIdent, id, message);
 
       System.out.println(targetCommit.abbreviate(7)
-          .name() + "("
-          + srcParents.get(0)
-              .abbreviate(7)
-              .name()
-          + ", " + srcParents.get(1)
-              .abbreviate(7)
-              .name()
-          + ")" + " : " + newCommit.abbreviate(7)
-              .name()
-          + "(" + desParents[0].abbreviate(7)
-              .name()
-          + ", " + desParents[1].abbreviate(7)
-              .name()
-          + ")" + " : " + branchID + "--" + this.branchMap.get(desParents[1]) + " : "
+          .name() + "(" + this.getAbbreviatedID(srcParents.get(0)) + ", "
+          + this.getAbbreviatedID(srcParents.get(1)) + ")" + " : "
+          + this.getAbbreviatedID(newCommit) + "(" + this.getAbbreviatedID(desParents[0]) + ", "
+          + this.getAbbreviatedID(desParents[1]) + ")" + " : " + branchID + "--"
+          + this.branchMap.get(desParents[1]) + " : "
           + new Date(targetCommit.getCommitTime() * 1000L) + " : " + mergeStatus);
     }
 
@@ -288,36 +275,28 @@ public class FinerRepoBuilder {
   }
 
   // 引数で与えたれたファイル群のうち，Javaファイルに対して細粒度Javaファイルを作成する
-  private Map<String, byte[]> generateFinerJavaModules(final Map<String, byte[]> data) {
+  private Map<String, byte[]> generateFinerJavaModules(final Map<String, byte[]> files) {
 
     final Map<String, byte[]> finerJavaData = new HashMap<>();
 
-    for (final Entry<String, byte[]> entry : data.entrySet()) {
+    files.forEach((path, data) -> {
 
-      final String path = entry.getKey();
       if (!path.endsWith(".java")) {
-        continue;
+        return;
       }
 
-      try {
-        final byte[] bytes = entry.getValue();
-        final String text = new String(bytes, "utf-8");
+      final String text = new String(data, StandardCharsets.UTF_8);
 
-        final FinerJavaFileBuilder builder = new FinerJavaFileBuilder();
-        final List<FinerJavaModule> finerJavaModules = builder.constructAST(path, text);
+      final FinerJavaFileBuilder builder = new FinerJavaFileBuilder();
+      final List<FinerJavaModule> finerJavaModules = builder.constructAST(path, text);
 
-        for (final FinerJavaModule module : finerJavaModules) {
-          final Path finerPath = module.getPath();
-          final byte[] finerData = String.join(System.lineSeparator(), module.getLines())
-              .getBytes("utf-8");
-          finerJavaData.put(finerPath.toString(), finerData);
-          // System.err.println(String.join("|", module.getLines()));
-        }
-
-      } catch (final UnsupportedEncodingException e) {
-        e.printStackTrace();
+      for (final FinerJavaModule module : finerJavaModules) {
+        final Path finerPath = module.getPath();
+        final String finerText = String.join(System.lineSeparator(), module.getLines());
+        finerJavaData.put(finerPath.toString(), finerText.getBytes(StandardCharsets.UTF_8));
+        // System.err.println(String.join("|", module.getLines()));
       }
-    }
+    });
 
     return finerJavaData;
   }
@@ -331,13 +310,12 @@ public class FinerRepoBuilder {
   }
 
   // 引数で与えられたファイルをgit-addする．
-  private void addFiles(final Map<String, byte[]> updatedData) {
+  private void addFiles(final Map<String, byte[]> files) {
 
     // 各ファイルを新しいリポジトリに保存
-    for (final Entry<String, byte[]> entry : updatedData.entrySet()) {
+    files.forEach((path, data) -> {
 
       // ファイルの絶対パスを取得
-      final String path = entry.getKey();
       final Path absolutePath = this.desRepo.path.resolve(path);
 
       // ファイルの親ディレクトリがなければ作成
@@ -348,23 +326,22 @@ public class FinerRepoBuilder {
         } catch (final IOException e) {
           System.err.println("failed to create a new directory: " + parent.toString());
           e.printStackTrace();
-          continue;
+          return;
         }
       }
 
       // ファイル書き込み
       try {
-        final byte[] data = entry.getValue();
         Files.write(absolutePath, data);
       } catch (final IOException e) {
         System.err.println("failed to write a file: " + absolutePath.toString());
         e.printStackTrace();
-        continue;
+        return;
       }
-    }
+    });
 
     // addコマンドの実行
-    this.desRepo.doAddCommand(updatedData.keySet());
+    this.desRepo.doAddCommand(files.keySet());
   }
 
   // 引数で与えられたファイルをgit-rmする
@@ -407,6 +384,13 @@ public class FinerRepoBuilder {
     return diffEntries.stream()
         .filter(d -> ChangeType.DELETE == d.getChangeType())
         .map(d -> d.getOldPath()) // old path なので注意！！
+        .collect(Collectors.toSet());
+  }
+
+  // 第一引数で与えられたSetのうち，第二引数の条件に合うものを抽出
+  private Set<String> filterSet(final Set<String> set, final Predicate<String> p) {
+    return set.stream()
+        .filter(p)
         .collect(Collectors.toSet());
   }
 
