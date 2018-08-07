@@ -1,28 +1,31 @@
 package jp.kusumotolab.finergit;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
 
 public class FinerGitMain {
 
   public static void main(final String[] args) {
 
+    final FinerGitConfig config = new FinerGitConfig();
+    final CmdLineParser cmdLineParser = new CmdLineParser(config);
     try {
-      final Path srcPath = Paths.get(args[0]);
-      final Path desPath = Paths.get(args[1]);
-
-      final long startTime = System.nanoTime();
-
-      final FinerRepoBuilder builder = new FinerRepoBuilder(srcPath, desPath, false, false);
-      builder.exec();
-
-      final long endTime = System.nanoTime();
-
-      System.out.println(getExecutionTime(endTime - startTime));
-
-    } catch (final Exception e) {
-      e.printStackTrace();
+      cmdLineParser.parseArgument(args);
+    } catch (final CmdLineException e1) {
+      cmdLineParser.printUsage(System.err);
+      e1.printStackTrace();
     }
+
+    final Timer timer = new Timer();
+    timer.start();
+
+    final FinerGitMain finerGitMain = new FinerGitMain(config);
+    finerGitMain.exec();
+
+
+    timer.stop();
+    System.out.println(timer.toString());
   }
 
   public static String getExecutionTime(final long nano) {
@@ -48,5 +51,23 @@ public class FinerGitMain {
     text.append(" seconds ");
 
     return text.toString();
+  }
+
+  private final FinerGitConfig config;
+
+  public FinerGitMain(final FinerGitConfig config) {
+    this.config = config;
+  }
+
+  public void exec() {
+
+    final Path srcPath = this.config.getSrcPath();
+    final Path desPath = this.config.getDesPath();
+    final boolean isOriginalJavaIncluded = this.config.isOriginalJavaIncluded();
+    final boolean isOtherFilesIncluded = this.config.isOtherFilesIncluded();
+
+    final FinerRepoBuilder builder =
+        new FinerRepoBuilder(srcPath, desPath, isOriginalJavaIncluded, isOtherFilesIncluded);
+    builder.exec();
   }
 }
