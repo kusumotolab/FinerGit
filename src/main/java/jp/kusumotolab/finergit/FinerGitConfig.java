@@ -3,6 +3,9 @@ package jp.kusumotolab.finergit;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.kohsuke.args4j.Option;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import ch.qos.logback.classic.Level;
 
 public class FinerGitConfig {
 
@@ -77,6 +80,39 @@ public class FinerGitConfig {
       }
       default: {
         System.err.println("\"-p\" option can take only true or false");
+        System.exit(0);
+      }
+    }
+  }
+
+  @Option(name = "-l", aliases = "--log-level", metaVar = "<level>",
+      usage = "log level (trace, debug, info, warn, error)")
+  public void setLogLevel(final String logLevel) {
+    final ch.qos.logback.classic.Logger log =
+        (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+    switch (logLevel.toLowerCase()) {
+      case "trace": {
+        log.setLevel(Level.TRACE);
+        break;
+      }
+      case "debug": {
+        log.setLevel(Level.DEBUG);
+        break;
+      }
+      case "info": {
+        log.setLevel(Level.INFO);
+        break;
+      }
+      case "warn": {
+        log.setLevel(Level.WARN);
+        break;
+      }
+      case "error": {
+        log.setLevel(Level.ERROR);
+        break;
+      }
+      default: {
+        System.err.println("inappropriate value for \"-l\" option");
         System.exit(0);
       }
     }

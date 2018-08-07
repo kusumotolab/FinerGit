@@ -1,12 +1,20 @@
 package jp.kusumotolab.finergit;
 
-import java.nio.file.Path;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import ch.qos.logback.classic.Level;
 
 public class FinerGitMain {
 
+  private static Logger log = LoggerFactory.getLogger(FinerGitMain.class);
+
   public static void main(final String[] args) {
+
+    final ch.qos.logback.classic.Logger l =
+        (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+    //l.setLevel(Level.DEBUG);
 
     final FinerGitConfig config = new FinerGitConfig();
     final CmdLineParser cmdLineParser = new CmdLineParser(config);
@@ -25,32 +33,7 @@ public class FinerGitMain {
 
 
     timer.stop();
-    System.out.println(timer.toString());
-  }
-
-  public static String getExecutionTime(final long nano) {
-
-    final long micro = nano / 1000l;
-    final long milli = micro / 1000l;
-    final long second = milli / 1000l;
-
-    final long hours = second / 3600;
-    final long minutes = (second % 3600) / 60;
-    final long seconds = (second % 3600) % 60;
-
-    final StringBuilder text = new StringBuilder();
-    if (0 < hours) {
-      text.append(hours);
-      text.append(" hours ");
-    }
-    if (0 < minutes) {
-      text.append(minutes);
-      text.append(" minutes ");
-    }
-    text.append(seconds);
-    text.append(" seconds ");
-
-    return text.toString();
+    log.info("elapsed time {}", timer.toString());
   }
 
   private final FinerGitConfig config;
@@ -60,14 +43,7 @@ public class FinerGitMain {
   }
 
   public void exec() {
-
-    final Path srcPath = this.config.getSrcPath();
-    final Path desPath = this.config.getDesPath();
-    final boolean isOriginalJavaIncluded = this.config.isOriginalJavaIncluded();
-    final boolean isOtherFilesIncluded = this.config.isOtherFilesIncluded();
-
-    final FinerRepoBuilder builder =
-        new FinerRepoBuilder(srcPath, desPath, isOriginalJavaIncluded, isOtherFilesIncluded);
+    final FinerRepoBuilder builder = new FinerRepoBuilder(this.config);
     builder.exec();
   }
 }

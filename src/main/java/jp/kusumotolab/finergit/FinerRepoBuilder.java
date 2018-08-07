@@ -19,27 +19,24 @@ import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.DiffEntry.ChangeType;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import jp.kusumotolab.finergit.ast.FinerJavaFileBuilder;
 import jp.kusumotolab.finergit.ast.FinerJavaModule;
 
 public class FinerRepoBuilder {
 
-  public final Path srcPath;
-  public final Path desPath;
-  public final boolean isOriginalJavaIncluded;
-  public final boolean isOtherFileIncluded;
+  private static Logger log = LoggerFactory.getLogger(FinerRepoBuilder.class);
+
+  public final FinerGitConfig config;
   private GitRepo srcRepo;
   private FinerRepo desRepo;
   private final BranchName branchID;
   private final Map<RevCommit, RevCommit> commitMap;
   private final Map<RevCommit, Integer> branchMap;
 
-  public FinerRepoBuilder(final Path srcPath, final Path desPath,
-      final boolean isOriginalJavaIncluded, final boolean isOtherFileIncluded) {
-    this.srcPath = srcPath;
-    this.desPath = desPath;
-    this.isOriginalJavaIncluded = isOriginalJavaIncluded;
-    this.isOtherFileIncluded = isOtherFileIncluded;
+  public FinerRepoBuilder(final FinerGitConfig config) {
+    this.config = config;
     this.srcRepo = null;
     this.desRepo = null;
     this.branchID = new BranchName();
@@ -52,8 +49,8 @@ public class FinerRepoBuilder {
    */
   public void exec() {
 
-    this.srcRepo = new GitRepo(this.srcPath);
-    this.desRepo = new FinerRepo(this.desPath);
+    this.srcRepo = new GitRepo(this.config.getSrcPath());
+    this.desRepo = new FinerRepo(this.config.getDesPath());
 
     try {
 
@@ -66,6 +63,8 @@ public class FinerRepoBuilder {
 
       // caching checked commits
       final Set<RevCommit> checkedCommits = new HashSet<>();
+
+      log.info("tracking the commit history from HEAD ...");
 
       exec(headCommit, this.branchID.newID(), checkedCommits);
 
@@ -86,6 +85,9 @@ public class FinerRepoBuilder {
       return cachedNewCommit;
     }
 
+    log.debug("tracking commit<{}> ({})", this.getAbbreviatedID(targetCommit),
+        this.getDate(targetCommit));
+
     // 親が存在した場合には，親をたどる
     final List<RevCommit> srcParents = this.srcRepo.getParentCommits(targetCommit);
     final RevCommit[] desParents = new RevCommit[2];
@@ -102,6 +104,9 @@ public class FinerRepoBuilder {
       }
     }
 
+    log.debug("rebuilding commit<{}> ({})", this.getAbbreviatedID(targetCommit),
+        this.getDate(targetCommit));
+
     RevCommit newCommit = null;
 
     // 親がないとき（initial commit）の処理
@@ -115,10 +120,10 @@ public class FinerRepoBuilder {
           this.filterMap(dataInCommit, path -> !path.endsWith(".java"));
 
       // 対象ファイルのファイル群をリポジトリに追加
-      if (this.isOriginalJavaIncluded) {
+      if (this.config.isOriginalJavaIncluded()) {
         this.addFiles(javaDataInCommit);
       }
-      if (this.isOtherFileIncluded) {
+      if (this.config.isOtherFilesIncluded()) {
         this.addFiles(otherDataInCommit);
       }
 
@@ -168,12 +173,12 @@ public class FinerRepoBuilder {
       // 対象コミットに含まれるファイルのうち，
       // 追加されたファイルおよび修正されたファイルに対して，git-add コマンドを実行
       // 削除されたファイルに対して，git-rm コマンドを実行
-      if (this.isOriginalJavaIncluded) {
+      if (this.config.isOriginalJavaIncluded()) {
         this.addFiles(addedJavaDataInCommit);
         this.addFiles(modifiedJavaDataInCommit);
         this.removeFiles(deletedJavaFiles);
       }
-      if (this.isOtherFileIncluded) {
+      if (this.config.isOtherFilesIncluded()) {
         this.addFiles(addedOtherDataInCommit);
         this.addFiles(modifiedOtherDataInCommit);
         this.removeFiles(deletedOtherFiles);
@@ -192,7 +197,7 @@ public class FinerRepoBuilder {
       // 修正されたファイルから以前に生成された細粒度ファイルのうち，
       // 修正されたファイルから今回生成された細粒度ファイルに含まれないファイルに対して git-rm コマンドを実行
       final Set<String> finerJavaFilesInWorkingDir =
-          this.getWorkingFiles(this.desPath, "fjava", "mjava");
+          this.getWorkingFiles(this.config.getDesPath(), "fjava", "mjava");
       final Set<String> modifiedJavaFilePrefixes = this.removePrefixes(modifiedFiles);
       final Set<String> finerJavaFilesToDelete1 =
           this.getFilesHavingPrefix(finerJavaFilesInWorkingDir, modifiedJavaFilePrefixes);
@@ -231,10 +236,10 @@ public class FinerRepoBuilder {
         final Map<String, byte[]> otherDataInCommit =
             this.filterMap(dataInCommit, path -> !path.endsWith(".java"));
 
-        if (this.isOriginalJavaIncluded) {
+        if (this.config.isOriginalJavaIncluded()) {
           this.addFiles(javaDataInCommit);
         }
-        if (this.isOtherFileIncluded) {
+        if (this.config.isOtherFilesIncluded()) {
           this.addFiles(otherDataInCommit);
         }
 
@@ -244,7 +249,7 @@ public class FinerRepoBuilder {
 
         // ワーキングファイルに含まれているファイルのうち，dataInCommit と finerJavaData のどちらにも
         // 含まれていないファイルに対して，git-rm コマンドを実行
-        final Set<String> filesToDelete = this.getWorkingFiles(this.desPath);
+        final Set<String> filesToDelete = this.getWorkingFiles(this.config.getDesPath());
         filesToDelete.removeAll(dataInCommit.keySet());
         filesToDelete.removeAll(finerJavaData.keySet());
         this.removeFiles(filesToDelete);
@@ -255,14 +260,6 @@ public class FinerRepoBuilder {
       final String id = this.getAbbreviatedID(targetCommit);
       final String message = targetCommit.getFullMessage();
       newCommit = this.desRepo.doCommitCommand(authorIdent, id, message);
-
-      System.out.println(targetCommit.abbreviate(7)
-          .name() + "(" + this.getAbbreviatedID(srcParents.get(0)) + ", "
-          + this.getAbbreviatedID(srcParents.get(1)) + ")" + " : "
-          + this.getAbbreviatedID(newCommit) + "(" + this.getAbbreviatedID(desParents[0]) + ", "
-          + this.getAbbreviatedID(desParents[1]) + ")" + " : " + branchID + "--"
-          + this.branchMap.get(desParents[1]) + " : "
-          + new Date(targetCommit.getCommitTime() * 1000L) + " : " + mergeStatus);
     }
 
     // オリジナルリポジトリと細粒度リポジトリのコミットのマップをとる
@@ -414,6 +411,11 @@ public class FinerRepoBuilder {
   private String getAbbreviatedID(final RevCommit commit) {
     return commit.abbreviate(7)
         .name();
+  }
+
+  private String getDate(final RevCommit commit) {
+    final Date date = new Date(commit.getCommitTime() * 1000L);
+    return date.toString();
   }
 
   // 引数で与えられたファイルパスの集合から，java ファイルのみを取り出し拡張子を取り除く
