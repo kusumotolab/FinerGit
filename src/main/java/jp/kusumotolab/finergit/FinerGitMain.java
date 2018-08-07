@@ -13,7 +13,7 @@ public class FinerGitMain {
 
       final long startTime = System.nanoTime();
 
-      final FinerRepoBuilder builder = new FinerRepoBuilder(srcPath, desPath, false);
+      final FinerRepoBuilder builder = new FinerRepoBuilder(srcPath, desPath, false, false);
       builder.exec();
 
       final long endTime = System.nanoTime();
