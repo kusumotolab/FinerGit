@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.MergeResult.MergeStatus;
 import org.eclipse.jgit.diff.DiffEntry;
@@ -305,7 +306,6 @@ public class FinerRepoBuilder {
         final Path finerPath = module.getPath();
         final String finerText = String.join(System.lineSeparator(), module.getLines());
         finerJavaData.put(finerPath.toString(), finerText.getBytes(StandardCharsets.UTF_8));
-        // System.err.println(String.join("|", module.getLines()));
       }
     });
 
@@ -335,7 +335,9 @@ public class FinerRepoBuilder {
         try {
           Files.createDirectories(parent);
         } catch (final IOException e) {
-          System.err.println("failed to create a new directory: " + parent.toString());
+          log.error("failed to create a new directory<{}>", parent.toString());
+          Stream.of(e.getStackTrace())
+              .forEach(s -> log.error(s.toString()));
           e.printStackTrace();
           return;
         }
@@ -345,8 +347,9 @@ public class FinerRepoBuilder {
       try {
         Files.write(absolutePath, data);
       } catch (final IOException e) {
-        System.err.println("failed to write a file: " + absolutePath.toString());
-        e.printStackTrace();
+        log.error("failed to write a file<{}>", absolutePath.toString());
+        Stream.of(e.getStackTrace())
+            .forEach(s -> log.error(s.toString()));
         return;
       }
     });
