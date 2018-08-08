@@ -74,7 +74,7 @@ public class FinerRepoBuilder {
   }
 
   // 第一引数で与えたれたコミットに対して，そこに含まれるJavaファイルの細粒度版からなるコミットを生成する
-  // 第二引数で与えられたブランチが，細粒度版Javaファイルをコミットするブランチである．
+  // 第二引数で与えられたブランチが，細粒度版Javaファイルをコミットするブランチである（マージコミットの場合はそうとは限らない）．
   // 第三引数で与えれたコミット群は，すでにチェックしたコミット群
   private RevCommit exec(final RevCommit targetCommit, final int branchID,
       final Set<RevCommit> checkedCommits) {
@@ -221,7 +221,13 @@ public class FinerRepoBuilder {
     else if (2 == srcParents.size()) {
 
       // 1つ目の親のブランチにスイッチ
-      this.checkout(branchID, false, null);
+      final int parentBranchID = this.branchMap.get(desParents[0]);
+      this.checkout(parentBranchID, false, null);
+
+      // もし1つ目の親のブランチが，コミットすべきブランチではない場合は新しいブランチを作成
+      if (parentBranchID != branchID) {
+        this.checkout(branchID, true, desParents[0]);
+      }
 
       // 2つ目の親を対象にしてマージ
       final MergeStatus mergeStatus = this.desRepo.doMergeCommand(desParents[1]);
