@@ -12,10 +12,6 @@ public class FinerGitMain {
 
   public static void main(final String[] args) {
 
-    final ch.qos.logback.classic.Logger l =
-        (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-    //l.setLevel(Level.DEBUG);
-
     final FinerGitConfig config = new FinerGitConfig();
     final CmdLineParser cmdLineParser = new CmdLineParser(config);
     try {

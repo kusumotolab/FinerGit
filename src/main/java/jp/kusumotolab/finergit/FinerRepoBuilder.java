@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.MergeResult.MergeStatus;
 import org.eclipse.jgit.diff.DiffEntry;
@@ -74,7 +75,7 @@ public class FinerRepoBuilder {
   }
 
   // 第一引数で与えたれたコミットに対して，そこに含まれるJavaファイルの細粒度版からなるコミットを生成する
-  // 第二引数で与えられたブランチが，細粒度版Javaファイルをコミットするブランチである．
+  // 第二引数で与えられたブランチが，細粒度版Javaファイルをコミットするブランチである（マージコミットの場合はそうとは限らない）．
   // 第三引数で与えれたコミット群は，すでにチェックしたコミット群
   private RevCommit exec(final RevCommit targetCommit, final int branchID,
       final Set<RevCommit> checkedCommits) {
@@ -221,7 +222,13 @@ public class FinerRepoBuilder {
     else if (2 == srcParents.size()) {
 
       // 1つ目の親のブランチにスイッチ
-      this.checkout(branchID, false, null);
+      final int parentBranchID = this.branchMap.get(desParents[0]);
+      this.checkout(parentBranchID, false, null);
+
+      // もし1つ目の親のブランチが，コミットすべきブランチではない場合は新しいブランチを作成
+      if (parentBranchID != branchID) {
+        this.checkout(branchID, true, desParents[0]);
+      }
 
       // 2つ目の親を対象にしてマージ
       final MergeStatus mergeStatus = this.desRepo.doMergeCommand(desParents[1]);
@@ -299,7 +306,6 @@ public class FinerRepoBuilder {
         final Path finerPath = module.getPath();
         final String finerText = String.join(System.lineSeparator(), module.getLines());
         finerJavaData.put(finerPath.toString(), finerText.getBytes(StandardCharsets.UTF_8));
-        // System.err.println(String.join("|", module.getLines()));
       }
     });
 
@@ -329,7 +335,9 @@ public class FinerRepoBuilder {
         try {
           Files.createDirectories(parent);
         } catch (final IOException e) {
-          System.err.println("failed to create a new directory: " + parent.toString());
+          log.error("failed to create a new directory<{}>", parent.toString());
+          Stream.of(e.getStackTrace())
+              .forEach(s -> log.error(s.toString()));
           e.printStackTrace();
           return;
         }
@@ -339,8 +347,9 @@ public class FinerRepoBuilder {
       try {
         Files.write(absolutePath, data);
       } catch (final IOException e) {
-        System.err.println("failed to write a file: " + absolutePath.toString());
-        e.printStackTrace();
+        log.error("failed to write a file<{}>", absolutePath.toString());
+        Stream.of(e.getStackTrace())
+            .forEach(s -> log.error(s.toString()));
         return;
       }
     });

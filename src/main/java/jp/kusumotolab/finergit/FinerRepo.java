@@ -2,6 +2,7 @@ package jp.kusumotolab.finergit;
 
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.stream.Stream;
 import org.eclipse.jgit.api.AddCommand;
 import org.eclipse.jgit.api.CheckoutCommand;
 import org.eclipse.jgit.api.CommitCommand;
@@ -13,8 +14,12 @@ import org.eclipse.jgit.api.MergeResult.MergeStatus;
 import org.eclipse.jgit.api.RmCommand;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FinerRepo {
+
+  private static Logger log = LoggerFactory.getLogger(FinerRepo.class);
 
   public final Path path;
   private Git git;
@@ -32,9 +37,9 @@ public class FinerRepo {
           .call();
       return true;
     } catch (final Exception e) {
-      System.err
-          .println("an error happened in initializing a new repository: " + this.path.toString());
-      e.printStackTrace();
+      log.error("git-init command failed, path<{}>", this.path.toString());
+      Stream.of(e.getStackTrace())
+          .forEach(p -> log.error(p.toString()));
       return false;
     }
   }
@@ -49,8 +54,10 @@ public class FinerRepo {
       checkoutCommand.call();
       return true;
     } catch (final Exception e) {
-      System.err.println("git-checkout command failed.");
-      e.printStackTrace();
+      log.error("git-checkout command failed, branchName <{}>, create <{}>, startPoint <{}>",
+          branchName, create, null == startPoint ? null : startPoint.abbreviate(7));
+      Stream.of(e.getStackTrace())
+          .forEach(p -> log.error(p.toString()));
       return false;
     }
   }
@@ -69,8 +76,9 @@ public class FinerRepo {
       addCommand.call();
       return true;
     } catch (final Exception e) {
-      System.err.println("git-add command failed.");
-      e.printStackTrace();
+      log.error("git-add command failed");
+      Stream.of(e.getStackTrace())
+          .forEach(p -> log.error(p.toString()));
       return false;
     }
   }
@@ -89,8 +97,9 @@ public class FinerRepo {
       rmCommand.call();
       return true;
     } catch (final Exception e) {
-      System.err.println("git-rm command failed.");
-      e.printStackTrace();
+      log.error("git-rm command failed");
+      Stream.of(e.getStackTrace())
+          .forEach(p -> log.error(p.toString()));
       return false;
     }
   }
@@ -105,8 +114,11 @@ public class FinerRepo {
           .call();
       return commit;
     } catch (final Exception e) {
-      System.err.println("git-commit command failed.");
-      e.printStackTrace();
+      log.error(
+          "git-commit command failed, personIdent<{}>, originalCommitID<{}>, originalCommitMessage<{}>",
+          personIdent.toExternalString(), originalCommitID, originalCommitMessage);
+      Stream.of(e.getStackTrace())
+          .forEach(p -> log.error(p.toString()));
       return null;
     }
   }
@@ -120,8 +132,9 @@ public class FinerRepo {
           .call();
       return mergeResult.getMergeStatus();
     } catch (final Exception e) {
-      System.err.println("git-commit command failed.");
-      e.printStackTrace();
+      log.error("git-merge command failed");
+      Stream.of(e.getStackTrace())
+          .forEach(p -> log.error(p.toString()));
       return null;
     }
   }
