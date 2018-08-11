@@ -27,7 +27,7 @@ import jp.kusumotolab.finergit.ast.FinerJavaModule;
 
 public class FinerRepoBuilder {
 
-  private static Logger log = LoggerFactory.getLogger(FinerRepoBuilder.class);
+  private static final Logger log = LoggerFactory.getLogger(FinerRepoBuilder.class);
 
   public final FinerGitConfig config;
   private GitRepo srcRepo;
@@ -74,9 +74,9 @@ public class FinerRepoBuilder {
     }
   }
 
-  // 第一引数で与えたれたコミットに対して，そこに含まれるJavaファイルの細粒度版からなるコミットを生成する
-  // 第二引数で与えられたブランチが，細粒度版Javaファイルをコミットするブランチである（マージコミットの場合はそうとは限らない）．
-  // 第三引数で与えれたコミット群は，すでにチェックしたコミット群
+  // 第一引数で与えたれたコミットに対して，そこに含まれるJavaファイルの細粒度版からなるコミットを生成する．
+  // 第二引数で与えられたブランチは，細粒度版Javaファイルをコミットするブランチ．
+  // 第三引数で与えれたコミット群は，すでにチェックしたコミット群．
   private RevCommit exec(final RevCommit targetCommit, final int branchID,
       final Set<RevCommit> checkedCommits) {
 
@@ -98,8 +98,12 @@ public class FinerRepoBuilder {
           desParents[0] = exec(srcParents.get(index), branchID, checkedCommits);
           break;
         }
-        default: {
+        case 1: {
           desParents[1] = exec(srcParents.get(index), this.branchID.newID(), checkedCommits);
+          break;
+        }
+        default: {
+          log.error("unexpected parent commit was found.");
           break;
         }
       }
@@ -297,9 +301,8 @@ public class FinerRepoBuilder {
         return;
       }
 
-      final String text = new String(data, StandardCharsets.UTF_8);
-
       final FinerJavaFileBuilder builder = new FinerJavaFileBuilder();
+      final String text = new String(data, StandardCharsets.UTF_8);
       final List<FinerJavaModule> finerJavaModules = builder.constructAST(path, text);
 
       for (final FinerJavaModule module : finerJavaModules) {
@@ -422,6 +425,7 @@ public class FinerRepoBuilder {
         .name();
   }
 
+  //　引数で与えられた RevCommit の時刻情報を返す
   private String getDate(final RevCommit commit) {
     final Date date = new Date(commit.getCommitTime() * 1000L);
     return date.toString();

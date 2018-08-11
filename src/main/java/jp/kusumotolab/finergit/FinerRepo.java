@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 
 public class FinerRepo {
 
-  private static Logger log = LoggerFactory.getLogger(FinerRepo.class);
+  private static final Logger log = LoggerFactory.getLogger(FinerRepo.class);
 
   public final Path path;
   private Git git;
