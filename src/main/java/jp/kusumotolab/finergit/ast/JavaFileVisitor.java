@@ -7,6 +7,8 @@ import java.util.Stack;
 import org.apache.commons.io.FilenameUtils;
 import org.eclipse.jdt.core.dom.*;
 import org.eclipse.jdt.core.dom.InfixExpression.Operator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import jp.kusumotolab.finergit.ast.token.AND;
 import jp.kusumotolab.finergit.ast.token.ANNOTATION;
 import jp.kusumotolab.finergit.ast.token.ASSERT;
@@ -77,6 +79,8 @@ import jp.kusumotolab.finergit.ast.token.VARIABLENAME;
 import jp.kusumotolab.finergit.ast.token.WHILE;
 
 public class JavaFileVisitor extends ASTVisitor {
+
+  private static final Logger log = LoggerFactory.getLogger(JavaFileVisitor.class);
 
   public final Path path;
   private final Stack<FinerJavaModule> moduleStack;
@@ -175,7 +179,6 @@ public class JavaFileVisitor extends ASTVisitor {
 
     return false;
   }
-
 
   @Override
   public boolean visit(final AnonymousClassDeclaration node) {
@@ -689,8 +692,8 @@ public class JavaFileVisitor extends ASTVisitor {
 
   // TODO テストできていない
   @Override
-  public boolean visit(ExportsDirective node) {
-    System.err.println("JavaFileVisitor#visit(ExportsDirective) is not implemented yet.");
+  public boolean visit(final ExportsDirective node) {
+    log.error("JavaFileVisitor#visit(ExportsDirective) is not implemented yet.");
     return super.visit(node);
   }
 
@@ -1025,29 +1028,29 @@ public class JavaFileVisitor extends ASTVisitor {
 
   // TODO テストできていない
   @Override
-  public boolean visit(MemberRef node) {
-    System.err.println("JavaFileVisitor#visit(MemberRef) is not implemented yet.");
+  public boolean visit(final MemberRef node) {
+    log.error("JavaFileVisitor#visit(MemberRef) is not implemented yet.");
     return super.visit(node);
   }
 
   // TODO テストできていない
   @Override
-  public boolean visit(MemberValuePair node) {
-    System.err.println("JavaFileVisitor#visit(MemberValuePair) is not implemented yet.");
+  public boolean visit(final MemberValuePair node) {
+    log.error("JavaFileVisitor#visit(MemberValuePair) is not implemented yet.");
     return super.visit(node);
   }
 
   // TODO テストできていない
   @Override
-  public boolean visit(MethodRef node) {
-    System.err.println("JavaFileVisitor#visit(MemberRef) is not implemented yet.");
+  public boolean visit(final MethodRef node) {
+    log.error("JavaFileVisitor#visit(MemberRef) is not implemented yet.");
     return super.visit(node);
   }
 
   // TODO テストできていない
   @Override
-  public boolean visit(MethodRefParameter node) {
-    System.err.println("JavaFileVisitor#visit(MethodRefParameter) is not implemented yet.");
+  public boolean visit(final MethodRefParameter node) {
+    log.error("JavaFileVisitor#visit(MethodRefParameter) is not implemented yet.");
     return super.visit(node);
   }
 
@@ -1230,15 +1233,15 @@ public class JavaFileVisitor extends ASTVisitor {
 
   // TODO テストできていない
   @Override
-  public boolean visit(ModuleDeclaration node) {
-    System.err.println("JavaFileVisitor#visit(ModuleDeclaration) is not implemented yet.");
+  public boolean visit(final ModuleDeclaration node) {
+    log.error("JavaFileVisitor#visit(ModuleDeclaration) is not implemented yet.");
     return super.visit(node);
   }
 
   // TODO テストできていない
   @Override
-  public boolean visit(ModuleModifier node) {
-    System.err.println("JavaFileVisitor#visit(ModuleModifier) is not implemented yet.");
+  public boolean visit(final ModuleModifier node) {
+    log.error("JavaFileVisitor#visit(ModuleModifier) is not implemented yet.");
     return super.visit(node);
   }
 
@@ -1269,9 +1272,8 @@ public class JavaFileVisitor extends ASTVisitor {
 
   // TODO テストできていない
   @Override
-  public boolean visit(NormalAnnotation node) {
-
-    System.err.println("JavaFileVisitor#visit(NormalAnnotation) is not implemented yet.");
+  public boolean visit(final NormalAnnotation node) {
+    log.error("JavaFileVisitor#visit(NormalAnnotation) is not implemented yet.");
     return super.visit(node);
   }
 
@@ -1291,8 +1293,8 @@ public class JavaFileVisitor extends ASTVisitor {
 
   // TODO テストできていない
   @Override
-  public boolean visit(OpensDirective node) {
-    System.err.println("JavaFileVisitor#visit(OpensDirective) is not implemented yet.");
+  public boolean visit(final OpensDirective node) {
+    log.error("JavaFileVisitor#visit(OpensDirective) is not implemented yet.");
     return super.visit(node);
   }
 
@@ -1377,8 +1379,8 @@ public class JavaFileVisitor extends ASTVisitor {
 
   // TODO テストできていない
   @Override
-  public boolean visit(ProvidesDirective node) {
-    System.err.println("JavaFileVisitor#visit(ProvidesDirective) is not implemented yet.");
+  public boolean visit(final ProvidesDirective node) {
+    log.error("JavaFileVisitor#visit(ProvidesDirective) is not implemented yet.");
     return super.visit(node);
   }
 
@@ -1432,8 +1434,8 @@ public class JavaFileVisitor extends ASTVisitor {
 
   // TODO テストできていない
   @Override
-  public boolean visit(RequiresDirective node) {
-    System.err.println("JavaFileVisitor#visit(RequiresDirective) is not implemented yet.");
+  public boolean visit(final RequiresDirective node) {
+    log.error("JavaFileVisitor#visit(RequiresDirective) is not implemented yet.");
     return super.visit(node);
   }
 
@@ -1738,15 +1740,15 @@ public class JavaFileVisitor extends ASTVisitor {
 
   // TODO テストできていない
   @Override
-  public boolean visit(TagElement node) {
-    System.err.println("JavaFileVisitor#visit(TagElement) is not implemented yet.");
+  public boolean visit(final TagElement node) {
+    log.error("JavaFileVisitor#visit(TagElement) is not implemented yet.");
     return super.visit(node);
   }
 
   // TODO テストできていない
   @Override
-  public boolean visit(TextElement node) {
-    System.err.println("JavaFileVisitor#visit(TextElement) is not implemented yet.");
+  public boolean visit(final TextElement node) {
+    log.error("JavaFileVisitor#visit(TextElement) is not implemented yet.");
     return super.visit(node);
   }
 
@@ -1931,8 +1933,8 @@ public class JavaFileVisitor extends ASTVisitor {
 
   // TODO テストできていない
   @Override
-  public boolean visit(TypeParameter node) {
-    System.err.println("JavaFileVisitor#visit(TypeParameter) is not implemented yet.");
+  public boolean visit(final TypeParameter node) {
+    log.error("JavaFileVisitor#visit(TypeParameter) is not implemented yet.");
     return super.visit(node);
   }
 
@@ -1953,8 +1955,8 @@ public class JavaFileVisitor extends ASTVisitor {
 
   // TODO テストできていない
   @Override
-  public boolean visit(UsesDirective node) {
-    System.err.println("JavaFileVisitor#visit(UsesDirective) is not implemented yet.");
+  public boolean visit(final UsesDirective node) {
+    log.error("JavaFileVisitor#visit(UsesDirective) is not implemented yet.");
     return super.visit(node);
   }
 

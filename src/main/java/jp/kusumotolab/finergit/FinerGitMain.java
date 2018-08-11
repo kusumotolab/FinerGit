@@ -8,7 +8,7 @@ import ch.qos.logback.classic.Level;
 
 public class FinerGitMain {
 
-  private static Logger log = LoggerFactory.getLogger(FinerGitMain.class);
+  private static final Logger log = LoggerFactory.getLogger(FinerGitMain.class);
 
   public static void main(final String[] args) {
 

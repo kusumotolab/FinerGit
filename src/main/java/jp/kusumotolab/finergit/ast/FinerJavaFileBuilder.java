@@ -16,8 +16,7 @@ public class FinerJavaFileBuilder {
 
   public List<FinerJavaModule> constructASTs(final Map<String, String> pathToTextMap) {
 
-    List<FinerJavaModule> files = new ArrayList<>();
-
+    final List<FinerJavaModule> files = new ArrayList<>();
     final FileASTRequestor requestor = new FileASTRequestor() {
 
       @Override
@@ -34,7 +33,9 @@ public class FinerJavaFileBuilder {
     };
 
     final ASTParser parser = createNewParser();
-    final String[] filePaths = pathToTextMap.keySet().stream().toArray(String[]::new);
+    final String[] filePaths = pathToTextMap.keySet()
+        .stream()
+        .toArray(String[]::new);
     parser.createASTs(filePaths, null, new String[] {}, requestor, null);
 
     return files;
