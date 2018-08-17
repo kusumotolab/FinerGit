@@ -98,7 +98,7 @@ public class SemanticVersionGenerator {
   private static Path getRelativePath(final Repository repository, final Path targetFilePath) {
     final Path repositoryPath = Paths.get(repository.getWorkTree()
         .getAbsolutePath());
-    return repositoryPath.relativize(repositoryPath);
+    return repositoryPath.relativize(targetFilePath);
   }
 
   private List<Commit> constructCommits(final List<String> lines) {
