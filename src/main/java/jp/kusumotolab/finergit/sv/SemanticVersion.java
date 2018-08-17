@@ -21,7 +21,8 @@ public class SemanticVersion {
 
   @Override
   public String toString() {
-    return this.major + "." + this.minor + "." + this.patch;
+    return this.commit.getDate() + " : " + this.commit.getAuthor() + " : " + this.major + "."
+        + this.minor + "." + this.patch;
   }
 
   public SemanticVersion generateNextMajorVersion(final Commit commit) {
