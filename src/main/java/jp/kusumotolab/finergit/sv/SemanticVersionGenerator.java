@@ -8,8 +8,17 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.LogCommand;
+import org.eclipse.jgit.internal.storage.file.FileRepository;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SemanticVersionGenerator {
+
+  private static final Logger log = LoggerFactory.getLogger(SemanticVersionGenerator.class);
 
   public static final String COMMIT = "commit ";
   public static final String AUTHOR = "Author: ";
@@ -19,9 +28,29 @@ public class SemanticVersionGenerator {
 
   public static void main(final String[] args) {
 
-    final Path historyFilePath = Paths.get(args[0]);
-    final SemanticVersionGenerator svGenerator = new SemanticVersionGenerator(historyFilePath);
-    svGenerator.exec();
+    final Path targetFilePath = Paths.get(args[0]);
+    final Repository repository = findRepository(targetFilePath);
+    final Path relativeTargetFilePath = getRelativePath(repository, targetFilePath);
+
+
+
+    final Git git = new Git(repository);
+    final LogCommand logCommand = git.log()
+        .addPath(relativeTargetFilePath.toString());
+
+    try {
+      for (final RevCommit commit : logCommand.call()) {
+        System.out.println(commit.getFullMessage());
+      }
+    } catch (final Exception e) {
+      e.printStackTrace();
+    }
+
+
+
+    // final Path historyFilePath = Paths.get(args[0]);
+    // final SemanticVersionGenerator svGenerator = new SemanticVersionGenerator(historyFilePath);
+    // svGenerator.exec();
   }
 
   public final Path historyFilePath;
@@ -43,6 +72,33 @@ public class SemanticVersionGenerator {
     } catch (final IOException e) {
       e.printStackTrace();
     }
+  }
+
+  private static Repository findRepository(final Path path) {
+
+    if (null == path) {
+      return null;
+    }
+
+    final Path gitConfigPath = path.resolve(".git");
+    if (Files.isDirectory(gitConfigPath)) {
+      try {
+        return new FileRepository(gitConfigPath.toFile());
+      } catch (final IOException e) {
+        log.error("A FileRepository object cannot be created for {}", gitConfigPath.toFile());
+        return null;
+      }
+    }
+
+    else {
+      return findRepository(path.getParent());
+    }
+  }
+
+  private static Path getRelativePath(final Repository repository, final Path targetFilePath) {
+    final Path repositoryPath = Paths.get(repository.getWorkTree()
+        .getAbsolutePath());
+    return repositoryPath.relativize(repositoryPath);
   }
 
   private List<Commit> constructCommits(final List<String> lines) {
