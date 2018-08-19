@@ -21,9 +21,13 @@ public class FileTracker {
     this.repository = repository;
   }
 
-  // コミットを辿った順に保存されている
+  /**
+   * return the change history of a given file
+   * 
+   * @param path
+   * @return
+   */
   public LinkedHashMap<RevCommit, String> exec(final String path) {
-
     final LinkedHashMap<RevCommit, String> commitPathMap = new LinkedHashMap<>();
     final Git git = new Git(this.repository);
     String currentPath = path;
@@ -56,11 +60,13 @@ public class FileTracker {
         }
         if (start == null) {
           revWalk.close();
+          git.close();
           return commitPathMap;
         }
       } while ((currentPath = getRenamedPath(git, currentPath, start)) != null);
 
       revWalk.close();
+      git.close();
 
     } catch (final GitAPIException | IOException e) {
       e.printStackTrace();

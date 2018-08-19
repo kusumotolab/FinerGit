@@ -1,6 +1,5 @@
 package jp.kusumotolab.finergit.sv;
 
-import java.util.Date;
 import org.eclipse.jgit.revwalk.RevCommit;
 
 public class SemanticVersion {
@@ -43,8 +42,9 @@ public class SemanticVersion {
 
   // 引数で与えられた RevCommit の時刻情報を返す
   private String getDate(final RevCommit commit) {
-    final Date date = new Date(commit.getCommitTime() * 1000L);
-    return date.toString();
+    return commit.getAuthorIdent()
+        .getWhen()
+        .toString();
   }
 
   // 引数で与えられた RevCommit の Author Name を返す
