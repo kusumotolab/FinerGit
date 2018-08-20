@@ -21,11 +21,35 @@ public class SemanticVersion {
     this.commit = commit;
   }
 
+  public String toString(final SemanticVersioningConfig config) {
+    final StringBuilder text = new StringBuilder();
+    if (null != config && config.isDate()) {
+      text.append(this.getDate(this.commit));
+      text.append("\t");
+    }
+
+    if (null != config && config.isCommit()) {
+      text.append(this.getAbbreviatedID(this.commit));
+      text.append("\t");
+    }
+
+    if (null != config && config.isAuthor()) {
+      text.append(this.getAuthor(this.commit));
+      text.append("\t");
+    }
+
+    text.append(this.major);
+    text.append(".");
+    text.append(this.minor);
+    text.append(".");
+    text.append(this.patch);
+
+    return text.toString();
+  }
+
   @Override
   public String toString() {
-    final String date = this.getDate(this.commit);
-    final String author = this.getAuthor(this.commit);
-    return date + " : " + author + " : " + this.major + "." + this.minor + "." + this.patch;
+    return this.toString(null);
   }
 
   public SemanticVersion generateNextMajorVersion(final RevCommit commit) {
@@ -51,5 +75,11 @@ public class SemanticVersion {
   private String getAuthor(final RevCommit commit) {
     return this.commit.getAuthorIdent()
         .getName();
+  }
+
+  // 引数で与えられた RevCommit のハッシュの最初の7文字を返す
+  private String getAbbreviatedID(final RevCommit commit) {
+    return commit.abbreviate(7)
+        .name();
   }
 }
