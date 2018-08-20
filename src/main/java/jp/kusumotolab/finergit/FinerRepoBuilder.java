@@ -5,7 +5,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -425,10 +424,11 @@ public class FinerRepoBuilder {
         .name();
   }
 
-  //　引数で与えられた RevCommit の時刻情報を返す
+  // 引数で与えられた RevCommit の時刻情報を返す
   private String getDate(final RevCommit commit) {
-    final Date date = new Date(commit.getCommitTime() * 1000L);
-    return date.toString();
+    return commit.getAuthorIdent()
+        .getWhen()
+        .toString();
   }
 
   // 引数で与えられたファイルパスの集合から，java ファイルのみを取り出し拡張子を取り除く
