@@ -1,7 +1,9 @@
 package jp.kusumotolab.finergit.sv;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.Option;
 
 public class SemanticVersioningConfig {
@@ -15,26 +17,42 @@ public class SemanticVersioningConfig {
   @Option(name = "-d", aliases = "--date", usage = "print date of the version")
   private boolean date;
 
-  @Option(name = "-f", aliases = "--follow", usage = "print all histories of the specified file")
+  @Option(name = "-f", aliases = "--follow", usage = "print the history of the specified file")
   private boolean follow;
 
+  @Option(name = "-p", aliases = "--path", usage = "print path of the specified file")
+  private boolean path;
+
+  @Option(name = "-r", aliases = "--reverse", usage = "print the history with the reverse order")
+  private boolean reverse;
+
   @Option(name = "--all",
-      usage = "this option means all the \"-a\", \"-c\", \"-d\", and \"-f\" are specified")
+      usage = "this option means all the \"-a\", \"-c\", \"-d\", \"-f\", and \"-p\" are specified")
   private boolean all;
 
   @Option(name = "-h", aliases = "--help", usage = "print help for this command")
   private boolean help;
 
-  private Path targetFileAbsolutePath;
+  @Option(name = "-b", aliases = "--base-dir", usage = "specify a base directory")
+  private String baseDir;
+
+  @Argument
+  private List<String> otherArguments;
+
+  private Path targetFilePath;
 
   public SemanticVersioningConfig() {
     this.author = false;
     this.commit = false;
     this.date = false;
     this.follow = false;
+    this.path = false;
+    this.reverse = false;
     this.all = false;
     this.help = false;
-    this.targetFileAbsolutePath = null;
+    this.baseDir = System.getProperty("user.dir");
+    this.targetFilePath = null;
+    this.otherArguments = new ArrayList<>();
   }
 
   public boolean isAuthor() {
@@ -53,33 +71,31 @@ public class SemanticVersioningConfig {
     return this.follow || this.all;
   }
 
+  public boolean isPath() {
+    return this.path || this.all;
+  }
+
+  public boolean isReverse() {
+    return this.reverse;
+  }
+
   public boolean isHelp() {
     return this.help;
   }
 
-  public void setTargetFileAbsolutePath(final Path path) {
-
-    if (null == path) {
-      System.err.println("file is not specified.");
-      System.exit(0);
-    }
-
-    else if (!Files.exists(path)) {
-      System.err.println("\"" + path.toString() + "\" does not exist.");
-      System.exit(0);
-    }
-
-    else if (!Files.isRegularFile(path)) {
-      System.err.println("\"" + path.toString() + "\" is not a regular file.");
-      System.exit(0);
-    }
-
-    else {
-      this.targetFileAbsolutePath = path;
-    }
+  public String getBaseDir() {
+    return this.baseDir;
   }
 
-  public Path getTargetFileAbsolutePath() {
-    return this.targetFileAbsolutePath;
+  public List<String> getOtherArguments() {
+    return this.otherArguments;
+  }
+
+  public void setTargetFilePath(final Path path) {
+    this.targetFilePath = path;
+  }
+
+  public Path getTargetFilePath() {
+    return this.targetFilePath;
   }
 }

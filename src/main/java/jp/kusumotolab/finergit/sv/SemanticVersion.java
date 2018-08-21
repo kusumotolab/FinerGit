@@ -1,5 +1,6 @@
 package jp.kusumotolab.finergit.sv;
 
+import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import org.eclipse.jgit.lib.PersonIdent;
@@ -11,17 +12,19 @@ public class SemanticVersion {
   public final int minor;
   public final int patch;
   public final RevCommit commit;
+  public final Path path;
 
   public SemanticVersion() {
-    this(0, 0, 0, null);
+    this(0, 0, 0, null, null);
   }
 
-  public SemanticVersion(final int major, final int minor, final int patch,
-      final RevCommit commit) {
+  public SemanticVersion(final int major, final int minor, final int patch, final RevCommit commit,
+      final Path path) {
     this.major = major;
     this.minor = minor;
     this.patch = patch;
     this.commit = commit;
+    this.path = path;
   }
 
   public String toString(final SemanticVersioningConfig config) {
@@ -48,6 +51,11 @@ public class SemanticVersion {
       text.append(this.getAuthor(this.commit));
     }
 
+    if (null != config && config.isPath()) {
+      text.append("\t");
+      text.append(this.path.toString());
+    }
+
     return text.toString();
   }
 
@@ -56,16 +64,16 @@ public class SemanticVersion {
     return this.toString(null);
   }
 
-  public SemanticVersion generateNextMajorVersion(final RevCommit commit) {
-    return new SemanticVersion(this.major + 1, 0, 0, commit);
+  public SemanticVersion generateNextMajorVersion(final RevCommit commit, final Path path) {
+    return new SemanticVersion(this.major + 1, 0, 0, commit, path);
   }
 
-  public SemanticVersion generateNextMinorVersion(final RevCommit commit) {
-    return new SemanticVersion(this.major, this.minor + 1, 0, commit);
+  public SemanticVersion generateNextMinorVersion(final RevCommit commit, final Path path) {
+    return new SemanticVersion(this.major, this.minor + 1, 0, commit, path);
   }
 
-  public SemanticVersion generateNextPatchVersion(final RevCommit commit) {
-    return new SemanticVersion(this.major, this.minor, this.patch + 1, commit);
+  public SemanticVersion generateNextPatchVersion(final RevCommit commit, final Path path) {
+    return new SemanticVersion(this.major, this.minor, this.patch + 1, commit, path);
   }
 
   // 引数で与えられた RevCommit の時刻情報を返す

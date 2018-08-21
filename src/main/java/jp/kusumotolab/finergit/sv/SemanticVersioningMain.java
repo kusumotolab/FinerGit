@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
@@ -22,51 +22,55 @@ public class SemanticVersioningMain {
 
   public static void main(final String[] args) {
 
-    final Path path = extractPath(args);
-    final Path absolutePath = path.toAbsolutePath();
     final SemanticVersioningConfig config = new SemanticVersioningConfig();
-    config.setTargetFileAbsolutePath(absolutePath);
-
     final CmdLineParser cmdLineParser = new CmdLineParser(config);
-    final String[] newArgs = makeArgsForARGS4J(args, path);
 
     try {
-      cmdLineParser.parseArgument(newArgs);
+      cmdLineParser.parseArgument(args);
     } catch (final CmdLineException e) {
       cmdLineParser.printUsage(System.err);
       System.exit(0);
     }
 
+    final List<String> otherArguments = config.getOtherArguments();
+
+    if (0 == otherArguments.size()) {
+      System.err.println("target file is not specified");
+      System.exit(0);
+    }
+
+    if (1 < otherArguments.size()) {
+      System.err.println("two or more target files are specified");
+      System.exit(0);
+    }
+
+    final String targetFile = otherArguments.get(0);
+    final Path targetFilePath = Paths.get(targetFile);
+
+    if (targetFilePath.isAbsolute()) {
+      System.err.println("target file must be specified with a relative path");
+      System.exit(0);
+    }
+
+    final String baseDir = config.getBaseDir();
+    final Path baseDirPath = Paths.get(baseDir);
+
+    final Path targetFileAbsolutePath = baseDirPath.resolve(targetFilePath);
+
+    if (!Files.exists(targetFileAbsolutePath)) {
+      System.err.println("\"" + targetFileAbsolutePath.toString() + "\" does not exist.");
+      System.exit(0);
+    }
+
+    else if (!Files.isRegularFile(targetFileAbsolutePath)) {
+      System.err.println("\"" + targetFileAbsolutePath.toString() + "\" is not a regular file.");
+      System.exit(0);
+    }
+
+    config.setTargetFilePath(targetFilePath);
+
     final SemanticVersioningMain main = new SemanticVersioningMain(config);
     main.run();
-  }
-
-  private static Path extractPath(final String[] args) {
-
-    for (final String arg : args) {
-
-      if (arg.startsWith("-")) {
-        continue;
-      }
-
-      final Path path = Paths.get(arg);
-      return path;
-    }
-
-    return null;
-  }
-
-  private static String[] makeArgsForARGS4J(final String[] args, final Path path) {
-    final List<String> newArgs = new ArrayList<>();
-    for (final String arg : args) {
-
-      if (arg.equals(path.toString())) {
-        continue;
-      }
-      newArgs.add(arg);
-    }
-    return newArgs.stream()
-        .toArray(String[]::new);
   }
 
   private final SemanticVersioningConfig config;
@@ -76,20 +80,28 @@ public class SemanticVersioningMain {
   }
 
   public void run() {
-    final Path targetFileAbsolutePath = this.config.getTargetFileAbsolutePath();
-    final Repository repository = findRepository(targetFileAbsolutePath);
+
+    final Path baseDirPath = Paths.get(this.config.getBaseDir());
+    final Repository repository = findRepository(baseDirPath);
 
     if (null == repository) {
       System.err.println("git repository was not found.");
       System.exit(0);
     }
 
-
-    final Path relativeTargetFilePath = getRelativePath(repository, targetFileAbsolutePath);
+    final Path targetFilePath = this.config.getTargetFilePath();
+    final Path targetFileAbsolutePath = baseDirPath.resolve(targetFilePath);
+    final Path targetFileRelativePathInRepository =
+        this.getRelativePath(repository, targetFileAbsolutePath);
 
     final FileTracker fileTracker = new FileTracker(repository);
     final LinkedHashMap<RevCommit, String> commitPathMap =
-        fileTracker.exec(relativeTargetFilePath.toString());
+        fileTracker.exec(targetFileRelativePathInRepository.toString());
+
+    if (commitPathMap.isEmpty()) {
+      System.err.println("there is no commit on \"" + targetFilePath.toString() + "\"");
+      System.exit(0);
+    }
 
     final LinkedHashMap<RevCommit, String> reversedCommitPathMap =
         LinkedHashMapSorter.reverse(commitPathMap);
@@ -99,14 +111,19 @@ public class SemanticVersioningMain {
         semanticVersionGenerator.exec(reversedCommitPathMap);
 
     if (this.config.isFollow()) {
+
+      if (this.config.isReverse()) {
+        Collections.reverse(semanticVersions);
+      }
+
       for (final SemanticVersion semanticVersion : semanticVersions) {
         System.out.println(semanticVersion.toString(this.config));
       }
     }
 
     else {
-      System.out.println(semanticVersions.get(semanticVersions.size() - 1)
-          .toString(this.config));
+      final SemanticVersion latestSemanticVersion = semanticVersions.get(0);
+      System.out.println(latestSemanticVersion.toString(this.config));
     }
   }
 

@@ -1,6 +1,8 @@
 package jp.kusumotolab.finergit.sv;
 
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -29,21 +31,22 @@ public class SemanticVersionGenerator {
       final String path = commitPathMap.get(commit);
 
       if (!currentPath.equals(path)) {
-        semanticVersion = semanticVersion.generateNextMajorVersion(commit);
+        semanticVersion = semanticVersion.generateNextMajorVersion(commit, Paths.get(path));
         currentPath = path;
       }
 
       else if (this.isBugFix(commit)) {
-        semanticVersion = semanticVersion.generateNextPatchVersion(commit);
+        semanticVersion = semanticVersion.generateNextPatchVersion(commit, Paths.get(path));
       }
 
       else {
-        semanticVersion = semanticVersion.generateNextMinorVersion(commit);
+        semanticVersion = semanticVersion.generateNextMinorVersion(commit, Paths.get(path));
       }
 
       semanticVersions.add(semanticVersion);
     }
 
+    Collections.reverse(semanticVersions);
     return semanticVersions;
   }
 
