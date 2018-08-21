@@ -2,7 +2,6 @@ package jp.kusumotolab.finergit.sv;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.kohsuke.args4j.Option;
 
 public class SemanticVersioningConfig {
@@ -26,7 +25,7 @@ public class SemanticVersioningConfig {
   @Option(name = "-h", aliases = "--help", usage = "print help for this command")
   private boolean help;
 
-  private Path path;
+  private Path targetFileAbsolutePath;
 
   public SemanticVersioningConfig() {
     this.author = false;
@@ -35,7 +34,7 @@ public class SemanticVersioningConfig {
     this.follow = false;
     this.all = false;
     this.help = false;
-    this.path = null;
+    this.targetFileAbsolutePath = null;
   }
 
   public boolean isAuthor() {
@@ -58,7 +57,7 @@ public class SemanticVersioningConfig {
     return this.help;
   }
 
-  public void setPath(final Path path) {
+  public void setTargetFileAbsolutePath(final Path path) {
 
     if (null == path) {
       System.err.println("file is not specified.");
@@ -76,11 +75,11 @@ public class SemanticVersioningConfig {
     }
 
     else {
-      this.path = path;
+      this.targetFileAbsolutePath = path;
     }
   }
 
-  public Path getPath() {
-    return this.path;
+  public Path getTargetFileAbsolutePath() {
+    return this.targetFileAbsolutePath;
   }
 }

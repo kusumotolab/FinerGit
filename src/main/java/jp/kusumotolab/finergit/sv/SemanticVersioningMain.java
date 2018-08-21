@@ -23,8 +23,9 @@ public class SemanticVersioningMain {
   public static void main(final String[] args) {
 
     final Path path = extractPath(args);
+    final Path absolutePath = path.toAbsolutePath();
     final SemanticVersioningConfig config = new SemanticVersioningConfig();
-    config.setPath(path);
+    config.setTargetFileAbsolutePath(absolutePath);
 
     final CmdLineParser cmdLineParser = new CmdLineParser(config);
     final String[] newArgs = makeArgsForARGS4J(args, path);
@@ -58,6 +59,7 @@ public class SemanticVersioningMain {
   private static String[] makeArgsForARGS4J(final String[] args, final Path path) {
     final List<String> newArgs = new ArrayList<>();
     for (final String arg : args) {
+
       if (arg.equals(path.toString())) {
         continue;
       }
@@ -74,9 +76,16 @@ public class SemanticVersioningMain {
   }
 
   public void run() {
-    final Path targetFilePath = this.config.getPath();
-    final Repository repository = findRepository(targetFilePath);
-    final Path relativeTargetFilePath = getRelativePath(repository, targetFilePath);
+    final Path targetFileAbsolutePath = this.config.getTargetFileAbsolutePath();
+    final Repository repository = findRepository(targetFileAbsolutePath);
+
+    if (null == repository) {
+      System.err.println("git repository was not found.");
+      System.exit(0);
+    }
+
+
+    final Path relativeTargetFilePath = getRelativePath(repository, targetFileAbsolutePath);
 
     final FileTracker fileTracker = new FileTracker(repository);
     final LinkedHashMap<RevCommit, String> commitPathMap =
@@ -122,9 +131,9 @@ public class SemanticVersioningMain {
     }
   }
 
-  private Path getRelativePath(final Repository repository, final Path targetFilePath) {
-    final Path repositoryPath = Paths.get(repository.getWorkTree()
+  private Path getRelativePath(final Repository repository, final Path targetFileAbsolutePath) {
+    final Path repositoryAbsolutePath = Paths.get(repository.getWorkTree()
         .getAbsolutePath());
-    return repositoryPath.relativize(targetFilePath);
+    return repositoryAbsolutePath.relativize(targetFileAbsolutePath);
   }
 }

@@ -1,5 +1,8 @@
 package jp.kusumotolab.finergit.sv;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.revwalk.RevCommit;
 
 public class SemanticVersion {
@@ -23,26 +26,27 @@ public class SemanticVersion {
 
   public String toString(final SemanticVersioningConfig config) {
     final StringBuilder text = new StringBuilder();
-    if (null != config && config.isDate()) {
-      text.append(this.getDate(this.commit));
-      text.append("\t");
-    }
-
-    if (null != config && config.isCommit()) {
-      text.append(this.getAbbreviatedID(this.commit));
-      text.append("\t");
-    }
-
-    if (null != config && config.isAuthor()) {
-      text.append(this.getAuthor(this.commit));
-      text.append("\t");
-    }
 
     text.append(this.major);
     text.append(".");
     text.append(this.minor);
     text.append(".");
     text.append(this.patch);
+
+    if (null != config && config.isCommit()) {
+      text.append("\t");
+      text.append(this.getAbbreviatedID(this.commit));
+    }
+
+    if (null != config && config.isDate()) {
+      text.append("\t");
+      text.append(this.getDate(this.commit));
+    }
+
+    if (null != config && config.isAuthor()) {
+      text.append("\t");
+      text.append(this.getAuthor(this.commit));
+    }
 
     return text.toString();
   }
@@ -66,9 +70,10 @@ public class SemanticVersion {
 
   // 引数で与えられた RevCommit の時刻情報を返す
   private String getDate(final RevCommit commit) {
-    return commit.getAuthorIdent()
-        .getWhen()
-        .toString();
+    final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy/MM/dd hh:mm:ss");
+    final PersonIdent authorIdent = commit.getAuthorIdent();
+    final Date date = authorIdent.getWhen();
+    return simpleDateFormat.format(date);
   }
 
   // 引数で与えられた RevCommit の Author Name を返す
