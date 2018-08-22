@@ -47,9 +47,9 @@ public class FileTracker {
           final RevCommit commit = revWalk.parseCommit(commitID);
 
           // マージコミットは対象外
-          if (1 < commit.getParents().length) {
-            continue;
-          }
+          //if (1 < commit.getParents().length) {
+          //  continue;
+          //}
 
           if (commitPathMap.containsKey(commit)) {
             start = null;
