@@ -20,6 +20,10 @@ public class SemanticVersioningConfig {
   @Option(name = "-f", aliases = "--follow", usage = "print the history of the specified file")
   private boolean follow;
 
+  @Option(name = "-n", aliases = "--number",
+      usage = "print the number of changes of the specified file")
+  private boolean number;
+
   @Option(name = "-p", aliases = "--path", usage = "print path of the specified file")
   private boolean path;
 
@@ -27,7 +31,7 @@ public class SemanticVersioningConfig {
   private boolean reverse;
 
   @Option(name = "--all",
-      usage = "this option means all the \"-a\", \"-c\", \"-d\", \"-f\", and \"-p\" are specified")
+      usage = "this option means all the \"-a\", \"-c\", \"-d\", \"-f\", \"-n\", and \"-p\" are specified")
   private boolean all;
 
   @Option(name = "-h", aliases = "--help", usage = "print help for this command")
@@ -46,6 +50,7 @@ public class SemanticVersioningConfig {
     this.commit = false;
     this.date = false;
     this.follow = false;
+    this.number = false;
     this.path = false;
     this.reverse = false;
     this.all = false;
@@ -69,6 +74,10 @@ public class SemanticVersioningConfig {
 
   public boolean isFollow() {
     return this.follow || this.all;
+  }
+
+  public boolean isNumber() {
+    return this.number || this.all;
   }
 
   public boolean isPath() {

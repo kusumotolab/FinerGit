@@ -107,23 +107,22 @@ public class SemanticVersioningMain {
         LinkedHashMapSorter.reverse(commitPathMap);
 
     final SemanticVersionGenerator semanticVersionGenerator = new SemanticVersionGenerator();
-    final List<SemanticVersion> semanticVersions =
-        semanticVersionGenerator.exec(reversedCommitPathMap);
+    final SemanticVersion semanticVersion = semanticVersionGenerator.exec(reversedCommitPathMap);
 
     if (this.config.isFollow()) {
 
-      if (this.config.isReverse()) {
+      final List<SemanticVersion> semanticVersions = semanticVersion.getAllSemanticVersions();
+      if (!this.config.isReverse()) {
         Collections.reverse(semanticVersions);
       }
 
-      for (final SemanticVersion semanticVersion : semanticVersions) {
-        System.out.println(semanticVersion.toString(this.config));
-      }
+      semanticVersions.stream()
+          .map(s -> s.toString(this.config))
+          .forEach(System.out::println);
     }
 
     else {
-      final SemanticVersion latestSemanticVersion = semanticVersions.get(0);
-      System.out.println(latestSemanticVersion.toString(this.config));
+      System.out.println(semanticVersion.toString(this.config));
     }
   }
 
