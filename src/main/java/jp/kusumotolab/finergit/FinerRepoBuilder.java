@@ -23,34 +23,32 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import jp.kusumotolab.finergit.ast.FinerJavaFileBuilder;
 import jp.kusumotolab.finergit.ast.FinerJavaModule;
+import jp.kusumotolab.finergit.util.RevCommitUtil;
 
 public class FinerRepoBuilder {
 
   private static final Logger log = LoggerFactory.getLogger(FinerRepoBuilder.class);
 
-  public final FinerGitConfig config;
-  private GitRepo srcRepo;
-  private FinerRepo desRepo;
+  private final FinerGitConfig config;
+  private final GitRepo srcRepo;
+  private final FinerRepo desRepo;
   private final BranchName branchID;
   private final Map<RevCommit, RevCommit> commitMap;
   private final Map<RevCommit, Integer> branchMap;
 
   public FinerRepoBuilder(final FinerGitConfig config) {
     this.config = config;
-    this.srcRepo = null;
-    this.desRepo = null;
+    this.srcRepo = new GitRepo(this.config.getSrcPath());
+    this.desRepo = new FinerRepo(this.config.getDesPath());
     this.branchID = new BranchName();
     this.commitMap = new HashMap<>();
     this.branchMap = new HashMap<>();
   }
 
   /**
-   * start to generate a finer git repository
+   * FinerGitのリポジトリを生成する
    */
   public void exec() {
-
-    this.srcRepo = new GitRepo(this.config.getSrcPath());
-    this.desRepo = new FinerRepo(this.config.getDesPath());
 
     try {
 
@@ -85,8 +83,8 @@ public class FinerRepoBuilder {
       return cachedNewCommit;
     }
 
-    log.debug("tracking commit<{}> ({})", this.getAbbreviatedID(targetCommit),
-        this.getDate(targetCommit));
+    log.debug("tracking commit<{}> ({})", RevCommitUtil.getAbbreviatedID(targetCommit),
+        RevCommitUtil.getDate(targetCommit));
 
     // 親が存在した場合には，親をたどる
     final List<RevCommit> srcParents = this.srcRepo.getParentCommits(targetCommit);
@@ -108,8 +106,8 @@ public class FinerRepoBuilder {
       }
     }
 
-    log.debug("rebuilding commit<{}> ({})", this.getAbbreviatedID(targetCommit),
-        this.getDate(targetCommit));
+    log.debug("rebuilding commit<{}> ({})", RevCommitUtil.getAbbreviatedID(targetCommit),
+        RevCommitUtil.getDate(targetCommit));
 
     RevCommit newCommit = null;
 
@@ -137,7 +135,7 @@ public class FinerRepoBuilder {
 
       // git-commitコマンドの実行
       final PersonIdent authorIdent = targetCommit.getAuthorIdent();
-      final String id = this.getAbbreviatedID(targetCommit);
+      final String id = RevCommitUtil.getAbbreviatedID(targetCommit);
       final String message = targetCommit.getFullMessage();
       newCommit = this.desRepo.doCommitCommand(authorIdent, id, message);
     }
@@ -216,7 +214,7 @@ public class FinerRepoBuilder {
 
       // git-commitコマンドの実行
       final PersonIdent authorIdent = targetCommit.getAuthorIdent();
-      final String id = this.getAbbreviatedID(targetCommit);
+      final String id = RevCommitUtil.getAbbreviatedID(targetCommit);
       final String message = targetCommit.getFullMessage();
       newCommit = this.desRepo.doCommitCommand(authorIdent, id, message);
     }
@@ -267,7 +265,7 @@ public class FinerRepoBuilder {
 
       // targetCommitの内容でコミット
       final PersonIdent authorIdent = targetCommit.getAuthorIdent();
-      final String id = this.getAbbreviatedID(targetCommit);
+      final String id = RevCommitUtil.getAbbreviatedID(targetCommit);
       final String message = targetCommit.getFullMessage();
       newCommit = this.desRepo.doCommitCommand(authorIdent, id, message);
     }
@@ -416,19 +414,6 @@ public class FinerRepoBuilder {
         .stream()
         .filter(p)
         .collect(Collectors.toMap(k -> k, k -> map.get(k)));
-  }
-
-  // 引数で与えられた RevCommit のハッシュの最初の7文字を返す
-  private String getAbbreviatedID(final RevCommit commit) {
-    return commit.abbreviate(7)
-        .name();
-  }
-
-  // 引数で与えられた RevCommit の時刻情報を返す
-  private String getDate(final RevCommit commit) {
-    return commit.getAuthorIdent()
-        .getWhen()
-        .toString();
   }
 
   // 引数で与えられたファイルパスの集合から，java ファイルのみを取り出し拡張子を取り除く
