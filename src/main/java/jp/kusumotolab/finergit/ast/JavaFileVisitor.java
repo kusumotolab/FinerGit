@@ -1141,9 +1141,11 @@ public class JavaFileVisitor extends ASTVisitor {
       final SingleVariableDeclaration svd = (SingleVariableDeclaration) parameter;
       final String type = svd.getType()
           .toString()
+          .replace(' ', '-') // avoiding space existences
           .replace('?', '#') // for window's file system
           .replace('<', '[') // for window's file system
           .replace('>', ']'); // for window's file system
+
       types.add(type);
     }
     text.append(String.join(",", types));
