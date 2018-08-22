@@ -35,4 +35,8 @@ public class RevCommitUtil {
         message.contains("バグ") || //
         message.contains("修正");
   }
+
+  public static boolean isMergeCommit(final RevCommit commit) {
+    return 1 < commit.getParents().length;
+  }
 }
