@@ -1,11 +1,9 @@
 package jp.kusumotolab.finergit.sv;
 
 import java.nio.file.Path;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
-import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.revwalk.RevCommit;
+import jp.kusumotolab.finergit.util.RevCommitUtil;
 
 public class SemanticVersion {
 
@@ -42,17 +40,17 @@ public class SemanticVersion {
 
     if (null != config && config.isCommit()) {
       text.append("\t");
-      text.append(this.getAbbreviatedID(this.commit));
+      text.append(RevCommitUtil.getAbbreviatedID(this.commit));
     }
 
     if (null != config && config.isDate()) {
       text.append("\t");
-      text.append(this.getDate(this.commit));
+      text.append(RevCommitUtil.getDate(this.commit));
     }
 
     if (null != config && config.isAuthor()) {
       text.append("\t");
-      text.append(this.getAuthor(this.commit));
+      text.append(RevCommitUtil.getAuthor(this.commit));
     }
 
     if (null != config && config.isPath()) {
@@ -88,25 +86,5 @@ public class SemanticVersion {
 
   public int getNumberOfChanges() {
     return this.parent.getNumberOfChanges() + 1;
-  }
-
-  // 引数で与えられた RevCommit の時刻情報を返す
-  private String getDate(final RevCommit commit) {
-    final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy/MM/dd hh:mm:ss");
-    final PersonIdent authorIdent = commit.getAuthorIdent();
-    final Date date = authorIdent.getWhen();
-    return simpleDateFormat.format(date);
-  }
-
-  // 引数で与えられた RevCommit の Author Name を返す
-  private String getAuthor(final RevCommit commit) {
-    return this.commit.getAuthorIdent()
-        .getName();
-  }
-
-  // 引数で与えられた RevCommit のハッシュの最初の7文字を返す
-  private String getAbbreviatedID(final RevCommit commit) {
-    return commit.abbreviate(7)
-        .name();
   }
 }

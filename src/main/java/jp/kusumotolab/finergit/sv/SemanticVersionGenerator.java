@@ -7,6 +7,7 @@ import java.util.List;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import jp.kusumotolab.finergit.util.RevCommitUtil;
 
 public class SemanticVersionGenerator {
 
@@ -32,7 +33,7 @@ public class SemanticVersionGenerator {
         currentPath = path;
       }
 
-      else if (this.isBugFix(commit)) {
+      else if (RevCommitUtil.isBugFix(commit)) {
         semanticVersion = semanticVersion.generateNextPatchVersion(commit, Paths.get(path));
       }
 
@@ -42,13 +43,5 @@ public class SemanticVersionGenerator {
     }
 
     return semanticVersion;
-  }
-
-  private boolean isBugFix(final RevCommit commit) {
-    final String message = commit.getFullMessage();
-    return message.contains(" bug") || //
-        message.contains(" fix") || //
-        message.contains("バグ") || //
-        message.contains("修正");
   }
 }
