@@ -19,6 +19,9 @@ public class FinerGitConfig {
     this.desPath = null;
     this.isOriginalJavaIncluded = false;
     this.isOtherFilesIncluded = false;
+    final ch.qos.logback.classic.Logger log =
+        (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+    log.setLevel(Level.DEBUG);
   }
 
   public Path getSrcPath() {
@@ -37,14 +40,18 @@ public class FinerGitConfig {
     return this.isOtherFilesIncluded;
   }
 
-  @Option(name = "-s", aliases = "--src", metaVar = "<path>", usage = "path to input repository")
+  @Option(name = "-s", required = true, aliases = "--src", metaVar = "<path>",
+      usage = "path to input repository")
   public void setSrcPath(final String path) {
-    this.srcPath = Paths.get(path);
+    this.srcPath = Paths.get(path)
+        .toAbsolutePath();
   }
 
-  @Option(name = "-d", aliases = "--des", metaVar = "<path>", usage = "path to output repository")
+  @Option(name = "-d", required = true, aliases = "--des", metaVar = "<path>",
+      usage = "path to output repository")
   public void setDesPath(final String path) {
-    this.desPath = Paths.get(path);
+    this.desPath = Paths.get(path)
+        .toAbsolutePath();
   }
 
   @Option(name = "-o", aliases = "--original-javafiles", metaVar = "<true|false>)",
