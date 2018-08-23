@@ -114,6 +114,8 @@ public class FinerRepoBuilder {
     // 親がないとき（initial commit）の処理
     if (0 == srcParents.size()) {
 
+      log.info("reached at the initial commit, starting to rebuilding commits ...");
+      
       // 対象コミットのファイル群を取得
       final Map<String, byte[]> dataInCommit = this.srcRepo.getFiles(targetCommit);
       final Map<String, byte[]> javaDataInCommit =
@@ -371,7 +373,7 @@ public class FinerRepoBuilder {
         .listFiles(repoPath.toFile(), (0 == extensions.length ? null : extensions), true)
         .stream()
         .map(f -> Paths.get(f.getAbsolutePath()))
-        .filter(ap -> !ap.startsWith(repoPath.resolve(".git")))
+        .filter(ap -> !ap.endsWith(repoPath.resolve(".git")))
         .map(ap -> repoPath.relativize(ap))
         .map(lp -> lp.toString())
         .collect(Collectors.toSet());
