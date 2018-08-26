@@ -37,6 +37,7 @@ public class FinerRepoBuilder {
   private final Map<RevCommit, Integer> branchMap;
 
   public FinerRepoBuilder(final FinerGitConfig config) {
+    log.info("enter FinerRepoBuilder(FinerGitConfig)");
     this.config = config;
     this.srcRepo = new GitRepo(this.config.getSrcPath());
     this.desRepo = new FinerRepo(this.config.getDesPath());
@@ -49,7 +50,7 @@ public class FinerRepoBuilder {
    * FinerGitのリポジトリを生成する
    */
   public void exec() {
-
+    log.info("enter exec()");
     try {
 
       // initialize finer repository
@@ -69,6 +70,7 @@ public class FinerRepoBuilder {
     } catch (final Exception e) {
       e.printStackTrace();
     }
+    log.info("exit exec()");
   }
 
   // 第一引数で与えたれたコミットに対して，そこに含まれるJavaファイルの細粒度版からなるコミットを生成する．
@@ -76,6 +78,8 @@ public class FinerRepoBuilder {
   // 第三引数で与えれたコミット群は，すでにチェックしたコミット群．
   private RevCommit exec(final RevCommit targetCommit, final int branchID,
       final Set<RevCommit> checkedCommits) {
+    log.trace("enter exec(RevCommit=\"{}\", int=\"{}\", Set<RevCommit>=\"{}\")",
+        RevCommitUtil.getAbbreviatedID(targetCommit), branchID, checkedCommits.size());
 
     // すでに処理済みのコミットの場合は，それに対応する細粒度リポジトリのコミットを取得し，メソッドを抜ける
     if (checkedCommits.contains(targetCommit)) {
@@ -83,7 +87,7 @@ public class FinerRepoBuilder {
       return cachedNewCommit;
     }
 
-    log.debug("tracking commit<{}> ({})", RevCommitUtil.getAbbreviatedID(targetCommit),
+    log.debug("tracking a commit \"{}\" (\"{}\")", RevCommitUtil.getAbbreviatedID(targetCommit),
         RevCommitUtil.getDate(targetCommit));
 
     // 親が存在した場合には，親をたどる
@@ -106,16 +110,15 @@ public class FinerRepoBuilder {
       }
     }
 
-    log.debug("rebuilding commit<{}> ({})", RevCommitUtil.getAbbreviatedID(targetCommit),
-        RevCommitUtil.getDate(targetCommit));
-
     RevCommit newCommit = null;
 
     // 親がないとき（initial commit）の処理
     if (0 == srcParents.size()) {
 
-      log.info("reached at the initial commit, starting to rebuilding commits ...");
-      
+      log.info("reached at the initial commit, starting to rebuild commits ...");
+      log.debug("rebuilding the initial commit \"{}\" (\"{}\")",
+          RevCommitUtil.getAbbreviatedID(targetCommit), RevCommitUtil.getDate(targetCommit));
+
       // 対象コミットのファイル群を取得
       final Map<String, byte[]> dataInCommit = this.srcRepo.getFiles(targetCommit);
       final Map<String, byte[]> javaDataInCommit =
@@ -144,6 +147,9 @@ public class FinerRepoBuilder {
 
     // 親が1つのとき（normal commit）の処理
     else if (1 == srcParents.size()) {
+
+      log.debug("rebuilding a normal commit \"{}\" (\"{}\")",
+          RevCommitUtil.getAbbreviatedID(targetCommit), RevCommitUtil.getDate(targetCommit));
 
       // 親コミットのブランチIDと今のブランチIDを比較．異なれば，ブランチを作成
       final int parentBranchID = this.branchMap.get(desParents[0]);
@@ -224,6 +230,9 @@ public class FinerRepoBuilder {
     // 親が2つのとき（merge commit）の処理
     else if (2 == srcParents.size()) {
 
+      log.debug("rebuilding a merge commit \"{}\" (\"{}\")",
+          RevCommitUtil.getAbbreviatedID(targetCommit), RevCommitUtil.getDate(targetCommit));
+
       // 1つ目の親のブランチにスイッチ
       final int parentBranchID = this.branchMap.get(desParents[0]);
       this.checkout(parentBranchID, false, null);
@@ -280,18 +289,23 @@ public class FinerRepoBuilder {
 
     checkedCommits.add(targetCommit);
 
+    log.trace("exit exec(RevCommit=\"{}\", int=\"{}\", Set<RevCommit>=\"{}\")",
+        RevCommitUtil.getAbbreviatedID(targetCommit), branchID, checkedCommits.size());
+
     return newCommit;
   }
 
   // 第一引数のブランチに対して git-checkout する．
   private void checkout(final int branchID, final boolean create, final RevCommit startPoint) {
+    log.trace("enter checkout(int=\"{}\", boolean=\"{}\", RevCommit=\"{}\")", branchID, create,
+        RevCommitUtil.getAbbreviatedID(startPoint));
     final String branchName = BranchName.getLabel(branchID);
     this.desRepo.doCheckoutCommand(branchName, create, startPoint);
   }
 
   // 引数で与えたれたファイル群のうち，Javaファイルに対して細粒度Javaファイルを作成する
   private Map<String, byte[]> generateFinerJavaModules(final Map<String, byte[]> files) {
-
+    log.trace("enter generateFinerJavaModules(Map<String, byte[]>=\"{}\")", files.size());
     final Map<String, byte[]> finerJavaData = new HashMap<>();
 
     files.forEach((path, data) -> {
@@ -316,6 +330,8 @@ public class FinerRepoBuilder {
 
   // 第一引数で与えられたファイルのうち，第二引数で与えられたいずれかの接頭辞をもつものを抽出
   private Set<String> getFilesHavingPrefix(final Set<String> files, final Set<String> prefixes) {
+    log.trace("enter getFilesHavingPrefix(Set<String>=\"{}\", Set<String>=\"{}\")", files.size(),
+        prefixes.size());
     return files.stream()
         .filter(f -> prefixes.stream()
             .anyMatch(p -> f.startsWith(p)))
@@ -324,6 +340,7 @@ public class FinerRepoBuilder {
 
   // 引数で与えられたファイルをgit-addする．
   private void addFiles(final Map<String, byte[]> files) {
+    log.trace("enter addFiles(Map<String, byte[]>=\"{}\")", files.size());
 
     // 各ファイルを新しいリポジトリに保存
     files.forEach((path, data) -> {
@@ -362,6 +379,7 @@ public class FinerRepoBuilder {
 
   // 引数で与えられたファイルをgit-rmする
   private void removeFiles(final Set<String> paths) {
+    log.trace("enter removeFiles(Set<String>=\"{}\")", paths.size());
     if (!paths.isEmpty()) {
       this.desRepo.doRmCommand(paths);
     }
@@ -369,6 +387,8 @@ public class FinerRepoBuilder {
 
   // 引数で指定されたディレクトリ以下にある全ファイルを取得する．ただし，".git"以下は除く．
   private Set<String> getWorkingFiles(final Path repoPath, final String... extensions) {
+    log.trace("enter getWorkingFiles(Path=\"{}\", String...=\"{}\")", repoPath.toFile(),
+        extensions);
     return FileUtils
         .listFiles(repoPath.toFile(), (0 == extensions.length ? null : extensions), true)
         .stream()
@@ -381,6 +401,7 @@ public class FinerRepoBuilder {
 
   // 引数で与えられたDiffEntryのうち，ChangeTypeがADDなもののパスを取得する
   private Set<String> getAddedFiles(final List<DiffEntry> diffEntries) {
+    log.trace("enter getAddedFiles(List<DiffEntry>=\"{}\")", diffEntries.size());
     return diffEntries.stream()
         .filter(d -> ChangeType.ADD == d.getChangeType())
         .map(d -> d.getNewPath()) // new path なので注意！！
@@ -389,6 +410,7 @@ public class FinerRepoBuilder {
 
   // 引数で与えられたDiffEntryのうち，ChangeTypeがMODIFYなもののパスを取得する
   private Set<String> getModifiedFiles(final List<DiffEntry> diffEntries) {
+    log.trace("enter getModifiedFiles(List<DiffEntry>=\"{}\")", diffEntries.size());
     return diffEntries.stream()
         .filter(d -> ChangeType.MODIFY == d.getChangeType())
         .map(d -> d.getNewPath()) // new path でも old path でもどちらでも良い
@@ -397,6 +419,7 @@ public class FinerRepoBuilder {
 
   // 引数で与えられたDiffEntryのうち，ChangeTypeがDELETEなもののパスを取得する
   private Set<String> getDeletedFiles(final List<DiffEntry> diffEntries) {
+    log.trace("enter getDeletedFiles(List<DiffEntry>=\"{}\")", diffEntries.size());
     return diffEntries.stream()
         .filter(d -> ChangeType.DELETE == d.getChangeType())
         .map(d -> d.getOldPath()) // old path なので注意！！
@@ -405,6 +428,7 @@ public class FinerRepoBuilder {
 
   // 第一引数で与えられたSetのうち，第二引数の条件に合うものを抽出
   private Set<String> filterSet(final Set<String> set, final Predicate<String> p) {
+    log.trace("enter filterSet(Set<String>=\"{}\", Predicate<String>)", set.size());
     return set.stream()
         .filter(p)
         .collect(Collectors.toSet());
@@ -412,6 +436,7 @@ public class FinerRepoBuilder {
 
   // 第一引数で与えられたMapのうち，第二引数の条件に合うものを抽出
   private Map<String, byte[]> filterMap(final Map<String, byte[]> map, final Predicate<String> p) {
+    log.trace("enter filterMap(Map<String, byte[]>=\"{}\", Predicate<String>)", map.size());
     return map.keySet()
         .stream()
         .filter(p)
@@ -420,6 +445,7 @@ public class FinerRepoBuilder {
 
   // 引数で与えられたファイルパスの集合から，java ファイルのみを取り出し拡張子を取り除く
   private Set<String> removePrefixes(final Set<String> files) {
+    log.trace("enter removePrefixes(Set<String>=\"{}\")", files.size());
     return files.stream()
         .filter(file -> file.endsWith(".java"))
         .map(file -> file.substring(0, file.lastIndexOf('.')))

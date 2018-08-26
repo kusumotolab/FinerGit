@@ -16,6 +16,7 @@ import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import jp.kusumotolab.finergit.util.RevCommitUtil;
 
 public class FinerRepo {
 
@@ -30,6 +31,8 @@ public class FinerRepo {
   }
 
   public boolean initialize() {
+    log.trace("enter initialize()");
+
     try {
       this.git = Git.init()
           .setDirectory(this.path.toFile())
@@ -46,6 +49,9 @@ public class FinerRepo {
 
   public boolean doCheckoutCommand(final String branchName, final boolean create,
       final RevCommit startPoint) {
+    log.trace("enter doCheckoutCommand(String=\"{}\", boolean=\"{}\", RevCommit=\"{}\")",
+        branchName, create, RevCommitUtil.getAbbreviatedID(startPoint));
+
     final CheckoutCommand checkoutCommand = this.git.checkout();
     checkoutCommand.setCreateBranch(create)
         .setName(branchName)
@@ -54,8 +60,9 @@ public class FinerRepo {
       checkoutCommand.call();
       return true;
     } catch (final Exception e) {
-      log.error("git-checkout command failed, branchName <{}>, create <{}>, startPoint <{}>",
-          branchName, create, null == startPoint ? null : startPoint.abbreviate(7));
+      log.error(
+          "git-checkout command failed, branchName <{}>, create <{}>, startPoint <{}>, Exception.getMessage <{}>",
+          branchName, create, RevCommitUtil.getAbbreviatedID(startPoint), e.getMessage());
       Stream.of(e.getStackTrace())
           .forEach(p -> log.error(p.toString()));
       return false;
@@ -63,6 +70,7 @@ public class FinerRepo {
   }
 
   public boolean doAddCommand(final Collection<String> paths) {
+    log.trace("enter doAddCommand(Collection<String>=\"{}\")", paths.size());
 
     // if paths is empty, do nothing
     if (null == paths || paths.isEmpty()) {
@@ -84,6 +92,7 @@ public class FinerRepo {
   }
 
   public boolean doRmCommand(final Collection<String> paths) {
+    log.trace("enter doRmCommand(Collection<String>=\"{}\")", paths.size());
 
     // if paths is empty, do nothing
     if (null == paths || paths.isEmpty()) {
@@ -106,6 +115,9 @@ public class FinerRepo {
 
   public RevCommit doCommitCommand(final PersonIdent personIdent, final String originalCommitID,
       final String originalCommitMessage) {
+    log.trace("enter doCommitCommand(PersonIdent=\"{}\", String=\"{}\", String=\"{}\")",
+        personIdent.toExternalString(), originalCommitID, originalCommitMessage);
+
     final CommitCommand commitCommand = this.git.commit();
     final String message = "<OriginalCommitID:" + originalCommitID + "> " + originalCommitMessage;
     try {
@@ -124,6 +136,9 @@ public class FinerRepo {
   }
 
   public MergeStatus doMergeCommand(final RevCommit targetCommit) {
+    log.trace("entr doMergeCommand(RevCommit=\"{}\")",
+        RevCommitUtil.getAbbreviatedID(targetCommit));
+
     final MergeCommand mergeCommit = this.git.merge();
     try {
       final MergeResult mergeResult = mergeCommit.include(targetCommit)

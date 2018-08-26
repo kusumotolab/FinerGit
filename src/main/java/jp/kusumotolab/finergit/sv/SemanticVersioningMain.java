@@ -21,6 +21,7 @@ public class SemanticVersioningMain {
   private static final Logger log = LoggerFactory.getLogger(SemanticVersioningMain.class);
 
   public static void main(final String[] args) {
+    log.info("enter main(String[])");
 
     final SemanticVersioningConfig config = new SemanticVersioningConfig();
     final CmdLineParser cmdLineParser = new CmdLineParser(config);
@@ -29,6 +30,7 @@ public class SemanticVersioningMain {
       cmdLineParser.parseArgument(args);
     } catch (final CmdLineException e) {
       cmdLineParser.printUsage(System.err);
+      log.info("exit main(String[])");
       System.exit(0);
     }
 
@@ -36,11 +38,13 @@ public class SemanticVersioningMain {
 
     if (0 == otherArguments.size()) {
       System.err.println("target file is not specified");
+      log.info("exit main(String[])");
       System.exit(0);
     }
 
     if (1 < otherArguments.size()) {
       System.err.println("two or more target files are specified");
+      log.info("exit main(String[])");
       System.exit(0);
     }
 
@@ -49,6 +53,7 @@ public class SemanticVersioningMain {
 
     if (targetFilePath.isAbsolute()) {
       System.err.println("target file must be specified with a relative path");
+      log.info("exit main(String[])");
       System.exit(0);
     }
 
@@ -59,11 +64,13 @@ public class SemanticVersioningMain {
 
     if (!Files.exists(targetFileAbsolutePath)) {
       System.err.println("\"" + targetFileAbsolutePath.toString() + "\" does not exist.");
+      log.info("exit main(String[])");
       System.exit(0);
     }
 
     else if (!Files.isRegularFile(targetFileAbsolutePath)) {
       System.err.println("\"" + targetFileAbsolutePath.toString() + "\" is not a regular file.");
+      log.info("exit main(String[])");
       System.exit(0);
     }
 
@@ -71,21 +78,25 @@ public class SemanticVersioningMain {
 
     final SemanticVersioningMain main = new SemanticVersioningMain(config);
     main.run();
+
+    log.info("exit main(String[])");
   }
 
   private final SemanticVersioningConfig config;
 
   public SemanticVersioningMain(final SemanticVersioningConfig config) {
+    log.info("enter SemanticVersionMain(SemanticVersioningConfig)");
     this.config = config;
   }
 
   public void run() {
-
+    log.info("enter run()");
     final Path baseDirPath = Paths.get(this.config.getBaseDir());
     final Repository repository = findRepository(baseDirPath);
 
     if (null == repository) {
       System.err.println("git repository was not found.");
+      log.info("exit run()");
       System.exit(0);
     }
 
@@ -100,6 +111,7 @@ public class SemanticVersioningMain {
 
     if (commitPathMap.isEmpty()) {
       System.err.println("there is no commit on \"" + targetFilePath.toString() + "\"");
+      log.info("exit run()");
       System.exit(0);
     }
 
@@ -124,9 +136,12 @@ public class SemanticVersioningMain {
     else {
       System.out.println(semanticVersion.toString(this.config));
     }
+
+    log.info("exit run()");
   }
 
   private Repository findRepository(final Path path) {
+    log.trace("enter findRepository(Path), path <{}>", path);
 
     if (null == path) {
       return null;
@@ -148,6 +163,11 @@ public class SemanticVersioningMain {
   }
 
   private Path getRelativePath(final Repository repository, final Path targetFileAbsolutePath) {
+    log.trace(
+        "enter getRelativePath(Repository, Path), repository <{}>, targetFileAbsolutePath <{}>",
+        repository.getWorkTree()
+            .getAbsolutePath(),
+        targetFileAbsolutePath);
     final Path repositoryAbsolutePath = Paths.get(repository.getWorkTree()
         .getAbsolutePath());
     return repositoryAbsolutePath.relativize(targetFileAbsolutePath);

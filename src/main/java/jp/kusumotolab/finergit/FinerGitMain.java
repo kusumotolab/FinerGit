@@ -4,7 +4,6 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ch.qos.logback.classic.Level;
 
 public class FinerGitMain {
 
@@ -16,9 +15,9 @@ public class FinerGitMain {
     final CmdLineParser cmdLineParser = new CmdLineParser(config);
     try {
       cmdLineParser.parseArgument(args);
-    } catch (final CmdLineException e1) {
+    } catch (final CmdLineException e) {
       cmdLineParser.printUsage(System.err);
-      e1.printStackTrace();
+      System.exit(0);
     }
 
     final Timer timer = new Timer();
@@ -35,10 +34,12 @@ public class FinerGitMain {
   private final FinerGitConfig config;
 
   public FinerGitMain(final FinerGitConfig config) {
+    log.info("enter FinerGitMain(FinerGitConfig");
     this.config = config;
   }
 
   public void exec() {
+    log.info("enter exec()");
     final FinerRepoBuilder builder = new FinerRepoBuilder(this.config);
     builder.exec();
   }
