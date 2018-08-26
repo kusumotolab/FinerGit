@@ -43,6 +43,8 @@ public class GitRepo {
   private TreeWalk treeWalk;
 
   public GitRepo(final Path path) {
+    log.trace("enter GitRepo(Path=\"{}\")", path.toString());
+
     this.path = path;
     this.fileRepository = null;
     this.objectReader = null;
@@ -51,6 +53,7 @@ public class GitRepo {
   }
 
   public boolean initialize() {
+    log.trace("enter initialize()");
 
     final Path configPath = this.path.resolve(".git");
     if (Files.notExists(configPath)) {
@@ -75,6 +78,7 @@ public class GitRepo {
 
 
   public void dispose() {
+    log.trace("enter dispose()");
     this.treeWalk.close();
     this.revWalk.close();
     this.objectReader.close();
@@ -82,12 +86,14 @@ public class GitRepo {
   }
 
   public RevCommit getHeadCommit() {
+    log.trace("enter getHeadCommit()");
     final ObjectId headId = this.getObjectId(Constants.HEAD, "getHeadCommit()");
     final RevCommit headCommit = this.getRevCommit(headId);
     return headCommit;
   }
 
   public List<RevCommit> getParentCommits(final RevCommit commit) {
+    log.trace("enter getParentCommits(RevCommit=\"{}\")", RevCommitUtil.getAbbreviatedID(commit));
     final List<RevCommit> parents = new ArrayList<>();
     for (final RevCommit parent : commit.getParents()) {
       final RevCommit parentCommit = this.getRevCommit(parent);
@@ -97,6 +103,7 @@ public class GitRepo {
   }
 
   public Map<String, byte[]> getFiles(final RevCommit commit) {
+    log.trace("enter getFiles(RevCommit=\"{}\")", RevCommitUtil.getAbbreviatedID(commit));
 
     final Map<String, byte[]> files = new HashMap<>();
 
@@ -136,10 +143,11 @@ public class GitRepo {
   }
 
   public List<DiffEntry> getDiff(final RevCommit commit) {
-
+    log.trace("enter getDiff(RevCommit=\"{}\")", RevCommitUtil.getAbbreviatedID(commit));
     final Git git = new Git(this.fileRepository);
 
-    final ObjectId parentObjectId = this.getObjectId(commit.name() + "^", "getDiff(RevCommit)");
+    final ObjectId parentObjectId =
+        this.getObjectId(RevCommitUtil.getAbbreviatedID(commit) + "^", "getDiff(RevCommit)");
     final RevCommit parentCommit = this.getRevCommit(parentObjectId);
     if (null == parentCommit) {
       git.close();
@@ -173,34 +181,8 @@ public class GitRepo {
     }
   }
 
-  public List<DiffEntry> getDiff2(final RevCommit commit) {
-
-    try (final Git git = new Git(this.fileRepository)) {
-
-      final ObjectId parentObjectId = this.fileRepository.resolve(commit.name() + "^");
-      final RevCommit parentCommit = this.revWalk.parseCommit(parentObjectId);
-
-      final CanonicalTreeParser oldParser = new CanonicalTreeParser();
-      oldParser.reset(this.objectReader, parentCommit.getTree());
-
-      final CanonicalTreeParser newParser = new CanonicalTreeParser();
-      newParser.reset(this.objectReader, commit.getTree());
-
-      final DiffCommand diffCommand = git.diff();
-      final List<DiffEntry> diffEntries = diffCommand.setOldTree(oldParser)
-          .setNewTree(newParser)
-          .setShowNameAndStatusOnly(true)
-          .call();
-      return diffEntries;
-
-    } catch (final Exception e) {
-      System.err.println("an error happend in executing git-diff command.");
-      e.printStackTrace();
-      return Collections.emptyList();
-    }
-  }
-
   private ObjectId getObjectId(final String name, final String command) {
+    log.trace("enter getObjectId(String=\"{}\", String=\"{}\")", name, command);
 
     if (null == name) {
       return null;
@@ -225,6 +207,7 @@ public class GitRepo {
   }
 
   private RevCommit getRevCommit(final AnyObjectId commitId) {
+    log.trace("enter getRevCommit(AnyObjectId=\"{}\")", RevCommitUtil.getAbbreviatedID(commitId));
 
     if (null == commitId) {
       return null;
@@ -240,6 +223,9 @@ public class GitRepo {
   }
 
   private CanonicalTreeParser getCanonicalTreeParser(final RevCommit commit) {
+    log.trace("enter getCanonicalTreeParser(RevCommit=\"{}\")",
+        RevCommitUtil.getAbbreviatedID(commit));
+
     final CanonicalTreeParser parser = new CanonicalTreeParser();
     try {
       parser.reset(this.objectReader, commit.getTree());

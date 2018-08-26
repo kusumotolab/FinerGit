@@ -2,6 +2,8 @@ package jp.kusumotolab.finergit.util;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.eclipse.jgit.lib.AnyObjectId;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -10,12 +12,13 @@ public class RevCommitUtil {
 
   // 引数で与えられた RevCommit のハッシュの最初の7文字を返す
   public static String getAbbreviatedID(final AnyObjectId anyObjectId) {
-    return anyObjectId.abbreviate(7)
-        .name();
+    return null == anyObjectId ? null
+        : anyObjectId.abbreviate(7)
+            .name();
   }
 
   // 引数で与えられた RevCommit の Author Name を返す
-  public static String getAuthor(final RevCommit commit) {
+  public static String getAuthor(final RevCommit commit) {    
     return commit.getAuthorIdent()
         .getName();
   }
@@ -38,5 +41,11 @@ public class RevCommitUtil {
 
   public static boolean isMergeCommit(final RevCommit commit) {
     return 1 < commit.getParents().length;
+  }
+
+  public static Set<String> convertIDs(final Set<RevCommit> commits) {
+    return commits.stream()
+        .map(c -> getAbbreviatedID(c))
+        .collect(Collectors.toSet());
   }
 }
