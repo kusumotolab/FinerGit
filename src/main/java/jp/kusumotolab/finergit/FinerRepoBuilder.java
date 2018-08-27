@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.MergeResult.MergeStatus;
+import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.DiffEntry.ChangeType;
 import org.eclipse.jgit.lib.PersonIdent;
@@ -233,9 +234,20 @@ public class FinerRepoBuilder {
       log.debug("rebuilding a merge commit \"{}\" (\"{}\")",
           RevCommitUtil.getAbbreviatedID(targetCommit), RevCommitUtil.getDate(targetCommit));
 
+      // ワーキングディレクトリに余計なファイルが有れば削除
+      // コマンドラインのgitならこの処理なしでも動くが，jGitだとなぜかこの処理が必要
+      final Status status = this.desRepo.doStatusCommand();
+      final Set<String> nonIndexedFiles = status.getIgnoredNotInIndex();
+      this.deleteFiles(nonIndexedFiles);
+
       // 1つ目の親のブランチにスイッチ
       final int parentBranchID = this.branchMap.get(desParents[0]);
-      this.checkout(parentBranchID, false, null);
+      if (!this.checkout(parentBranchID, false, null)) {
+        log.error(
+            "rebuilding aborted due to a fatal problem, a commit \"{}\" (\"{}\") and its later commits have not been rebuilded",
+            RevCommitUtil.getAbbreviatedID(targetCommit), RevCommitUtil.getDate(targetCommit));
+        System.exit(0);
+      }
 
       // もし1つ目の親のブランチが，コミットすべきブランチではない場合は新しいブランチを作成
       if (parentBranchID != branchID) {
@@ -246,7 +258,8 @@ public class FinerRepoBuilder {
       final MergeStatus mergeStatus = this.desRepo.doMergeCommand(desParents[1]);
 
       // マージが失敗したときには，古いリポジトリからファイルを持ってくる
-      if (!mergeStatus.isSuccessful()) {
+      // git-subtree の場合も，古いリポジトリからファイルを持ってくる
+      if (!mergeStatus.isSuccessful() || RevCommitUtil.isSubtreeCommit(targetCommit)) {
 
         // 対象コミットのファイルの一覧を取得し，新しいリポジトリに追加
         final Map<String, byte[]> dataInCommit = this.srcRepo.getFiles(targetCommit);
@@ -296,11 +309,11 @@ public class FinerRepoBuilder {
   }
 
   // 第一引数のブランチに対して git-checkout する．
-  private void checkout(final int branchID, final boolean create, final RevCommit startPoint) {
+  private boolean checkout(final int branchID, final boolean create, final RevCommit startPoint) {
     log.trace("enter checkout(int=\"{}\", boolean=\"{}\", RevCommit=\"{}\")", branchID, create,
         RevCommitUtil.getAbbreviatedID(startPoint));
     final String branchName = BranchName.getLabel(branchID);
-    this.desRepo.doCheckoutCommand(branchName, create, startPoint);
+    return this.desRepo.doCheckoutCommand(branchName, create, startPoint);
   }
 
   // 引数で与えたれたファイル群のうち，Javaファイルに対して細粒度Javaファイルを作成する
@@ -450,5 +463,20 @@ public class FinerRepoBuilder {
         .filter(file -> file.endsWith(".java"))
         .map(file -> file.substring(0, file.lastIndexOf('.')))
         .collect(Collectors.toSet());
+  }
+
+  // 引数で与えられたファイルパスの集合に対して削除を行う
+  private void deleteFiles(final Set<String> filesToDelete) {
+    log.trace("enter deleteFiles(Set<String>=\"{}\")", filesToDelete.size());
+
+    final Path finerRepoPath = this.desRepo.path;
+    for (final String file : filesToDelete) {
+      final Path absoluteFilePath = finerRepoPath.resolve(file);
+      try {
+        Files.deleteIfExists(absoluteFilePath);
+      } catch (final IOException e) {
+        log.error("failed to delete a file \"{}\"", absoluteFilePath.toString());
+      }
+    }
   }
 }

@@ -12,6 +12,10 @@ import org.eclipse.jgit.api.MergeCommand.FastForwardMode;
 import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.MergeResult.MergeStatus;
 import org.eclipse.jgit.api.RmCommand;
+import org.eclipse.jgit.api.Status;
+import org.eclipse.jgit.api.StatusCommand;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.errors.NoWorkTreeException;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
@@ -148,6 +152,21 @@ public class FinerRepo {
       return mergeResult.getMergeStatus();
     } catch (final Exception e) {
       log.error("git-merge command failed");
+      Stream.of(e.getStackTrace())
+          .forEach(p -> log.error(p.toString()));
+      return null;
+    }
+  }
+
+  public Status doStatusCommand() {
+    log.trace("entr doStatusCommand()");
+
+    final StatusCommand statusCommand = this.git.status();
+    try {
+      final Status status = statusCommand.call();
+      return status;
+    } catch (final NoWorkTreeException | GitAPIException e) {
+      log.error("git-status command failed");
       Stream.of(e.getStackTrace())
           .forEach(p -> log.error(p.toString()));
       return null;
