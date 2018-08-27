@@ -18,7 +18,7 @@ public class RevCommitUtil {
   }
 
   // 引数で与えられた RevCommit の Author Name を返す
-  public static String getAuthor(final RevCommit commit) {    
+  public static String getAuthor(final RevCommit commit) {
     return commit.getAuthorIdent()
         .getName();
   }
@@ -41,6 +41,18 @@ public class RevCommitUtil {
 
   public static boolean isMergeCommit(final RevCommit commit) {
     return 1 < commit.getParents().length;
+  }
+
+  public static boolean isSubtreeCommit(final RevCommit commit) {    
+    
+    if (!isMergeCommit(commit)) {
+      return false;
+    }
+
+    final String message = commit.getFullMessage();
+    return message.contains("git-subtree-dir:") && //
+        message.contains("git-subtree-mainline:") && //
+        message.contains("git-subtree-split:");
   }
 
   public static Set<String> convertIDs(final Set<RevCommit> commits) {
