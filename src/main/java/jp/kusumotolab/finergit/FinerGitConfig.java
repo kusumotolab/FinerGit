@@ -19,9 +19,6 @@ public class FinerGitConfig {
     this.desPath = null;
     this.isOriginalJavaIncluded = false;
     this.isOtherFilesIncluded = false;
-    final ch.qos.logback.classic.Logger log =
-        (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-    log.setLevel(Level.DEBUG);
   }
 
   public Path getSrcPath() {

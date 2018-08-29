@@ -89,7 +89,7 @@ public class FinerRepoBuilder {
     }
 
     log.debug("tracking a commit \"{}\" (\"{}\")", RevCommitUtil.getAbbreviatedID(targetCommit),
-        RevCommitUtil.getDate(targetCommit));
+        RevCommitUtil.getDate(targetCommit, RevCommitUtil.DATE_FORMAT));
 
     // 親が存在した場合には，親をたどる
     final List<RevCommit> srcParents = this.srcRepo.getParentCommits(targetCommit);
@@ -118,7 +118,8 @@ public class FinerRepoBuilder {
 
       log.info("reached at the initial commit, starting to rebuild commits ...");
       log.debug("rebuilding the initial commit \"{}\" (\"{}\")",
-          RevCommitUtil.getAbbreviatedID(targetCommit), RevCommitUtil.getDate(targetCommit));
+          RevCommitUtil.getAbbreviatedID(targetCommit),
+          RevCommitUtil.getDate(targetCommit, RevCommitUtil.DATE_FORMAT));
 
       // 対象コミットのファイル群を取得
       final Map<String, byte[]> dataInCommit = this.srcRepo.getFiles(targetCommit);
@@ -150,7 +151,8 @@ public class FinerRepoBuilder {
     else if (1 == srcParents.size()) {
 
       log.debug("rebuilding a normal commit \"{}\" (\"{}\")",
-          RevCommitUtil.getAbbreviatedID(targetCommit), RevCommitUtil.getDate(targetCommit));
+          RevCommitUtil.getAbbreviatedID(targetCommit),
+          RevCommitUtil.getDate(targetCommit, RevCommitUtil.DATE_FORMAT));
 
       // 親コミットのブランチIDと今のブランチIDを比較．異なれば，ブランチを作成
       final int parentBranchID = this.branchMap.get(desParents[0]);
@@ -232,7 +234,8 @@ public class FinerRepoBuilder {
     else if (2 == srcParents.size()) {
 
       log.debug("rebuilding a merge commit \"{}\" (\"{}\")",
-          RevCommitUtil.getAbbreviatedID(targetCommit), RevCommitUtil.getDate(targetCommit));
+          RevCommitUtil.getAbbreviatedID(targetCommit),
+          RevCommitUtil.getDate(targetCommit, RevCommitUtil.DATE_FORMAT));
 
       // ワーキングディレクトリに余計なファイルが有れば削除
       // コマンドラインのgitならこの処理なしでも動くが，jGitだとなぜかこの処理が必要
@@ -245,7 +248,8 @@ public class FinerRepoBuilder {
       if (!this.checkout(parentBranchID, false, null)) {
         log.error(
             "rebuilding aborted due to a fatal problem, a commit \"{}\" (\"{}\") and its later commits have not been rebuilded",
-            RevCommitUtil.getAbbreviatedID(targetCommit), RevCommitUtil.getDate(targetCommit));
+            RevCommitUtil.getAbbreviatedID(targetCommit),
+            RevCommitUtil.getDate(targetCommit, RevCommitUtil.DATE_FORMAT));
         System.exit(0);
       }
 

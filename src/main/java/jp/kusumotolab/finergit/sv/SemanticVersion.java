@@ -45,7 +45,7 @@ public class SemanticVersion {
 
     if (null != config && config.isDate()) {
       text.append("\t");
-      text.append(RevCommitUtil.getDate(this.commit));
+      text.append(RevCommitUtil.getDate(this.commit, RevCommitUtil.DATE_FORMAT));
     }
 
     if (null != config && config.isAuthor()) {
