@@ -5,6 +5,9 @@ import java.util.ArrayList;
 import java.util.List;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.Option;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import ch.qos.logback.classic.Level;
 
 public class SemanticVersioningConfig {
 
@@ -34,6 +37,12 @@ public class SemanticVersioningConfig {
       usage = "this option means all the \"-a\", \"-c\", \"-d\", \"-f\", \"-n\", and \"-p\" are specified")
   private boolean all;
 
+  @Option(name = "--start-commit", usage = "specify a start commit for counting semantic version")
+  private String startCommitId;
+
+  @Option(name = "--end-commit", usage = "specify an end commit for counting semantic version")
+  private String endCommitId;
+
   @Option(name = "-h", aliases = "--help", usage = "print help for this command")
   private boolean help;
 
@@ -56,8 +65,14 @@ public class SemanticVersioningConfig {
     this.all = false;
     this.help = false;
     this.baseDir = System.getProperty("user.dir");
+    this.startCommitId = null;
+    this.endCommitId = null;
     this.targetFilePath = null;
     this.otherArguments = new ArrayList<>();
+
+    final ch.qos.logback.classic.Logger log =
+        (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+    log.setLevel(Level.DEBUG);
   }
 
   public boolean isAuthor() {
@@ -96,6 +111,14 @@ public class SemanticVersioningConfig {
     return this.baseDir;
   }
 
+  public String getStartCommitId() {
+    return this.startCommitId;
+  }
+
+  public String getEndCommitId() {
+    return this.endCommitId;
+  }
+
   public List<String> getOtherArguments() {
     return this.otherArguments;
   }
@@ -106,5 +129,38 @@ public class SemanticVersioningConfig {
 
   public Path getTargetFilePath() {
     return this.targetFilePath;
+  }
+
+  @Option(name = "-l", aliases = "--log-level", metaVar = "<level>",
+      usage = "log level (trace, debug, info, warn, error)")
+  public void setLogLevel(final String logLevel) {
+    final ch.qos.logback.classic.Logger log =
+        (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+    switch (logLevel.toLowerCase()) {
+      case "trace": {
+        log.setLevel(Level.TRACE);
+        break;
+      }
+      case "debug": {
+        log.setLevel(Level.DEBUG);
+        break;
+      }
+      case "info": {
+        log.setLevel(Level.INFO);
+        break;
+      }
+      case "warn": {
+        log.setLevel(Level.WARN);
+        break;
+      }
+      case "error": {
+        log.setLevel(Level.ERROR);
+        break;
+      }
+      default: {
+        System.err.println("inappropriate value for \"-l\" option");
+        System.exit(0);
+      }
+    }
   }
 }

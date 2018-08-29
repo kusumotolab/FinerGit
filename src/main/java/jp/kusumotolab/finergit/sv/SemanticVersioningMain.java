@@ -14,14 +14,19 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ch.qos.logback.classic.Level;
 import jp.kusumotolab.finergit.util.LinkedHashMapSorter;
+import jp.kusumotolab.finergit.util.RevCommitUtil;
 
 public class SemanticVersioningMain {
 
   private static final Logger log = LoggerFactory.getLogger(SemanticVersioningMain.class);
 
   public static void main(final String[] args) {
-    log.info("enter main(String[])");
+
+    final ch.qos.logback.classic.Logger log =
+        (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+    log.setLevel(Level.ERROR);
 
     final SemanticVersioningConfig config = new SemanticVersioningConfig();
     final CmdLineParser cmdLineParser = new CmdLineParser(config);
@@ -105,6 +110,11 @@ public class SemanticVersioningMain {
     final Path targetFileRelativePathInRepository =
         this.getRelativePath(repository, targetFileAbsolutePath);
 
+    final String startCommitId = this.config.getStartCommitId();
+    final RevCommit startCommit = RevCommitUtil.getRevCommit(repository, startCommitId);
+    final String endCommitId = this.config.getEndCommitId();
+    final RevCommit endCommit = RevCommitUtil.getRevCommit(repository, endCommitId);
+
     final FileTracker fileTracker = new FileTracker(repository);
     final LinkedHashMap<RevCommit, String> commitPathMap =
         fileTracker.exec(targetFileRelativePathInRepository.toString());
@@ -119,7 +129,8 @@ public class SemanticVersioningMain {
         LinkedHashMapSorter.reverse(commitPathMap);
 
     final SemanticVersionGenerator semanticVersionGenerator = new SemanticVersionGenerator();
-    final SemanticVersion semanticVersion = semanticVersionGenerator.exec(reversedCommitPathMap);
+    final SemanticVersion semanticVersion =
+        semanticVersionGenerator.exec(reversedCommitPathMap, startCommit, endCommit);
 
     if (this.config.isFollow()) {
 
@@ -172,4 +183,6 @@ public class SemanticVersioningMain {
         .getAbsolutePath());
     return repositoryAbsolutePath.relativize(targetFileAbsolutePath);
   }
+
+
 }
