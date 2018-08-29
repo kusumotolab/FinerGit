@@ -14,8 +14,8 @@ public class FinerGitMain {
 
     final ch.qos.logback.classic.Logger log =
         (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-    log.setLevel(Level.DEBUG);
-    
+    log.setLevel(Level.ERROR);
+
     final FinerGitConfig config = new FinerGitConfig();
     final CmdLineParser cmdLineParser = new CmdLineParser(config);
     try {

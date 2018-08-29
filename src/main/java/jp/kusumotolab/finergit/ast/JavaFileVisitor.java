@@ -1131,11 +1131,11 @@ public class JavaFileVisitor extends ASTVisitor {
     }
 
     // メソッドモジュールの名前を生成
-    final StringBuilder text = new StringBuilder();
+    final StringBuilder methodFileName = new StringBuilder();
     final String methodName = node.getName()
         .getIdentifier();
-    text.append(methodName);
-    text.append("(");
+    methodFileName.append(methodName);
+    methodFileName.append("(");
     final List<String> types = new ArrayList<>();
     for (final Object parameter : node.parameters()) {
       final SingleVariableDeclaration svd = (SingleVariableDeclaration) parameter;
@@ -1148,8 +1148,8 @@ public class JavaFileVisitor extends ASTVisitor {
 
       types.add(type);
     }
-    text.append(String.join(",", types));
-    text.append(")");
+    methodFileName.append(String.join(",", types));
+    methodFileName.append(")");
 
     // ダミーメソッドをスタックから取り除く
     final FinerJavaModule dummyMethod = this.moduleStack.pop();
@@ -1162,7 +1162,7 @@ public class JavaFileVisitor extends ASTVisitor {
     final FinerJavaMethod methodModule;
     if (!isInnerMethod) { // 内部クラス内のメソッドではないとき
       final FinerJavaModule outerModule = this.moduleStack.peek();
-      methodModule = new FinerJavaMethod(text.toString(), outerModule);
+      methodModule = new FinerJavaMethod(methodFileName.toString(), outerModule);
       this.moduleStack.push(methodModule);
       this.moduleList.add(methodModule);
     }
