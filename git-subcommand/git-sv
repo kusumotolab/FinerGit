@@ -1,3 +1,4 @@
 #!/bin/bash
+CDIR=`pwd`
 JARDIR=`dirname $0`
-java -jar $JARDIR/git-sv.jar $@
+java -jar $JARDIR/git-sv.jar $@ -b $CDIR
