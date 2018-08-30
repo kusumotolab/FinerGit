@@ -22,6 +22,10 @@ public abstract class FinerJavaModule {
     return this.tokens.add(token);
   }
 
+  public void clearTokens() {
+    this.tokens.clear();
+  }
+
   public List<JavaToken> getTokens() {
     return this.tokens;
   }

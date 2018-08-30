@@ -331,7 +331,7 @@ public class FinerRepoBuilder {
         return;
       }
 
-      final FinerJavaFileBuilder builder = new FinerJavaFileBuilder();
+      final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(this.config);
       final String text = new String(data, StandardCharsets.UTF_8);
       final List<FinerJavaModule> finerJavaModules = builder.constructAST(path, text);
 

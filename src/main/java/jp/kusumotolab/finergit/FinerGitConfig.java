@@ -13,12 +13,14 @@ public class FinerGitConfig {
   private Path desPath;
   private boolean isOriginalJavaIncluded;
   private boolean isOtherFilesIncluded;
+  private boolean isTokenized;
 
   public FinerGitConfig() {
     this.srcPath = null;
     this.desPath = null;
     this.isOriginalJavaIncluded = false;
     this.isOtherFilesIncluded = false;
+    this.isTokenized = true;
   }
 
   public Path getSrcPath() {
@@ -35,6 +37,10 @@ public class FinerGitConfig {
 
   public boolean isOtherFilesIncluded() {
     return this.isOtherFilesIncluded;
+  }
+
+  public boolean isTokenized() {
+    return this.isTokenized;
   }
 
   @Option(name = "-s", required = true, aliases = "--src", metaVar = "<path>",
@@ -84,6 +90,25 @@ public class FinerGitConfig {
       }
       default: {
         System.err.println("\"-p\" option can take only true or false");
+        System.exit(0);
+      }
+    }
+  }
+
+  @Option(name = "-t", aliases = "--tokenize", metaVar = "<true|false>)",
+      usage = "do tokenize Java method files")
+  public void setTokenized(final String flag) {
+    switch (flag.toLowerCase()) {
+      case "true": {
+        this.isTokenized = true;
+        break;
+      }
+      case "false": {
+        this.isTokenized = false;
+        break;
+      }
+      default: {
+        System.err.println("\"-t\" option can take only true or false");
         System.exit(0);
       }
     }
