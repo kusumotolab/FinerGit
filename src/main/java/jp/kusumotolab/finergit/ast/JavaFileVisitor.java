@@ -4,11 +4,13 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+import java.util.stream.Stream;
 import org.apache.commons.io.FilenameUtils;
 import org.eclipse.jdt.core.dom.*;
 import org.eclipse.jdt.core.dom.InfixExpression.Operator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import jp.kusumotolab.finergit.FinerGitConfig;
 import jp.kusumotolab.finergit.ast.token.AND;
 import jp.kusumotolab.finergit.ast.token.ANNOTATION;
 import jp.kusumotolab.finergit.ast.token.ASSERT;
@@ -48,6 +50,7 @@ import jp.kusumotolab.finergit.ast.token.LEFTPAREN;
 import jp.kusumotolab.finergit.ast.token.LEFTSQUAREBRACKET;
 import jp.kusumotolab.finergit.ast.token.LESS;
 import jp.kusumotolab.finergit.ast.token.LINECOMMENT;
+import jp.kusumotolab.finergit.ast.token.LineToken;
 import jp.kusumotolab.finergit.ast.token.METHODREFERENCE;
 import jp.kusumotolab.finergit.ast.token.ModifierFactory;
 import jp.kusumotolab.finergit.ast.token.NEW;
@@ -83,13 +86,15 @@ public class JavaFileVisitor extends ASTVisitor {
   private static final Logger log = LoggerFactory.getLogger(JavaFileVisitor.class);
 
   public final Path path;
+  private final FinerGitConfig config;
   private final Stack<FinerJavaModule> moduleStack;
   private final List<FinerJavaModule> moduleList;
   private final Stack<Class<?>> contexts;
 
-  public JavaFileVisitor(final Path path) {
+  public JavaFileVisitor(final Path path, final FinerGitConfig config) {
 
     this.path = path;
+    this.config = config;
     this.moduleStack = new Stack<>();
     this.moduleList = new ArrayList<>();
     this.contexts = new Stack<>();
@@ -1190,6 +1195,14 @@ public class JavaFileVisitor extends ASTVisitor {
       this.moduleStack.peek()
           .addToken(new FinerJavaMethodToken("MetodToken[" + finerJavaMethod.name + "]",
               finerJavaMethod));
+    }
+
+    if (!this.config.isTokenized()) { // 1行1トークンにしないとき
+      methodModule.clearTokens();
+      Stream.of(node.toString()
+          .split("(\\r\\n|\\r|\\n)"))
+          .map(l -> new LineToken(l))
+          .forEach(methodModule::addToken);
     }
 
     return false;

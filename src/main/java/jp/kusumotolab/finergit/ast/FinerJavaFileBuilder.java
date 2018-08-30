@@ -11,8 +11,15 @@ import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.FileASTRequestor;
 import org.eclipse.jdt.core.formatter.DefaultCodeFormatterConstants;
+import jp.kusumotolab.finergit.FinerGitConfig;
 
 public class FinerJavaFileBuilder {
+
+  private final FinerGitConfig config;
+
+  public FinerJavaFileBuilder(final FinerGitConfig config) {
+    this.config = config;
+  }
 
   public List<FinerJavaModule> constructASTs(final Map<String, String> pathToTextMap) {
 
@@ -24,7 +31,8 @@ public class FinerJavaFileBuilder {
         final String text = pathToTextMap.get(sourceFilePath);
         if (text != null) {
           final Path path = Paths.get(sourceFilePath);
-          final JavaFileVisitor visitor = new JavaFileVisitor(path);
+          final JavaFileVisitor visitor =
+              new JavaFileVisitor(path, FinerJavaFileBuilder.this.config);
           ast.accept(visitor);
           final List<FinerJavaModule> finerJavaModules = visitor.getFinerJavaModules();
           files.addAll(finerJavaModules);
@@ -45,7 +53,7 @@ public class FinerJavaFileBuilder {
     final ASTParser parser = createNewParser();
     parser.setSource(text.toCharArray());
     final CompilationUnit ast = (CompilationUnit) parser.createAST(null);
-    final JavaFileVisitor visitor = new JavaFileVisitor(Paths.get(path));
+    final JavaFileVisitor visitor = new JavaFileVisitor(Paths.get(path), this.config);
     ast.accept(visitor);
     return visitor.getFinerJavaModules();
   }
