@@ -53,6 +53,16 @@ public class SemanticVersion {
       text.append(RevCommitUtil.getAuthor(this.commit));
     }
 
+    if (null != config && config.isBirthCommit()) {
+      text.append("\t");
+      text.append(RevCommitUtil.getAbbreviatedID(this.getBirthCommit()));
+    }
+
+    if (null != config && config.isBirthDate()) {
+      text.append("\t");
+      text.append(RevCommitUtil.getDate(this.getBirthCommit(), RevCommitUtil.DATE_FORMAT));
+    }
+
     if (null != config && config.isPath()) {
       text.append("\t");
       text.append(this.path.toString());
@@ -95,5 +105,11 @@ public class SemanticVersion {
 
   public int getNumberOfChanges() {
     return this.parent.getNumberOfChanges() + 1;
+  }
+
+  public RevCommit getBirthCommit() {
+    return SemanticVersion.class == this.parent.getClass() ? // 親の型も SemanticVesion か調べる
+        this.parent.getBirthCommit() : // 親も SemanticVersion なら，親に進む
+        this.commit; // 親が SemanticVersion でなければ，このコミットを返す
   }
 }
