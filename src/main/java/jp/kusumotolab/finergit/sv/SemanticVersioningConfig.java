@@ -43,6 +43,12 @@ public class SemanticVersioningConfig {
   @Option(name = "--end-commit", usage = "specify an end commit for counting semantic version")
   private String endCommitId;
 
+  @Option(name = "--birth-commit", usage = "print the birth commit of the specified file")
+  private boolean birthCommit;
+
+  @Option(name = "--birth-date", usage = "print the birth date of the specified file")
+  private boolean birthDate;
+
   @Option(name = "-h", aliases = "--help", usage = "print help for this command")
   private boolean help;
 
@@ -67,12 +73,10 @@ public class SemanticVersioningConfig {
     this.baseDir = System.getProperty("user.dir");
     this.startCommitId = null;
     this.endCommitId = null;
+    this.birthCommit = false;
+    this.birthDate = false;
     this.targetFilePath = null;
     this.otherArguments = new ArrayList<>();
-
-    final ch.qos.logback.classic.Logger log =
-        (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-    log.setLevel(Level.DEBUG);
   }
 
   public boolean isAuthor() {
@@ -117,6 +121,14 @@ public class SemanticVersioningConfig {
 
   public String getEndCommitId() {
     return this.endCommitId;
+  }
+
+  public boolean isBirthCommit() {
+    return this.birthCommit;
+  }
+
+  public boolean isBirthDate() {
+    return this.birthDate;
   }
 
   public List<String> getOtherArguments() {
