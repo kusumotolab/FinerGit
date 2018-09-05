@@ -14,6 +14,8 @@ public class FinerGitConfig {
   private boolean isOriginalJavaIncluded;
   private boolean isOtherFilesIncluded;
   private boolean isTokenized;
+  private boolean isAccessModifierIncluded;
+  private boolean isReturnTypeIncluded;
 
   public FinerGitConfig() {
     this.srcPath = null;
@@ -21,6 +23,8 @@ public class FinerGitConfig {
     this.isOriginalJavaIncluded = false;
     this.isOtherFilesIncluded = false;
     this.isTokenized = true;
+    this.isAccessModifierIncluded = true;
+    this.isReturnTypeIncluded = true;
   }
 
   public Path getSrcPath() {
@@ -41,6 +45,14 @@ public class FinerGitConfig {
 
   public boolean isTokenized() {
     return this.isTokenized;
+  }
+
+  public boolean isAccessModifierIncluded() {
+    return this.isAccessModifierIncluded;
+  }
+
+  public boolean isReturnTypeIncluded() {
+    return this.isReturnTypeIncluded;
   }
 
   @Option(name = "-s", required = true, aliases = "--src", metaVar = "<path>",
@@ -142,6 +154,44 @@ public class FinerGitConfig {
       }
       default: {
         System.err.println("inappropriate value for \"-l\" option");
+        System.exit(0);
+      }
+    }
+  }
+
+  @Option(name = "--access-modifier-included", metaVar = "<true|false>)",
+      usage = "include access modifiers in Java method files")
+  public void setAccessModifierIncluded(final String flag) {
+    switch (flag.toLowerCase()) {
+      case "true": {
+        this.isAccessModifierIncluded = true;
+        break;
+      }
+      case "false": {
+        this.isAccessModifierIncluded = false;
+        break;
+      }
+      default: {
+        System.err.println("\"--access-modifier-included\" option can take only true or false");
+        System.exit(0);
+      }
+    }
+  }
+
+  @Option(name = "--return-type-included", metaVar = "<true|false>)",
+      usage = "include return types in Java method files")
+  public void setReturnTypeIncluded(final String flag) {
+    switch (flag.toLowerCase()) {
+      case "true": {
+        this.isReturnTypeIncluded = true;
+        break;
+      }
+      case "false": {
+        this.isReturnTypeIncluded = false;
+        break;
+      }
+      default: {
+        System.err.println("\"--return-type-included\" option can take only true or false");
         System.exit(0);
       }
     }

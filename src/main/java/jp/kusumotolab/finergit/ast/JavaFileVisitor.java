@@ -1086,8 +1086,7 @@ public class JavaFileVisitor extends ASTVisitor {
     final Type returnType = node.getReturnType2();
     if (null != returnType) { // コンストラクタのときは returnType が null
       this.contexts.push(TYPENAME.class);
-      node.getReturnType2()
-          .accept(this);
+      returnType.accept(this);
       final Class<?> context = this.contexts.pop();
       assert TYPENAME.class == context : "error happend at visit(MethodDeclaration)";
     }
@@ -1137,6 +1136,27 @@ public class JavaFileVisitor extends ASTVisitor {
 
     // メソッドモジュールの名前を生成
     final StringBuilder methodFileName = new StringBuilder();
+    if (this.config.isAccessModifierIncluded()) { // アクセス修飾子を名前に入れる場合
+      final int modifiers = node.getModifiers();
+      if (Modifier.isPublic(modifiers)) {
+        methodFileName.append("public_");
+      } else if (Modifier.isProtected(modifiers)) {
+        methodFileName.append("protected_");
+      } else if (Modifier.isPrivate(modifiers)) {
+        methodFileName.append("private_");
+      }
+    }
+    if (this.config.isReturnTypeIncluded()) { // 返り値の型を名前に入れる場合
+      if (null != returnType) {
+        final String type = returnType.toString()
+            .replace(' ', '-') // avoiding space existences
+            .replace('?', '#') // for window's file system
+            .replace('<', '[') // for window's file system
+            .replace('>', ']'); // for window's file system
+        methodFileName.append(type);
+        methodFileName.append("_");
+      }
+    }
     final String methodName = node.getName()
         .getIdentifier();
     methodFileName.append(methodName);
@@ -1150,7 +1170,6 @@ public class JavaFileVisitor extends ASTVisitor {
           .replace('?', '#') // for window's file system
           .replace('<', '[') // for window's file system
           .replace('>', ']'); // for window's file system
-
       types.add(type);
     }
     methodFileName.append(String.join(",", types));
