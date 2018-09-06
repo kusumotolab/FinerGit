@@ -11,6 +11,7 @@ public class FinerGitConfig {
 
   private Path srcPath;
   private Path desPath;
+  private String headCommitId;
   private boolean isOriginalJavaIncluded;
   private boolean isOtherFilesIncluded;
   private boolean isTokenized;
@@ -20,6 +21,7 @@ public class FinerGitConfig {
   public FinerGitConfig() {
     this.srcPath = null;
     this.desPath = null;
+    this.headCommitId = null;
     this.isOriginalJavaIncluded = false;
     this.isOtherFilesIncluded = false;
     this.isTokenized = true;
@@ -33,6 +35,10 @@ public class FinerGitConfig {
 
   public Path getDesPath() {
     return this.desPath;
+  }
+
+  public String getHeadCommitId() {
+    return this.headCommitId;
   }
 
   public boolean isOriginalJavaIncluded() {
@@ -67,6 +73,12 @@ public class FinerGitConfig {
   public void setDesPath(final String path) {
     this.desPath = Paths.get(path)
         .toAbsolutePath();
+  }
+
+
+  @Option(name = "--head", metaVar = "<commitId>", usage = "commitId for HEAD of finer repository")
+  public void setEndCommit(final String endCommitId) {
+    this.headCommitId = endCommitId;
   }
 
   @Option(name = "-o", aliases = "--original-javafiles", metaVar = "<true|false>)",

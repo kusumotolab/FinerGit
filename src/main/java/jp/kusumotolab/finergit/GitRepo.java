@@ -87,9 +87,20 @@ public class GitRepo {
 
   public RevCommit getHeadCommit() {
     log.trace("enter getHeadCommit()");
-    final ObjectId headId = this.getObjectId(Constants.HEAD, "getHeadCommit()");
-    final RevCommit headCommit = this.getRevCommit(headId);
-    return headCommit;
+    return this.getCommit(Constants.HEAD);
+  }
+
+  /**
+   * 引数で与えられたコミットIDを持つRevCommitを返す．引数で与えられたコミットがない場合にはnullを返す．
+   * 
+   * @param commit
+   * @return
+   */
+  public RevCommit getCommit(final String commit) {
+    log.trace("enter getCommit(String)");
+    final ObjectId commitId = this.getObjectId(commit, "getCommit()");
+    final RevCommit revCommit = this.getRevCommit(commitId);
+    return revCommit;
   }
 
   public List<RevCommit> getParentCommits(final RevCommit commit) {
