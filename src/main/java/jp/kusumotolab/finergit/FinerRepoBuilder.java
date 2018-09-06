@@ -59,7 +59,13 @@ public class FinerRepoBuilder {
       this.desRepo.initialize();
 
       // retrieve HEAD information
-      final RevCommit headCommit = this.srcRepo.getHeadCommit();
+      final String headCommitId = this.config.getHeadCommitId();
+      final RevCommit headCommit = null != headCommitId ? this.srcRepo.getCommit(headCommitId)
+          : this.srcRepo.getHeadCommit();
+      if (null == headCommit) {
+        log.error("\"{}\" is an invalid commit ID for option \"--head\"", headCommitId);
+        System.exit(0);
+      }
 
       // caching checked commits
       final Set<RevCommit> checkedCommits = new HashSet<>();
