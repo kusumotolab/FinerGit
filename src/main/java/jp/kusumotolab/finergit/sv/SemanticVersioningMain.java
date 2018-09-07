@@ -114,8 +114,7 @@ public class SemanticVersioningMain {
     final RevCommit startCommit = RevCommitUtil.getRevCommit(repository, startCommitId);
     final String endCommitId = this.config.getEndCommitId();
     final RevCommit endCommit = RevCommitUtil.getRevCommit(repository, endCommitId);
-
-    final FileTracker fileTracker = new FileTracker(repository);
+    final FileTracker fileTracker = new FileTracker(repository, this.config);
     final LinkedHashMap<RevCommit, String> commitPathMap =
         fileTracker.exec(targetFileRelativePathInRepository.toString());
 

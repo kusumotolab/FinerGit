@@ -16,9 +16,11 @@ import org.eclipse.jgit.treewalk.TreeWalk;
 public class FileTracker {
 
   private final Repository repository;
+  private final SemanticVersioningConfig config;
 
-  public FileTracker(final Repository repository) {
+  public FileTracker(final Repository repository, final SemanticVersioningConfig config) {
     this.repository = repository;
+    this.config = config;
   }
 
   /**
@@ -47,9 +49,9 @@ public class FileTracker {
           final RevCommit commit = revWalk.parseCommit(commitID);
 
           // マージコミットは対象外
-          //if (1 < commit.getParents().length) {
-          //  continue;
-          //}
+          // if (1 < commit.getParents().length) {
+          // continue;
+          // }
 
           if (commitPathMap.containsKey(commit)) {
             start = null;
@@ -87,6 +89,9 @@ public class FileTracker {
       treeWalk.addTree(start.getTree());
       treeWalk.setRecursive(true);
       final RenameDetector renameDetector = new RenameDetector(this.repository);
+      if (!this.config.minimumRenameScore.isRepositoryDefault()) {
+        renameDetector.setRenameScore(this.config.minimumRenameScore.getValue());
+      }
       renameDetector.addAll(DiffEntry.scan(treeWalk));
       final List<DiffEntry> files = renameDetector.compute();
       for (final DiffEntry file : files) {
@@ -99,6 +104,4 @@ public class FileTracker {
     }
     return null;
   }
-
-
 }
