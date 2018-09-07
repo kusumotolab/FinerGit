@@ -55,6 +55,8 @@ public class SemanticVersioningConfig {
   @Option(name = "-b", aliases = "--base-dir", usage = "specify a base directory")
   private String baseDir;
 
+  public final MinimumRenameScore minimumRenameScore;
+
   @Argument
   private List<String> otherArguments;
 
@@ -71,6 +73,7 @@ public class SemanticVersioningConfig {
     this.all = false;
     this.help = false;
     this.baseDir = System.getProperty("user.dir");
+    this.minimumRenameScore = new MinimumRenameScore();
     this.startCommitId = null;
     this.endCommitId = null;
     this.birthCommit = false;
@@ -174,5 +177,11 @@ public class SemanticVersioningConfig {
         System.exit(0);
       }
     }
+  }
+
+  @Option(name = "-m", aliases = "--minimum-rename-score",
+      usage = "specify a minimum score for file rename")
+  public void setMinimumRenameScore(final int minimumRenameScore) {
+    this.minimumRenameScore.setValue(minimumRenameScore);
   }
 }
