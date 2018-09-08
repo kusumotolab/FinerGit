@@ -389,7 +389,8 @@ public class FinerRepoBuilder {
       try {
         Files.write(absolutePath, data);
       } catch (final IOException e) {
-        log.error("failed to write a file<{}>", absolutePath.toString());
+        log.error("failed to write a file <{}>", absolutePath.toString());
+        log.error(e.getMessage());
         Stream.of(e.getStackTrace())
             .forEach(s -> log.error(s.toString()));
         return;
