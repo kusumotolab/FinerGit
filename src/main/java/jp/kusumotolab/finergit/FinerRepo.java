@@ -1,8 +1,8 @@
 package jp.kusumotolab.finergit;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.stream.Stream;
 import org.eclipse.jgit.api.AddCommand;
 import org.eclipse.jgit.api.CheckoutCommand;
 import org.eclipse.jgit.api.CommitCommand;
@@ -17,6 +17,8 @@ import org.eclipse.jgit.api.StatusCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.NoWorkTreeException;
 import org.eclipse.jgit.lib.PersonIdent;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +32,7 @@ public class FinerRepo {
   private Git git;
 
   public FinerRepo(final Path path) {
+    log.debug("enter FinerRepo(Path=\"{}\")", path.toString());
     this.path = path;
     this.git = null;
   }
@@ -42,13 +45,26 @@ public class FinerRepo {
           .setDirectory(this.path.toFile())
           .setBare(false)
           .call();
-      return true;
     } catch (final Exception e) {
       log.error("git-init command failed, path<{}>", this.path.toString());
-      Stream.of(e.getStackTrace())
-          .forEach(p -> log.error(p.toString()));
+      log.error(e.getMessage());
       return false;
     }
+
+    final Repository repository = this.git.getRepository();
+    final StoredConfig config = repository.getConfig();
+    config.setInt("merge", null, "renamelimit", 999999);
+
+    try {
+      config.save();
+    } catch (final IOException e) {
+      log.error("failed to change the finer repository configuration");
+      log.error(e.getMessage());
+      return false;
+    }
+
+    return true;
+
   }
 
   public boolean doCheckoutCommand(final String branchName, final boolean create,
@@ -67,8 +83,7 @@ public class FinerRepo {
       log.error(
           "git-checkout command failed, branchName <{}>, create <{}>, startPoint <{}>, Exception.getMessage <{}>",
           branchName, create, RevCommitUtil.getAbbreviatedID(startPoint), e.getMessage());
-      Stream.of(e.getStackTrace())
-          .forEach(p -> log.error(p.toString()));
+      log.error(e.getMessage());
       return false;
     }
   }
@@ -89,8 +104,7 @@ public class FinerRepo {
       return true;
     } catch (final Exception e) {
       log.error("git-add command failed");
-      Stream.of(e.getStackTrace())
-          .forEach(p -> log.error(p.toString()));
+      log.error(e.getMessage());
       return false;
     }
   }
@@ -111,8 +125,7 @@ public class FinerRepo {
       return true;
     } catch (final Exception e) {
       log.error("git-rm command failed");
-      Stream.of(e.getStackTrace())
-          .forEach(p -> log.error(p.toString()));
+      log.error(e.getMessage());
       return false;
     }
   }
@@ -133,14 +146,13 @@ public class FinerRepo {
       log.error(
           "git-commit command failed, personIdent<{}>, originalCommitID<{}>, originalCommitMessage<{}>",
           personIdent.toExternalString(), originalCommitID, originalCommitMessage);
-      Stream.of(e.getStackTrace())
-          .forEach(p -> log.error(p.toString()));
+      log.error(e.getMessage());
       return null;
     }
   }
 
   public MergeStatus doMergeCommand(final RevCommit targetCommit) {
-    log.trace("entr doMergeCommand(RevCommit=\"{}\")",
+    log.trace("enter doMergeCommand(RevCommit=\"{}\")",
         RevCommitUtil.getAbbreviatedID(targetCommit));
 
     final MergeCommand mergeCommit = this.git.merge();
@@ -152,14 +164,13 @@ public class FinerRepo {
       return mergeResult.getMergeStatus();
     } catch (final Exception e) {
       log.error("git-merge command failed");
-      Stream.of(e.getStackTrace())
-          .forEach(p -> log.error(p.toString()));
+      log.error(e.getMessage());
       return null;
     }
   }
 
   public Status doStatusCommand() {
-    log.trace("entr doStatusCommand()");
+    log.trace("enter doStatusCommand()");
 
     final StatusCommand statusCommand = this.git.status();
     try {
@@ -167,8 +178,7 @@ public class FinerRepo {
       return status;
     } catch (final NoWorkTreeException | GitAPIException e) {
       log.error("git-status command failed");
-      Stream.of(e.getStackTrace())
-          .forEach(p -> log.error(p.toString()));
+      log.error(e.getMessage());
       return null;
     }
   }

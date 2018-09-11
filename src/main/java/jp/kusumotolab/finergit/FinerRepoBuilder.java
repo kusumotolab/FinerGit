@@ -36,6 +36,8 @@ public class FinerRepoBuilder {
   private final BranchName branchID;
   private final Map<RevCommit, RevCommit> commitMap;
   private final Map<RevCommit, Integer> branchMap;
+  private int numberOfTrackedCommits;
+  private int numberOfRebuiltCommits;
 
   public FinerRepoBuilder(final FinerGitConfig config) {
     log.info("enter FinerRepoBuilder(FinerGitConfig)");
@@ -45,6 +47,8 @@ public class FinerRepoBuilder {
     this.branchID = new BranchName();
     this.commitMap = new HashMap<>();
     this.branchMap = new HashMap<>();
+    this.numberOfTrackedCommits = 0;
+    this.numberOfRebuiltCommits = 0;
   }
 
   /**
@@ -94,8 +98,7 @@ public class FinerRepoBuilder {
       return cachedNewCommit;
     }
 
-    log.debug("tracking a commit \"{}\" (\"{}\")", RevCommitUtil.getAbbreviatedID(targetCommit),
-        RevCommitUtil.getDate(targetCommit, RevCommitUtil.DATE_FORMAT));
+    this.numberOfTrackedCommits++;
 
     // 親が存在した場合には，親をたどる
     final List<RevCommit> srcParents = this.srcRepo.getParentCommits(targetCommit);
@@ -117,6 +120,7 @@ public class FinerRepoBuilder {
       }
     }
 
+    this.numberOfRebuiltCommits++;
     RevCommit newCommit = null;
 
     // 親がないとき（initial commit）の処理
@@ -156,8 +160,8 @@ public class FinerRepoBuilder {
     // 親が1つのとき（normal commit）の処理
     else if (1 == srcParents.size()) {
 
-      log.debug("rebuilding a normal commit \"{}\" (\"{}\")",
-          RevCommitUtil.getAbbreviatedID(targetCommit),
+      log.debug("{}/{} rebuilding a normal commit \"{}\" (\"{}\")", this.numberOfRebuiltCommits,
+          this.numberOfTrackedCommits, RevCommitUtil.getAbbreviatedID(targetCommit),
           RevCommitUtil.getDate(targetCommit, RevCommitUtil.DATE_FORMAT));
 
       // 親コミットのブランチIDと今のブランチIDを比較．異なれば，ブランチを作成
@@ -239,8 +243,8 @@ public class FinerRepoBuilder {
     // 親が2つのとき（merge commit）の処理
     else if (2 == srcParents.size()) {
 
-      log.debug("rebuilding a merge commit \"{}\" (\"{}\")",
-          RevCommitUtil.getAbbreviatedID(targetCommit),
+      log.debug("{}/{} rebuilding a merge commit \"{}\" (\"{}\")", this.numberOfRebuiltCommits,
+          this.numberOfTrackedCommits, RevCommitUtil.getAbbreviatedID(targetCommit),
           RevCommitUtil.getDate(targetCommit, RevCommitUtil.DATE_FORMAT));
 
       // ワーキングディレクトリに余計なファイルが有れば削除
@@ -266,6 +270,13 @@ public class FinerRepoBuilder {
 
       // 2つ目の親を対象にしてマージ
       final MergeStatus mergeStatus = this.desRepo.doMergeCommand(desParents[1]);
+      if (null == mergeStatus) {
+        log.error("building a finer repository aborted due to a merge error at commit \"{}\"",
+            RevCommitUtil.getAbbreviatedID(targetCommit));
+        log.error("failed on branch \"{}\" and merge target branch is \"{}\"",
+            BranchName.getLabel(branchID), RevCommitUtil.getAbbreviatedID(desParents[1]));
+        System.exit(0);
+      }
 
       // マージが失敗したときには，古いリポジトリからファイルを持ってくる
       // git-subtree の場合も，古いリポジトリからファイルを持ってくる
