@@ -15,6 +15,10 @@ public class BranchName {
     }
   }
 
+  static public boolean isMasterBranch(final int id) {
+    return id == 0;
+  }
+
   private final AtomicInteger id;
 
   public BranchName() {

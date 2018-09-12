@@ -64,25 +64,26 @@ public class FinerRepo {
     }
 
     return true;
-
   }
 
   public boolean doCheckoutCommand(final String branchName, final boolean create,
-      final RevCommit startPoint) {
-    log.trace("enter doCheckoutCommand(String=\"{}\", boolean=\"{}\", RevCommit=\"{}\")",
-        branchName, create, RevCommitUtil.getAbbreviatedID(startPoint));
+      final RevCommit startPoint, final boolean orphan) {
+    log.trace(
+        "enter doCheckoutCommand(String=\"{}\", boolean=\"{}\", RevCommit=\"{}\", boolean=\"{}\")",
+        branchName, create, RevCommitUtil.getAbbreviatedID(startPoint), orphan);
 
     final CheckoutCommand checkoutCommand = this.git.checkout();
     checkoutCommand.setCreateBranch(create)
         .setName(branchName)
-        .setStartPoint(startPoint);
+        .setStartPoint(startPoint)
+        .setOrphan(orphan);
     try {
       checkoutCommand.call();
       return true;
     } catch (final Exception e) {
       log.error(
-          "git-checkout command failed, branchName <{}>, create <{}>, startPoint <{}>, Exception.getMessage <{}>",
-          branchName, create, RevCommitUtil.getAbbreviatedID(startPoint), e.getMessage());
+          "git-checkout command failed, branchName <{}>, create <{}>, startPoint <{}>, orphan <{}>, Exception.getMessage <{}>",
+          branchName, create, RevCommitUtil.getAbbreviatedID(startPoint), orphan, e.getMessage());
       log.error(e.getMessage());
       return false;
     }
