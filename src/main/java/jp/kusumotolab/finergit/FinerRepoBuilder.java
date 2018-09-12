@@ -131,6 +131,13 @@ public class FinerRepoBuilder {
           RevCommitUtil.getAbbreviatedID(targetCommit),
           RevCommitUtil.getDate(targetCommit, RevCommitUtil.DATE_FORMAT));
 
+      // master上のinitial commitでない場合は，orphanブランチを作る
+      if (!BranchName.isMasterBranch(branchID)) {
+        this.checkout(branchID, true, null, true);
+        final Set<String> filesInWorkingDir = this.getWorkingFiles(this.desRepo.path);
+        this.removeFiles(filesInWorkingDir);
+      }
+
       // 対象コミットのファイル群を取得
       final Map<String, byte[]> dataInCommit = this.srcRepo.getFiles(targetCommit);
       final Map<String, byte[]> javaDataInCommit =
@@ -167,7 +174,7 @@ public class FinerRepoBuilder {
       // 親コミットのブランチIDと今のブランチIDを比較．異なれば，ブランチを作成
       final int parentBranchID = this.branchMap.get(desParents[0]);
       if (branchID != parentBranchID) {
-        this.checkout(branchID, true, desParents[0]);
+        this.checkout(branchID, true, desParents[0], false);
       }
 
       // 対象コミットの変更一覧を取得
@@ -255,7 +262,7 @@ public class FinerRepoBuilder {
 
       // 1つ目の親のブランチにスイッチ
       final int parentBranchID = this.branchMap.get(desParents[0]);
-      if (!this.checkout(parentBranchID, false, null)) {
+      if (!this.checkout(parentBranchID, false, null, false)) {
         log.error(
             "rebuilding aborted due to a fatal problem, a commit \"{}\" (\"{}\") and its later commits have not been rebuilded",
             RevCommitUtil.getAbbreviatedID(targetCommit),
@@ -265,7 +272,7 @@ public class FinerRepoBuilder {
 
       // もし1つ目の親のブランチが，コミットすべきブランチではない場合は新しいブランチを作成
       if (parentBranchID != branchID) {
-        this.checkout(branchID, true, desParents[0]);
+        this.checkout(branchID, true, desParents[0], false);
       }
 
       // 2つ目の親を対象にしてマージ
@@ -330,11 +337,12 @@ public class FinerRepoBuilder {
   }
 
   // 第一引数のブランチに対して git-checkout する．
-  private boolean checkout(final int branchID, final boolean create, final RevCommit startPoint) {
-    log.trace("enter checkout(int=\"{}\", boolean=\"{}\", RevCommit=\"{}\")", branchID, create,
-        RevCommitUtil.getAbbreviatedID(startPoint));
+  private boolean checkout(final int branchID, final boolean create, final RevCommit startPoint,
+      final boolean orphan) {
+    log.trace("enter checkout(int=\"{}\", boolean=\"{}\", RevCommit=\"{}\", boolean=\"{}\")",
+        branchID, create, RevCommitUtil.getAbbreviatedID(startPoint), orphan);
     final String branchName = BranchName.getLabel(branchID);
-    return this.desRepo.doCheckoutCommand(branchName, create, startPoint);
+    return this.desRepo.doCheckoutCommand(branchName, create, startPoint, orphan);
   }
 
   // 引数で与えたれたファイル群のうち，Javaファイルに対して細粒度Javaファイルを作成する
@@ -428,10 +436,21 @@ public class FinerRepoBuilder {
         .listFiles(repoPath.toFile(), (0 == extensions.length ? null : extensions), true)
         .stream()
         .map(f -> Paths.get(f.getAbsolutePath()))
-        .filter(ap -> !ap.endsWith(repoPath.resolve(".git")))
+        .filter(ap -> !this.isRepositoryFile(ap))
         .map(ap -> repoPath.relativize(ap))
         .map(lp -> lp.toString())
         .collect(Collectors.toSet());
+  }
+
+  private boolean isRepositoryFile(final Path path) {
+    Path currentPath = path.toAbsolutePath();
+    do {
+      if (currentPath.endsWith(".git") && Files.isDirectory(currentPath)) {
+        return true;
+      }
+      currentPath = currentPath.getParent();
+    } while (null != currentPath);
+    return false;
   }
 
   // 引数で与えられたDiffEntryのうち，ChangeTypeがADDなもののパスを取得する
