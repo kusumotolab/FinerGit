@@ -509,12 +509,11 @@ public class FinerRepoBuilder {
   // 引数で与えられたファイルパスの集合に対して削除を行う
   private void deleteFiles(final Set<String> filesToDelete) {
     log.trace("enter deleteFiles(Set<String>=\"{}\")", filesToDelete.size());
-
     final Path finerRepoPath = this.desRepo.path;
     for (final String file : filesToDelete) {
       final Path absoluteFilePath = finerRepoPath.resolve(file);
       try {
-        Files.deleteIfExists(absoluteFilePath);
+        FileUtils.forceDelete(absoluteFilePath.toFile());
       } catch (final IOException e) {
         log.error("failed to delete a file \"{}\"", absoluteFilePath.toString());
       }
