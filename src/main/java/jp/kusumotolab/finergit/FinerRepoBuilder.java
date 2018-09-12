@@ -513,7 +513,9 @@ public class FinerRepoBuilder {
     for (final String file : filesToDelete) {
       final Path absoluteFilePath = finerRepoPath.resolve(file);
       try {
-        FileUtils.forceDelete(absoluteFilePath.toFile());
+        if (Files.exists(absoluteFilePath)) {
+          FileUtils.forceDelete(absoluteFilePath.toFile());
+        }
       } catch (final IOException e) {
         log.error("failed to delete a file \"{}\"", absoluteFilePath.toString());
       }
