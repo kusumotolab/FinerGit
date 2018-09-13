@@ -1064,7 +1064,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     { // ダミーメソッドを生成し，モジュールスタックに追加
       final FinerJavaModule outerModule = this.moduleStack.peek();
-      final FinerJavaMethod dummyMethod = new FinerJavaMethod("DummyMethod", outerModule);
+      final FinerJavaMethod dummyMethod = new FinerJavaMethod("DummyMethod", outerModule, null);
       this.moduleStack.push(dummyMethod);
     }
 
@@ -1186,7 +1186,7 @@ public class JavaFileVisitor extends ASTVisitor {
     final FinerJavaMethod methodModule;
     if (!isInnerMethod) { // 内部クラス内のメソッドではないとき
       final FinerJavaModule outerModule = this.moduleStack.peek();
-      methodModule = new FinerJavaMethod(methodFileName.toString(), outerModule);
+      methodModule = new FinerJavaMethod(methodFileName.toString(), outerModule, this.config);
       this.moduleStack.push(methodModule);
       this.moduleList.add(methodModule);
     }
