@@ -17,6 +17,8 @@ public class FinerGitConfig {
   private boolean isTokenized;
   private boolean isAccessModifierIncluded;
   private boolean isReturnTypeIncluded;
+  private int maxFileNameLength;
+  private int hashLength;
 
   public FinerGitConfig() {
     this.srcPath = null;
@@ -27,6 +29,8 @@ public class FinerGitConfig {
     this.isTokenized = true;
     this.isAccessModifierIncluded = true;
     this.isReturnTypeIncluded = true;
+    this.maxFileNameLength = 255;
+    this.hashLength = 7;
   }
 
   public Path getSrcPath() {
@@ -59,6 +63,14 @@ public class FinerGitConfig {
 
   public boolean isReturnTypeIncluded() {
     return this.isReturnTypeIncluded;
+  }
+
+  public int getMaxFileNameLength() {
+    return this.maxFileNameLength;
+  }
+
+  public int getHashLength() {
+    return this.hashLength;
   }
 
   @Option(name = "-s", required = true, aliases = "--src", metaVar = "<path>",
@@ -207,5 +219,24 @@ public class FinerGitConfig {
         System.exit(0);
       }
     }
+  }
+
+  @Option(name = "--max-file-name-length",
+      usage = "max file name length for Java method files [13, 255]")
+  public void setMaxFileNameLength(final int maxFileNameLength) {
+    if (maxFileNameLength < 13 || 255 < maxFileNameLength) {
+      System.err.println("option \"--max-file-name-length\" must be between 13 and 255");
+      System.exit(0);
+    }
+    this.maxFileNameLength = maxFileNameLength;
+  }
+
+  @Option(name = "--hash-length", usage = "length of hash value attached to too long name files")
+  public void setHashLength(final int hashLength) {
+    if (hashLength < 7 || 40 < hashLength) {
+      System.err.println("option \"--hash-length\" must be between 7 and 40");
+      System.exit(0);
+    }
+    this.hashLength = hashLength;
   }
 }
