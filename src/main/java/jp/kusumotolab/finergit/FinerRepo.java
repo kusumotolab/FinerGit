@@ -82,8 +82,8 @@ public class FinerRepo {
       return true;
     } catch (final Exception e) {
       log.error(
-          "git-checkout command failed, branchName <{}>, create <{}>, startPoint <{}>, orphan <{}>, Exception.getMessage <{}>",
-          branchName, create, RevCommitUtil.getAbbreviatedID(startPoint), orphan, e.getMessage());
+          "git-checkout command failed, branchName <{}>, create <{}>, startPoint <{}>, orphan <{}>",
+          branchName, create, RevCommitUtil.getAbbreviatedID(startPoint), orphan);
       log.error(e.getMessage());
       return false;
     }
@@ -163,8 +163,12 @@ public class FinerRepo {
           .setFastForward(FastForwardMode.NO_FF)
           .call();
       return mergeResult.getMergeStatus();
+    } catch (final GitAPIException e) {
+      log.error("git-merge command failed due to GitAPIException");
+      log.error(e.getMessage());
+      return null;
     } catch (final Exception e) {
-      log.error("git-merge command failed");
+      log.error("git-merge command failed to unknown reason");
       log.error(e.getMessage());
       return null;
     }
