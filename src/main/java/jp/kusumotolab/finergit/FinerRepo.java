@@ -32,7 +32,7 @@ public class FinerRepo {
   private Git git;
 
   public FinerRepo(final Path path) {
-    log.debug("enter FinerRepo(Path=\"{}\")", path.toString());
+    log.trace("enter FinerRepo(Path=\"{}\")", path.toString());
     this.path = path;
     this.git = null;
   }
@@ -82,8 +82,8 @@ public class FinerRepo {
       return true;
     } catch (final Exception e) {
       log.error(
-          "git-checkout command failed, branchName <{}>, create <{}>, startPoint <{}>, orphan <{}>, Exception.getMessage <{}>",
-          branchName, create, RevCommitUtil.getAbbreviatedID(startPoint), orphan, e.getMessage());
+          "git-checkout command failed, branchName <{}>, create <{}>, startPoint <{}>, orphan <{}>",
+          branchName, create, RevCommitUtil.getAbbreviatedID(startPoint), orphan);
       log.error(e.getMessage());
       return false;
     }
@@ -163,8 +163,12 @@ public class FinerRepo {
           .setFastForward(FastForwardMode.NO_FF)
           .call();
       return mergeResult.getMergeStatus();
+    } catch (final GitAPIException e) {
+      log.error("git-merge command failed due to GitAPIException");
+      log.error(e.getMessage());
+      return null;
     } catch (final Exception e) {
-      log.error("git-merge command failed");
+      log.error("git-merge command failed to unknown reason");
       log.error(e.getMessage());
       return null;
     }
@@ -181,6 +185,16 @@ public class FinerRepo {
       log.error("git-status command failed");
       log.error(e.getMessage());
       return null;
+    }
+  }
+
+  public String getCurrentBranch() {
+    try {
+      return this.git.getRepository()
+          .getBranch();
+    } catch (final IOException e) {
+      log.error("failed to access repository \"{}\"", this.path);
+      return "";
     }
   }
 }

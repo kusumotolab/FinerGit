@@ -28,9 +28,8 @@ public class FinerJavaMethod extends FinerJavaModule {
     String name = this.outerModule.getBaseName() + "$" + this.name + this.getExtension();
     final int maxFileNameLength = this.config.getMaxFileNameLength();
     if (maxFileNameLength < name.length()) {
+      log.warn("\"{}\" is shrinked to {} characters due to too long name", name, maxFileNameLength);
       name = this.shrink(name);
-      log.warn("\"{}\" has been shrinked to {} characters due to too long name", name,
-          maxFileNameLength);
     }
     return name;
   }
