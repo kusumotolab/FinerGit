@@ -32,7 +32,7 @@ public class FinerRepo {
   private Git git;
 
   public FinerRepo(final Path path) {
-    log.debug("enter FinerRepo(Path=\"{}\")", path.toString());
+    log.trace("enter FinerRepo(Path=\"{}\")", path.toString());
     this.path = path;
     this.git = null;
   }
@@ -185,6 +185,16 @@ public class FinerRepo {
       log.error("git-status command failed");
       log.error(e.getMessage());
       return null;
+    }
+  }
+
+  public String getCurrentBranch() {
+    try {
+      return this.git.getRepository()
+          .getBranch();
+    } catch (final IOException e) {
+      log.error("failed to access repository \"{}\"", this.path);
+      return "";
     }
   }
 }

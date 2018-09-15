@@ -12,9 +12,9 @@ public class FinerGitMain {
 
   public static void main(final String[] args) {
 
-    final ch.qos.logback.classic.Logger log =
+    final ch.qos.logback.classic.Logger rootLog =
         (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-    log.setLevel(Level.ERROR);
+    rootLog.setLevel(Level.ERROR);
 
     final FinerGitConfig config = new FinerGitConfig();
     final CmdLineParser cmdLineParser = new CmdLineParser(config);
@@ -39,12 +39,12 @@ public class FinerGitMain {
   private final FinerGitConfig config;
 
   public FinerGitMain(final FinerGitConfig config) {
-    log.info("enter FinerGitMain(FinerGitConfig");
+    log.trace("enter FinerGitMain(FinerGitConfig");
     this.config = config;
   }
 
   public void exec() {
-    log.info("enter exec()");
+    log.trace("enter exec()");
     final FinerRepoBuilder builder = new FinerRepoBuilder(this.config);
     builder.exec();
   }

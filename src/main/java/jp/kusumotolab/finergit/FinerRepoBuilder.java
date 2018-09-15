@@ -5,7 +5,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,7 +41,7 @@ public class FinerRepoBuilder {
   private int numberOfRebuiltCommits;
 
   public FinerRepoBuilder(final FinerGitConfig config) {
-    log.info("enter FinerRepoBuilder(FinerGitConfig)");
+    log.trace("enter FinerRepoBuilder(FinerGitConfig)");
     this.config = config;
     this.srcRepo = new GitRepo(this.config.getSrcPath());
     this.desRepo = new FinerRepo(this.config.getDesPath());
@@ -57,7 +56,7 @@ public class FinerRepoBuilder {
    * FinerGitのリポジトリを生成する
    */
   public void exec() {
-    log.info("enter exec()");
+    log.trace("enter exec()");
     try {
 
       // initialize finer repository
@@ -73,17 +72,12 @@ public class FinerRepoBuilder {
         System.exit(0);
       }
 
-      // caching checked commits
-      final Set<RevCommit> checkedCommits = new HashSet<>();
-
-      log.info("tracking the commit history from HEAD ...");
-
-      exec(headCommit, this.branchID.newID(), checkedCommits);
+      exec(headCommit, this.branchID.newID(), new HashSet<RevCommit>());
 
     } catch (final Exception e) {
       e.printStackTrace();
     }
-    log.info("exit exec()");
+    log.trace("exit exec()");
   }
 
   // 第一引数で与えたれたコミットに対して，そこに含まれるJavaファイルの細粒度版からなるコミットを生成する．
@@ -123,14 +117,15 @@ public class FinerRepoBuilder {
     }
 
     this.numberOfRebuiltCommits++;
+    final String currentBranchName = this.desRepo.getCurrentBranch();
     RevCommit newCommit = null;
 
     // 親がないとき（initial commit）の処理
     if (0 == srcParents.size()) {
 
-      log.debug("{}/{} rebuilding a root commit \"{}\" (\"{}\")", this.numberOfRebuiltCommits,
+      log.info("{}/{} rebuilding root commit \"{}\" ({}) on {}", this.numberOfRebuiltCommits,
           this.numberOfTrackedCommits, RevCommitUtil.getAbbreviatedID(targetCommit),
-          RevCommitUtil.getDate(targetCommit, RevCommitUtil.DATE_FORMAT));
+          RevCommitUtil.getDate(targetCommit, RevCommitUtil.DATE_FORMAT), currentBranchName);
 
       // master上のinitial commitでない場合は，orphanブランチを作る
       if (!BranchName.isMasterBranch(branchID)) {
@@ -168,9 +163,9 @@ public class FinerRepoBuilder {
     // 親が1つのとき（normal commit）の処理
     else if (1 == srcParents.size()) {
 
-      log.debug("{}/{} rebuilding a normal commit \"{}\" (\"{}\")", this.numberOfRebuiltCommits,
+      log.info("{}/{} rebuilding normal commit \"{}\" ({}) on {}", this.numberOfRebuiltCommits,
           this.numberOfTrackedCommits, RevCommitUtil.getAbbreviatedID(targetCommit),
-          RevCommitUtil.getDate(targetCommit, RevCommitUtil.DATE_FORMAT));
+          RevCommitUtil.getDate(targetCommit, RevCommitUtil.DATE_FORMAT), currentBranchName);
 
       // 親コミットのブランチIDと今のブランチIDを比較．異なれば，ブランチを作成
       final int parentBranchID = this.branchMap.get(desParents[0]);
@@ -249,9 +244,9 @@ public class FinerRepoBuilder {
     // 親が2つのとき（merge commit）の処理
     else if (2 == srcParents.size()) {
 
-      log.debug("{}/{} rebuilding a merge commit \"{}\" (\"{}\")", this.numberOfRebuiltCommits,
+      log.info("{}/{} rebuilding merge commit \"{}\" ({}) on {}", this.numberOfRebuiltCommits,
           this.numberOfTrackedCommits, RevCommitUtil.getAbbreviatedID(targetCommit),
-          RevCommitUtil.getDate(targetCommit, RevCommitUtil.DATE_FORMAT));
+          RevCommitUtil.getDate(targetCommit, RevCommitUtil.DATE_FORMAT), currentBranchName);
 
       // ワーキングディレクトリに余計なファイルが有れば削除
       // コマンドラインのgitならこの処理なしでも動くが，jGitだとなぜかこの処理が必要
@@ -261,7 +256,9 @@ public class FinerRepoBuilder {
 
       // 1つ目の親のブランチにスイッチ
       final int parentBranchID = this.branchMap.get(desParents[0]);
-      this.checkout(parentBranchID, false, null, false, targetCommit);
+      if (!currentBranchName.equals(BranchName.getLabel(parentBranchID))) {
+        this.checkout(parentBranchID, false, null, false, targetCommit);
+      }
 
       // もし1つ目の親のブランチが，コミットすべきブランチではない場合は新しいブランチを作成
       if (parentBranchID != branchID) {
@@ -271,9 +268,9 @@ public class FinerRepoBuilder {
       // 2つ目の親を対象にしてマージ
       final MergeStatus mergeStatus = this.desRepo.doMergeCommand(desParents[1]);
       if (null == mergeStatus) {
-        log.error("building a finer repository aborted due to a merge error at commit \"{}\"",
+        log.error("  building a finer repository aborted due to a merge error at commit \"{}\"",
             RevCommitUtil.getAbbreviatedID(targetCommit));
-        log.error("failed on branch \"{}\" and merge target branch is \"{}\"",
+        log.error("  failed on branch \"{}\" and merge target branch is \"{}\"",
             BranchName.getLabel(branchID), RevCommitUtil.getAbbreviatedID(desParents[1]));
         System.exit(0);
       }
@@ -317,10 +314,10 @@ public class FinerRepoBuilder {
 
     final Status status = this.desRepo.doStatusCommand();
     if (!status.isClean()) {
-      log.warn("status after rebuilding commit \"{}\" is not clean",
+      log.warn("  status after rebuilding commit \"{}\" is not clean",
           RevCommitUtil.getAbbreviatedID(targetCommit));
-      final List<String> dirtyFiles = this.getDirtyFiles(status);
-      dirtyFiles.forEach(log::warn);
+      this.getDirtyFiles(status)
+          .forEach((f, s) -> log.warn(s + f));
       System.exit(0);
     }
 
@@ -352,25 +349,25 @@ public class FinerRepoBuilder {
 
     // checkout が成功し，create が true のとき
     if (success && create) {
-      log.error("created a new branch \"{}\" and switched to it", BranchName.getLabel(branchID));
+      log.debug("  created new branch \"{}\" and switched to it", BranchName.getLabel(branchID));
       return;
     }
 
     // checkout が成功し，create が false のとき
     else if (success && !create) {
-      log.error("switched to switch to branch \"{}\"", BranchName.getLabel(branchID));
+      log.debug("  switched to branch \"{}\"", BranchName.getLabel(branchID));
       return;
     }
 
     // 以下，エラー処理
     if (create) {
-      log.error("failed to create a new branch \"{}\"", BranchName.getLabel(branchID));
+      log.error("  failed to create new branch \"{}\"", BranchName.getLabel(branchID));
     } else {
-      log.error("failed to switch to branch \"{}\"", BranchName.getLabel(branchID));
+      log.error("  failed to switch to branch \"{}\"", BranchName.getLabel(branchID));
     }
 
     log.error(
-        "rebuilding aborted due to a fatal problem, a commit \"{}\" (\"{}\") and its later commits have not been rebuilded",
+        "  rebuilding aborted due to a fatal problem, a commit \"{}\" (\"{}\") and its later commits have not been rebuilded",
         RevCommitUtil.getAbbreviatedID(targetCommit),
         RevCommitUtil.getDate(targetCommit, RevCommitUtil.DATE_FORMAT));
     System.exit(0);
@@ -427,7 +424,7 @@ public class FinerRepoBuilder {
         try {
           Files.createDirectories(parent);
         } catch (final IOException e) {
-          log.error("failed to create a new directory \"{}\"", parent.toString());
+          log.error("  failed to create a new directory \"{}\"", parent.toString());
           Stream.of(e.getStackTrace())
               .forEach(s -> log.error(s.toString()));
           e.printStackTrace();
@@ -439,7 +436,7 @@ public class FinerRepoBuilder {
       try {
         Files.write(absolutePath, data);
       } catch (final IOException e) {
-        log.error("failed to write a file \"{}\"", absolutePath.toString());
+        log.error("  failed to write file \"{}\"", absolutePath.toString());
         log.error(e.getMessage());
         Stream.of(e.getStackTrace())
             .forEach(s -> log.error(s.toString()));
@@ -548,29 +545,29 @@ public class FinerRepoBuilder {
           FileUtils.forceDelete(absoluteFilePath.toFile());
         }
       } catch (final IOException e) {
-        log.error("failed to delete a file \"{}\"", absoluteFilePath.toString());
+        log.error("  failed to delete a file \"{}\"", absoluteFilePath.toString());
+        log.error(e.getMessage());
       }
     }
   }
 
-  private List<String> getDirtyFiles(final Status status) {
-    final List<String> files = new ArrayList<>();
-    files.addAll(addPrefix(status.getAdded(), "added: "));
-    files.addAll(addPrefix(status.getChanged(), "changed: "));
-    files.addAll(addPrefix(status.getConflicting(), "conflicted: "));
-    files.addAll(addPrefix(status.getMissing(), "missing: "));
-    files.addAll(addPrefix(status.getModified(), "modified: "));
-    files.addAll(addPrefix(status.getRemoved(), "removed: "));
-    files.addAll(addPrefix(status.getIgnoredNotInIndex(), "ignored or not-indexed: "));
-    files.addAll(addPrefix(status.getUncommittedChanges(), "uncommitted change: "));
-    files.addAll(addPrefix(status.getUntracked(), "untracked: "));
-    files.addAll(addPrefix(status.getUntrackedFolders(), "untracked folder: "));
+  private Map<String, String> getDirtyFiles(final Status status) {
+    final Map<String, String> files = new HashMap<>();
+    files.putAll(convertToMap(status.getAdded(), "added: "));
+    files.putAll(convertToMap(status.getChanged(), "changed: "));
+    files.putAll(convertToMap(status.getConflicting(), "conflicted: "));
+    files.putAll(convertToMap(status.getMissing(), "missing: "));
+    files.putAll(convertToMap(status.getModified(), "modified: "));
+    files.putAll(convertToMap(status.getRemoved(), "removed: "));
+    files.putAll(convertToMap(status.getIgnoredNotInIndex(), "ignored or not-indexed: "));
+    files.putAll(convertToMap(status.getUncommittedChanges(), "uncommitted change: "));
+    files.putAll(convertToMap(status.getUntracked(), "untracked: "));
+    files.putAll(convertToMap(status.getUntrackedFolders(), "untracked folder: "));
     return files;
   }
 
-  private List<String> addPrefix(final Collection<String> files, final String prefix) {
+  private Map<String, String> convertToMap(final Collection<String> files, final String prefix) {
     return files.stream()
-        .map(f -> prefix + f)
-        .collect(Collectors.toList());
+        .collect(Collectors.toMap(f -> f, f -> prefix));
   }
 }

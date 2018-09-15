@@ -122,6 +122,8 @@ public class GitRepo {
 
   private byte[] loadFile(final ObjectReader reader, final String path, final RevTree tree,
       final RevCommit commit) {
+    log.trace("enter loadFile(ObjectReader, String=\"{}\", RevTree, RevCommit=\"\"", path,
+        RevCommitUtil.getAbbreviatedID(commit));
 
     try {
       final TreeWalk nodeWalk = TreeWalk.forPath(reader, path, tree);
@@ -161,6 +163,9 @@ public class GitRepo {
 
   private void collectFiles(final ObjectReader reader, final RevCommit commit, final RevTree tree,
       final CanonicalTreeParser parser, final Map<String, byte[]> files) {
+    log.trace(
+        "enter collectgetFiles(ObjectReader, RevCommit=\"{}\", RevTree, CanonicalTreeParser, Map<String, byte[]>)",
+        RevCommitUtil.getAbbreviatedID(commit));
 
     for (CanonicalTreeParser currentParser = parser; !currentParser.eof(); currentParser =
         currentParser.next()) {
