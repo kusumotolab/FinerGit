@@ -19,6 +19,7 @@ import org.eclipse.jgit.errors.NoWorkTreeException;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.StoredConfig;
+import org.eclipse.jgit.merge.MergeStrategy;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,8 +99,8 @@ public class FinerRepo {
     }
 
     final AddCommand addCommand = this.git.add();
-    paths.stream()
-        .forEach(addCommand::addFilepattern);
+    paths.forEach(addCommand::addFilepattern);
+
     try {
       addCommand.call();
       return true;
@@ -161,6 +162,7 @@ public class FinerRepo {
       final MergeResult mergeResult = mergeCommit.include(targetCommit)
           .setCommit(false)
           .setFastForward(FastForwardMode.NO_FF)
+          .setStrategy(MergeStrategy.OURS)
           .call();
       return mergeResult.getMergeStatus();
     } catch (final GitAPIException e) {

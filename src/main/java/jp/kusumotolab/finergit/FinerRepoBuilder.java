@@ -173,72 +173,7 @@ public class FinerRepoBuilder {
         this.checkout(branchID, true, desParents[0], false, targetCommit);
       }
 
-      // 対象コミットの変更一覧を取得
-      final List<DiffEntry> diffEntries = this.srcRepo.getDiff(targetCommit);
-      final Set<String> addedFiles = this.getAddedFiles(diffEntries);
-      final Set<String> modifiedFiles = this.getModifiedFiles(diffEntries);
-      final Set<String> deletedFiles = this.getDeletedFiles(diffEntries);
-      final Set<String> deletedJavaFiles = this.filterSet(deletedFiles, f -> f.endsWith(".java"));
-      final Set<String> deletedOtherFiles = this.filterSet(deletedFiles, f -> !f.endsWith(".java"));
-
-      // 対象コミットにおいて変更されたファイルの内容を取得
-      final Map<String, byte[]> addedDataInCommit = this.srcRepo.getFiles(targetCommit, addedFiles);
-      final Map<String, byte[]> modifiedDataInCommit =
-          this.srcRepo.getFiles(targetCommit, modifiedFiles);
-      final Map<String, byte[]> addedJavaDataInCommit =
-          this.filterMap(addedDataInCommit, path -> path.endsWith(".java"));
-      final Map<String, byte[]> addedOtherDataInCommit =
-          this.filterMap(addedDataInCommit, path -> !path.endsWith(".java"));
-      final Map<String, byte[]> modifiedJavaDataInCommit =
-          this.filterMap(modifiedDataInCommit, path -> path.endsWith(".java"));
-      final Map<String, byte[]> modifiedOtherDataInCommit =
-          this.filterMap(modifiedDataInCommit, path -> !path.endsWith(".java"));
-
-      // 対象コミットに含まれるファイルのうち，
-      // 追加されたファイルおよび修正されたファイルに対して，git-add コマンドを実行
-      // 削除されたファイルに対して，git-rm コマンドを実行
-      if (this.config.isOriginalJavaIncluded()) {
-        this.addFiles(addedJavaDataInCommit);
-        this.addFiles(modifiedJavaDataInCommit);
-        this.removeFiles(deletedJavaFiles);
-      }
-      if (this.config.isOtherFilesIncluded()) {
-        this.addFiles(addedOtherDataInCommit);
-        this.addFiles(modifiedOtherDataInCommit);
-        this.removeFiles(deletedOtherFiles);
-      }
-
-      // 追加されたファイルから細粒度ファイルを生成し，git-add コマンドを実行
-      final Map<String, byte[]> finerJavaFilesInAddedFiles =
-          this.generateFinerJavaModules(addedDataInCommit);
-      this.addFiles(finerJavaFilesInAddedFiles);
-
-      // 修正されたファイルから細粒度ファイルを生成し，git-add コマンドを実行
-      final Map<String, byte[]> finerJavaFilesInModifiedFiles =
-          this.generateFinerJavaModules(modifiedDataInCommit);
-      this.addFiles(finerJavaFilesInModifiedFiles);
-
-      // 修正されたファイルから以前に生成された細粒度ファイルのうち，
-      // 修正されたファイルから今回生成された細粒度ファイルに含まれないファイルに対して git-rm コマンドを実行
-      final Set<String> finerJavaFilesInWorkingDir =
-          this.getWorkingFiles(this.config.getDesPath(), "fjava", "mjava");
-      final Set<String> modifiedJavaFilePrefixes = this.removePrefixes(modifiedFiles);
-      final Set<String> finerJavaFilesToDelete1 =
-          this.getFilesHavingPrefix(finerJavaFilesInWorkingDir, modifiedJavaFilePrefixes);
-      finerJavaFilesToDelete1.removeAll(finerJavaFilesInModifiedFiles.keySet());
-      this.removeFiles(finerJavaFilesToDelete1);
-
-      // 削除されたファイルから以前に生成された細粒度ファイルに対して，git-rm コマンドを実行
-      final Set<String> deletedJavaFilePrefixes = this.removePrefixes(deletedFiles);
-      final Set<String> finerJavaFilesToDelete2 =
-          this.getFilesHavingPrefix(finerJavaFilesInWorkingDir, deletedJavaFilePrefixes);
-      this.removeFiles(finerJavaFilesToDelete2);
-
-      // git-commitコマンドの実行
-      final PersonIdent authorIdent = targetCommit.getAuthorIdent();
-      final String id = RevCommitUtil.getAbbreviatedID(targetCommit);
-      final String message = targetCommit.getFullMessage();
-      newCommit = this.desRepo.doCommitCommand(authorIdent, id, message);
+      newCommit = this.buildCommit(targetCommit);
     }
 
     // 親が2つのとき（merge commit）の処理
@@ -247,12 +182,6 @@ public class FinerRepoBuilder {
       log.info("{}/{} rebuilding merge commit \"{}\" ({}) on {}", this.numberOfRebuiltCommits,
           this.numberOfTrackedCommits, RevCommitUtil.getAbbreviatedID(targetCommit),
           RevCommitUtil.getDate(targetCommit, RevCommitUtil.DATE_FORMAT), currentBranchName);
-
-      // ワーキングディレクトリに余計なファイルが有れば削除
-      // コマンドラインのgitならこの処理なしでも動くが，jGitだとなぜかこの処理が必要
-      final Status status = this.desRepo.doStatusCommand();
-      final Set<String> nonIndexedFiles = status.getIgnoredNotInIndex();
-      this.deleteFiles(nonIndexedFiles);
 
       // 1つ目の親のブランチにスイッチ
       final int parentBranchID = this.branchMap.get(desParents[0]);
@@ -275,50 +204,16 @@ public class FinerRepoBuilder {
         System.exit(0);
       }
 
-      // マージが失敗したときには，古いリポジトリからファイルを持ってくる
-      // git-subtree の場合も，古いリポジトリからファイルを持ってくる
-      if (!mergeStatus.isSuccessful() || RevCommitUtil.isSubtreeCommit(targetCommit)) {
-
-        // 対象コミットのファイルの一覧を取得し，新しいリポジトリに追加
-        final Map<String, byte[]> dataInCommit = this.srcRepo.getFiles(targetCommit);
-        final Map<String, byte[]> javaDataInCommit =
-            this.filterMap(dataInCommit, path -> path.endsWith(".java"));
-        final Map<String, byte[]> otherDataInCommit =
-            this.filterMap(dataInCommit, path -> !path.endsWith(".java"));
-
-        if (this.config.isOriginalJavaIncluded()) {
-          this.addFiles(javaDataInCommit);
-        }
-        if (this.config.isOtherFilesIncluded()) {
-          this.addFiles(otherDataInCommit);
-        }
-
-        // 対象コミットのファイル群から，細粒度Javaファイルを作成し，新しいリポジトリに追加
-        final Map<String, byte[]> finerJavaData = this.generateFinerJavaModules(dataInCommit);
-        this.addFiles(finerJavaData);
-
-        // ワーキングファイルに含まれているファイルのうち，dataInCommit と finerJavaData のどちらにも
-        // 含まれていないファイルに対して，git-rm コマンドを実行
-        final Set<String> filesToDelete = this.getWorkingFiles(this.config.getDesPath());
-        filesToDelete.removeAll(dataInCommit.keySet());
-        filesToDelete.removeAll(finerJavaData.keySet());
-        this.removeFiles(filesToDelete);
-      }
-
-      // targetCommitの内容でコミット
-      final PersonIdent authorIdent = targetCommit.getAuthorIdent();
-      final String id = RevCommitUtil.getAbbreviatedID(targetCommit);
-      final String message = targetCommit.getFullMessage();
-      newCommit = this.desRepo.doCommitCommand(authorIdent, id, message);
+      // マージの成否にかかわらず，マージの結果は使わない．手動マージが行われていた場合に自動では絶対に再現できないため．
+      newCommit = this.buildCommit(targetCommit);
     }
 
     final Status status = this.desRepo.doStatusCommand();
     if (!status.isClean()) {
-      log.warn("  status after rebuilding commit \"{}\" is not clean",
+      log.error("  status after rebuilding commit \"{}\" is not clean",
           RevCommitUtil.getAbbreviatedID(targetCommit));
       this.getDirtyFiles(status)
-          .forEach((f, s) -> log.warn(s + f));
-      System.exit(0);
+          .forEach((f, s) -> log.error(s + f));
     }
 
     final Set<String> nonIndexedFiles = status.getIgnoredNotInIndex();
@@ -336,6 +231,77 @@ public class FinerRepoBuilder {
         RevCommitUtil.getAbbreviatedID(targetCommit), branchID, checkedCommits.size());
 
     return newCommit;
+  }
+
+  private RevCommit buildCommit(final RevCommit targetCommit) {
+    log.trace("enter buildCommit(RevCommit=\"{}\"", RevCommitUtil.getAbbreviatedID(targetCommit));
+
+    // 対象コミットの変更一覧を取得
+    final List<DiffEntry> diffEntries = this.srcRepo.getDiff(targetCommit);
+    final Set<String> addedFiles = this.getAddedFiles(diffEntries);
+    final Set<String> modifiedFiles = this.getModifiedFiles(diffEntries);
+    final Set<String> deletedFiles = this.getDeletedFiles(diffEntries);
+    final Set<String> deletedJavaFiles = this.filterSet(deletedFiles, f -> f.endsWith(".java"));
+    final Set<String> deletedOtherFiles = this.filterSet(deletedFiles, f -> !f.endsWith(".java"));
+
+    // 対象コミットにおいて変更されたファイルの内容を取得
+    final Map<String, byte[]> addedDataInCommit = this.srcRepo.getFiles(targetCommit, addedFiles);
+    final Map<String, byte[]> modifiedDataInCommit =
+        this.srcRepo.getFiles(targetCommit, modifiedFiles);
+    final Map<String, byte[]> addedJavaDataInCommit =
+        this.filterMap(addedDataInCommit, path -> path.endsWith(".java"));
+    final Map<String, byte[]> addedOtherDataInCommit =
+        this.filterMap(addedDataInCommit, path -> !path.endsWith(".java"));
+    final Map<String, byte[]> modifiedJavaDataInCommit =
+        this.filterMap(modifiedDataInCommit, path -> path.endsWith(".java"));
+    final Map<String, byte[]> modifiedOtherDataInCommit =
+        this.filterMap(modifiedDataInCommit, path -> !path.endsWith(".java"));
+
+    // 対象コミットに含まれるファイルのうち，
+    // 追加されたファイルおよび修正されたファイルに対して，git-add コマンドを実行
+    // 削除されたファイルに対して，git-rm コマンドを実行
+    if (this.config.isOriginalJavaIncluded()) {
+      this.addFiles(modifiedJavaDataInCommit);
+      this.addFiles(addedJavaDataInCommit);
+      this.removeFiles(deletedJavaFiles);
+    }
+    if (this.config.isOtherFilesIncluded()) {
+      this.addFiles(modifiedOtherDataInCommit);
+      this.addFiles(addedOtherDataInCommit);
+      this.removeFiles(deletedOtherFiles);
+    }
+
+    // 追加されたファイルから細粒度ファイルを生成し，git-add コマンドを実行
+    final Map<String, byte[]> finerJavaFilesInAddedFiles =
+        this.generateFinerJavaModules(addedDataInCommit);
+    this.addFiles(finerJavaFilesInAddedFiles);
+
+    // 修正されたファイルから細粒度ファイルを生成し，git-add コマンドを実行
+    final Map<String, byte[]> finerJavaFilesInModifiedFiles =
+        this.generateFinerJavaModules(modifiedDataInCommit);
+    this.addFiles(finerJavaFilesInModifiedFiles);
+
+    // 修正されたファイルから以前に生成された細粒度ファイルのうち，
+    // 修正されたファイルから今回生成された細粒度ファイルに含まれないファイルに対して git-rm コマンドを実行
+    final Set<String> finerJavaFilesInWorkingDir =
+        this.getWorkingFiles(this.config.getDesPath(), "fjava", "mjava");
+    final Set<String> modifiedJavaFilePrefixes = this.removePrefixes(modifiedFiles);
+    final Set<String> finerJavaFilesToDelete1 =
+        this.getFilesHavingPrefix(finerJavaFilesInWorkingDir, modifiedJavaFilePrefixes);
+    finerJavaFilesToDelete1.removeAll(finerJavaFilesInModifiedFiles.keySet());
+    this.removeFiles(finerJavaFilesToDelete1);
+
+    // 削除されたファイルから以前に生成された細粒度ファイルに対して，git-rm コマンドを実行
+    final Set<String> deletedJavaFilePrefixes = this.removePrefixes(deletedFiles);
+    final Set<String> finerJavaFilesToDelete2 =
+        this.getFilesHavingPrefix(finerJavaFilesInWorkingDir, deletedJavaFilePrefixes);
+    this.removeFiles(finerJavaFilesToDelete2);
+
+    // git-commitコマンドの実行
+    final PersonIdent authorIdent = targetCommit.getAuthorIdent();
+    final String id = RevCommitUtil.getAbbreviatedID(targetCommit);
+    final String message = targetCommit.getFullMessage();
+    return this.desRepo.doCommitCommand(authorIdent, id, message);
   }
 
   // 第一引数のブランチに対して git-checkout する．
