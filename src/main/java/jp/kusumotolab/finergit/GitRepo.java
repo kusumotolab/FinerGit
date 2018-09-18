@@ -205,8 +205,7 @@ public class GitRepo {
     log.trace("enter getDiff(RevCommit=\"{}\")", RevCommitUtil.getAbbreviatedID(commit));
 
     final Git git = new Git(this.fileRepository);
-    final ObjectId parentObjectId = this.getObjectId(RevCommitUtil.getAbbreviatedID(commit) + "^");
-    final RevCommit parentCommit = this.getRevCommit(parentObjectId);
+    final RevCommit parentCommit = this.getRevCommit(commit.getParent(0));
     if (null == parentCommit) {
       git.close();
       return Collections.emptyList();
@@ -277,10 +276,11 @@ public class GitRepo {
     }
 
     try (final RevWalk revWalk = new RevWalk(this.fileRepository)) {
-      final RevCommit headCommit = revWalk.parseCommit(commitId);
-      return headCommit;
+      final RevCommit commit = revWalk.parseCommit(commitId);
+      return commit;
     } catch (IOException e) {
-      log.error("cannot parse commit<" + RevCommitUtil.getAbbreviatedID(commitId) + ">");
+      log.error("cannot parse commit \"{}\"", RevCommitUtil.getAbbreviatedID(commitId));
+      log.error(e.getMessage());
       return null;
     }
   }
@@ -295,7 +295,8 @@ public class GitRepo {
       parser.reset(reader, commit.getTree());
       return parser;
     } catch (final IOException e) {
-      log.error("cannot read commit<" + RevCommitUtil.getAbbreviatedID(commit) + ">");
+      log.error("cannot parse commit \"{}\"", RevCommitUtil.getAbbreviatedID(commit));
+      log.error(e.getMessage());
       return null;
     }
   }
