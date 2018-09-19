@@ -215,12 +215,14 @@ public class GitRepo {
 
     final CanonicalTreeParser oldParser = this.getCanonicalTreeParser(parentCommit, objectReader);
     if (null == oldParser) {
+      objectReader.close();
       git.close();
       return Collections.emptyList();
     }
 
     final CanonicalTreeParser newParser = this.getCanonicalTreeParser(commit, objectReader);
     if (null == newParser) {
+      objectReader.close();
       git.close();
       return Collections.emptyList();
     }
@@ -231,7 +233,6 @@ public class GitRepo {
           .setOldTree(oldParser)
           .setNewTree(newParser)
           .call();
-      git.close();
       return diffEntries;
     } catch (final GitAPIException e) {
       log.error("failed to execute git-diff");
@@ -239,6 +240,7 @@ public class GitRepo {
       return Collections.emptyList();
     } finally {
       objectReader.close();
+      git.close();
     }
   }
 
