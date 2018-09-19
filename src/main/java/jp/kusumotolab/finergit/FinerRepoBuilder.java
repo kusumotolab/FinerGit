@@ -3,9 +3,10 @@ package jp.kusumotolab.finergit;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -422,18 +423,32 @@ public class FinerRepoBuilder {
     }
   }
 
-  // 引数で指定されたディレクトリ以下にある全ファイルを取得する．ただし，".git"以下は除く．
   private Set<String> getWorkingFiles(final Path repoPath, final String... extensions) {
-    log.trace("enter getWorkingFiles(Path=\"{}\", String...=\"{}\")", repoPath.toFile(),
-        extensions);
-    return FileUtils
-        .listFiles(repoPath.toFile(), (0 == extensions.length ? null : extensions), true)
-        .stream()
-        .map(f -> Paths.get(f.getAbsolutePath()))
-        .filter(ap -> !this.isRepositoryFile(ap))
-        .map(ap -> repoPath.relativize(ap))
-        .map(lp -> lp.toString())
-        .collect(Collectors.toSet());
+    try {
+      return Files.walk(repoPath)
+          .parallel()
+          .filter(path -> !isRepositoryFile(path)
+              && Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS))
+          .map(path -> path.toString())
+          .filter(s -> endsWith(s, extensions))
+          .collect(Collectors.toSet());
+    } catch (final IOException e) {
+      log.error("failed to access \"{}\"", repoPath);
+      log.error(e.getMessage());
+      return Collections.emptySet();
+    }
+  }
+
+  private boolean endsWith(final String path, final String... extensions) {
+    if (0 == extensions.length) {
+      return true;
+    }
+    for (final String extension : extensions) {
+      if (path.endsWith(extension)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private boolean isRepositoryFile(final Path path) {
