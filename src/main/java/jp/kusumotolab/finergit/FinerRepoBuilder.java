@@ -12,6 +12,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -234,6 +236,8 @@ public class FinerRepoBuilder {
     return newCommit;
   }
 
+  // 第一引数で与えられたコミットを再構築する．
+  // 再構築したコミットを返す．
   private RevCommit buildCommit(final RevCommit targetCommit) {
     log.trace("enter buildCommit(RevCommit=\"{}\"", RevCommitUtil.getAbbreviatedID(targetCommit));
 
@@ -343,24 +347,28 @@ public class FinerRepoBuilder {
   // 引数で与えたれたファイル群のうち，Javaファイルに対して細粒度Javaファイルを作成する
   private Map<String, byte[]> generateFinerJavaModules(final Map<String, byte[]> files) {
     log.trace("enter generateFinerJavaModules(Map<String, byte[]>=\"{}\")", files.size());
-    final Map<String, byte[]> finerJavaData = new HashMap<>();
+    final ConcurrentMap<String, byte[]> finerJavaData = new ConcurrentHashMap<>();
 
-    files.forEach((path, data) -> {
+    files.entrySet()
+        .parallelStream()
+        .forEach(entry -> {
+          final String path = entry.getKey();
+          final byte[] data = entry.getValue();
 
-      if (!path.endsWith(".java")) {
-        return;
-      }
+          if (!path.endsWith(".java")) {
+            return;
+          }
 
-      final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(this.config);
-      final String text = new String(data, StandardCharsets.UTF_8);
-      final List<FinerJavaModule> finerJavaModules = builder.constructAST(path, text);
+          final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(this.config);
+          final String text = new String(data, StandardCharsets.UTF_8);
+          final List<FinerJavaModule> finerJavaModules = builder.constructAST(path, text);
 
-      for (final FinerJavaModule module : finerJavaModules) {
-        final Path finerPath = module.getPath();
-        final String finerText = String.join(System.lineSeparator(), module.getLines());
-        finerJavaData.put(finerPath.toString(), finerText.getBytes(StandardCharsets.UTF_8));
-      }
-    });
+          for (final FinerJavaModule module : finerJavaModules) {
+            final Path finerPath = module.getPath();
+            final String finerText = String.join(System.lineSeparator(), module.getLines());
+            finerJavaData.put(finerPath.toString(), finerText.getBytes(StandardCharsets.UTF_8));
+          }
+        });
 
     return finerJavaData;
   }
@@ -369,7 +377,7 @@ public class FinerRepoBuilder {
   private Set<String> getFilesHavingPrefix(final Set<String> files, final Set<String> prefixes) {
     log.trace("enter getFilesHavingPrefix(Set<String>=\"{}\", Set<String>=\"{}\")", files.size(),
         prefixes.size());
-    return files.stream()
+    return files.parallelStream()
         .filter(f -> prefixes.stream()
             .anyMatch(p -> f.startsWith(p)))
         .collect(Collectors.toSet());
@@ -380,6 +388,8 @@ public class FinerRepoBuilder {
     log.trace("enter addFiles(Map<String, byte[]>=\"{}\")", files.size());
 
     // 各ファイルを新しいリポジトリに保存
+    // ディレクトリ作成，ファイル書き込みを含む処理なので，マルチスレッド化はしないこと
+    // 実際マルチスレッド化して試したところ，バグった
     files.forEach((path, data) -> {
 
       // ファイルの絶対パスを取得
@@ -465,7 +475,7 @@ public class FinerRepoBuilder {
   // 引数で与えられたDiffEntryのうち，ChangeTypeがADDなもののパスを取得する
   private Set<String> getAddedFiles(final List<DiffEntry> diffEntries) {
     log.trace("enter getAddedFiles(List<DiffEntry>=\"{}\")", diffEntries.size());
-    return diffEntries.stream()
+    return diffEntries.parallelStream()
         .filter(d -> ChangeType.ADD == d.getChangeType())
         .map(d -> d.getNewPath()) // new path なので注意！！
         .collect(Collectors.toSet());
@@ -474,7 +484,7 @@ public class FinerRepoBuilder {
   // 引数で与えられたDiffEntryのうち，ChangeTypeがMODIFYなもののパスを取得する
   private Set<String> getModifiedFiles(final List<DiffEntry> diffEntries) {
     log.trace("enter getModifiedFiles(List<DiffEntry>=\"{}\")", diffEntries.size());
-    return diffEntries.stream()
+    return diffEntries.parallelStream()
         .filter(d -> ChangeType.MODIFY == d.getChangeType())
         .map(d -> d.getNewPath()) // new path でも old path でもどちらでも良い
         .collect(Collectors.toSet());
@@ -483,7 +493,7 @@ public class FinerRepoBuilder {
   // 引数で与えられたDiffEntryのうち，ChangeTypeがDELETEなもののパスを取得する
   private Set<String> getDeletedFiles(final List<DiffEntry> diffEntries) {
     log.trace("enter getDeletedFiles(List<DiffEntry>=\"{}\")", diffEntries.size());
-    return diffEntries.stream()
+    return diffEntries.parallelStream()
         .filter(d -> ChangeType.DELETE == d.getChangeType())
         .map(d -> d.getOldPath()) // old path なので注意！！
         .collect(Collectors.toSet());
@@ -492,7 +502,7 @@ public class FinerRepoBuilder {
   // 第一引数で与えられたSetのうち，第二引数の条件に合うものを抽出
   private Set<String> filterSet(final Set<String> set, final Predicate<String> p) {
     log.trace("enter filterSet(Set<String>=\"{}\", Predicate<String>)", set.size());
-    return set.stream()
+    return set.parallelStream()
         .filter(p)
         .collect(Collectors.toSet());
   }
@@ -501,7 +511,7 @@ public class FinerRepoBuilder {
   private Map<String, byte[]> filterMap(final Map<String, byte[]> map, final Predicate<String> p) {
     log.trace("enter filterMap(Map<String, byte[]>=\"{}\", Predicate<String>)", map.size());
     return map.keySet()
-        .stream()
+        .parallelStream()
         .filter(p)
         .collect(Collectors.toMap(k -> k, k -> map.get(k)));
   }
@@ -509,7 +519,7 @@ public class FinerRepoBuilder {
   // 引数で与えられたファイルパスの集合から，java ファイルのみを取り出し拡張子を取り除く
   private Set<String> removePrefixes(final Set<String> files) {
     log.trace("enter removePrefixes(Set<String>=\"{}\")", files.size());
-    return files.stream()
+    return files.parallelStream()
         .filter(file -> file.endsWith(".java"))
         .map(file -> file.substring(0, file.lastIndexOf('.')))
         .collect(Collectors.toSet());
