@@ -262,29 +262,14 @@ public class FinerRepoBuilder {
     final Map<String, byte[]> modifiedOtherDataInCommit =
         this.filterMap(modifiedDataInCommit, path -> !path.endsWith(".java"));
 
-    // 対象コミットに含まれるファイルのうち，
-    // 追加されたファイルおよび修正されたファイルに対して，git-add コマンドを実行
-    // 削除されたファイルに対して，git-rm コマンドを実行
-    if (this.config.isOriginalJavaIncluded()) {
-      this.addFiles(modifiedJavaDataInCommit);
-      this.addFiles(addedJavaDataInCommit);
-      this.removeFiles(deletedJavaFiles);
-    }
-    if (this.config.isOtherFilesIncluded()) {
-      this.addFiles(modifiedOtherDataInCommit);
-      this.addFiles(addedOtherDataInCommit);
-      this.removeFiles(deletedOtherFiles);
-    }
-
-    // 追加されたファイルから細粒度ファイルを生成し，git-add コマンドを実行
+    // 追加されたファイルおよび修正されたファイルから細粒度ファイルを生成
     final Map<String, byte[]> finerJavaFilesInAddedFiles =
         this.generateFinerJavaModules(addedDataInCommit);
-    this.addFiles(finerJavaFilesInAddedFiles);
-
-    // 修正されたファイルから細粒度ファイルを生成し，git-add コマンドを実行
     final Map<String, byte[]> finerJavaFilesInModifiedFiles =
         this.generateFinerJavaModules(modifiedDataInCommit);
-    this.addFiles(finerJavaFilesInModifiedFiles);
+
+    // IMPORTANT! 必ず削除してから追加の処理をすること．逆順でした場合，
+    // case insensitive なファイルシステム上で，case sensitive なファイル名の変更を追跡できなくなる
 
     // 修正されたファイルから以前に生成された細粒度ファイルのうち，
     // 修正されたファイルから今回生成された細粒度ファイルに含まれないファイルに対して git-rm コマンドを実行
@@ -301,6 +286,24 @@ public class FinerRepoBuilder {
     final Set<String> finerJavaFilesToDelete2 =
         this.getFilesHavingPrefix(finerJavaFilesInWorkingDir, deletedJavaFilePrefixes);
     this.removeFiles(finerJavaFilesToDelete2);
+
+    // 対象コミットに含まれるファイルのうち，
+    // 追加されたファイルおよび修正されたファイルに対して，git-add コマンドを実行
+    // 削除されたファイルに対して，git-rm コマンドを実行
+    if (this.config.isOriginalJavaIncluded()) {
+      this.addFiles(modifiedJavaDataInCommit);
+      this.addFiles(addedJavaDataInCommit);
+      this.removeFiles(deletedJavaFiles);
+    }
+    if (this.config.isOtherFilesIncluded()) {
+      this.addFiles(modifiedOtherDataInCommit);
+      this.addFiles(addedOtherDataInCommit);
+      this.removeFiles(deletedOtherFiles);
+    }
+
+    // 追加および修正されたファイルから生成した細粒度ファイルに対して，git-add コマンドを実行
+    this.addFiles(finerJavaFilesInAddedFiles);
+    this.addFiles(finerJavaFilesInModifiedFiles);
 
     // git-commitコマンドの実行
     final PersonIdent authorIdent = targetCommit.getAuthorIdent();
@@ -390,36 +393,42 @@ public class FinerRepoBuilder {
     // 各ファイルを新しいリポジトリに保存
     // ディレクトリ作成，ファイル書き込みを含む処理なので，マルチスレッド化はしないこと
     // 実際マルチスレッド化して試したところ，バグった
-    files.forEach((path, data) -> {
+    files.entrySet()
+        .parallelStream()
+        .forEach(entry -> {
+          final String path = entry.getKey();
+          final byte[] data = entry.getValue();
 
-      // ファイルの絶対パスを取得
-      final Path absolutePath = this.desRepo.path.resolve(path);
+          // ファイルの絶対パスを取得
+          final Path absolutePath = this.desRepo.path.resolve(path);
 
-      // ファイルの親ディレクトリがなければ作成
-      final Path parent = absolutePath.getParent();
-      if (Files.notExists(parent)) {
-        try {
-          Files.createDirectories(parent);
-        } catch (final IOException e) {
-          log.error("  failed to create a new directory \"{}\"", parent.toString());
-          Stream.of(e.getStackTrace())
-              .forEach(s -> log.error(s.toString()));
-          e.printStackTrace();
-          return;
-        }
-      }
+          // ファイルの親ディレクトリがなければ作成
+          final Path parent = absolutePath.getParent();
+          if (Files.notExists(parent)) {
+            synchronized (files) {
+              try {
+                Files.createDirectories(parent);
+              } catch (final IOException e) {
+                log.error("  failed to create a new directory \"{}\"", parent.toString());
+                Stream.of(e.getStackTrace())
+                    .forEach(s -> log.error(s.toString()));
+                e.printStackTrace();
+                return;
+              }
+            }
+          }
 
-      // ファイル書き込み
-      try {
-        Files.write(absolutePath, data);
-      } catch (final IOException e) {
-        log.error("  failed to write file \"{}\"", absolutePath.toString());
-        log.error(e.getMessage());
-        Stream.of(e.getStackTrace())
-            .forEach(s -> log.error(s.toString()));
-        return;
-      }
-    });
+          // ファイル書き込み
+          try {
+            Files.write(absolutePath, data);
+          } catch (final IOException e) {
+            log.error("  failed to write file \"{}\"", absolutePath.toString());
+            log.error(e.getMessage());
+            Stream.of(e.getStackTrace())
+                .forEach(s -> log.error(s.toString()));
+            return;
+          }
+        });
 
     // addコマンドの実行
     this.desRepo.doAddCommand(files.keySet());
@@ -439,6 +448,7 @@ public class FinerRepoBuilder {
           .parallel()
           .filter(path -> !isRepositoryFile(path)
               && Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS))
+          .map(path -> repoPath.relativize(path))
           .map(path -> path.toString())
           .filter(s -> endsWith(s, extensions))
           .collect(Collectors.toSet());
