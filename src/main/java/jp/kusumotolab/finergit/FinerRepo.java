@@ -98,7 +98,8 @@ public class FinerRepo {
       return false;
     }
 
-    final AddCommand addCommand = this.git.add();
+    final AddCommand addCommand = this.git.add()
+        .setUpdate(false);
     paths.forEach(addCommand::addFilepattern);
 
     try {
