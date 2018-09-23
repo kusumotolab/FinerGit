@@ -17,7 +17,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.MergeResult.MergeStatus;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.diff.DiffEntry;
@@ -42,6 +41,7 @@ public class FinerRepoBuilder {
   private final Map<RevCommit, Integer> branchMap;
   private int numberOfTrackedCommits;
   private int numberOfRebuiltCommits;
+  private Timer collectingWorkingFilesTimer;
 
   public FinerRepoBuilder(final FinerGitConfig config) {
     log.trace("enter FinerRepoBuilder(FinerGitConfig)");
@@ -53,12 +53,13 @@ public class FinerRepoBuilder {
     this.branchMap = new HashMap<>();
     this.numberOfTrackedCommits = 0;
     this.numberOfRebuiltCommits = 0;
+    this.collectingWorkingFilesTimer = new Timer();
   }
 
   /**
    * FinerGitのリポジトリを生成する
    */
-  public void exec() {
+  public FinerRepo exec() {
     log.trace("enter exec()");
     try {
 
@@ -80,7 +81,9 @@ public class FinerRepoBuilder {
     } catch (final Exception e) {
       e.printStackTrace();
     }
+    log.debug("collecting working files: " + this.collectingWorkingFilesTimer.toString());
     log.trace("exit exec()");
+    return this.desRepo;
   }
 
   // 第一引数で与えたれたコミットに対して，そこに含まれるJavaファイルの細粒度版からなるコミットを生成する．
@@ -219,9 +222,6 @@ public class FinerRepoBuilder {
           .forEach((f, s) -> log.error(s + f));
     }
 
-    final Set<String> nonIndexedFiles = status.getIgnoredNotInIndex();
-    this.deleteFiles(nonIndexedFiles);
-
     // オリジナルリポジトリと細粒度リポジトリのコミットのマップをとる
     this.commitMap.put(targetCommit, newCommit);
 
@@ -309,6 +309,7 @@ public class FinerRepoBuilder {
     final PersonIdent authorIdent = targetCommit.getAuthorIdent();
     final String id = RevCommitUtil.getAbbreviatedID(targetCommit);
     final String message = targetCommit.getFullMessage();
+
     return this.desRepo.doCommitCommand(authorIdent, id, message);
   }
 
@@ -443,6 +444,7 @@ public class FinerRepoBuilder {
   }
 
   private Set<String> getWorkingFiles(final Path repoPath, final String... extensions) {
+    this.collectingWorkingFilesTimer.start();
     try {
       return Files.walk(repoPath)
           .parallel()
@@ -456,6 +458,8 @@ public class FinerRepoBuilder {
       log.error("failed to access \"{}\"", repoPath);
       log.error(e.getMessage());
       return Collections.emptySet();
+    } finally {
+      this.collectingWorkingFilesTimer.suspend();
     }
   }
 
@@ -533,23 +537,6 @@ public class FinerRepoBuilder {
         .filter(file -> file.endsWith(".java"))
         .map(file -> file.substring(0, file.lastIndexOf('.')))
         .collect(Collectors.toSet());
-  }
-
-  // 引数で与えられたファイルパスの集合に対して削除を行う
-  private void deleteFiles(final Set<String> filesToDelete) {
-    log.trace("enter deleteFiles(Set<String>=\"{}\")", filesToDelete.size());
-    final Path finerRepoPath = this.desRepo.path;
-    for (final String file : filesToDelete) {
-      final Path absoluteFilePath = finerRepoPath.resolve(file);
-      try {
-        if (Files.exists(absoluteFilePath)) {
-          FileUtils.forceDelete(absoluteFilePath.toFile());
-        }
-      } catch (final IOException e) {
-        log.error("  failed to delete a file \"{}\"", absoluteFilePath.toString());
-        log.error(e.getMessage());
-      }
-    }
   }
 
   private Map<String, String> getDirtyFiles(final Status status) {

@@ -1,8 +1,18 @@
 package jp.kusumotolab.finergit;
+
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.time.StopWatch;
 
 public class Timer extends StopWatch {
+
+  @Override
+  public void start() {
+    if (super.isStarted()) {
+      super.resume();
+    } else {
+      super.start();
+    }
+  }
 
   @Override
   public String toString() {

@@ -1,5 +1,6 @@
 package jp.kusumotolab.finergit;
 
+import org.eclipse.jgit.storage.file.WindowCacheConfig;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.slf4j.Logger;
@@ -29,11 +30,17 @@ public class FinerGitMain {
     timer.start();
 
     final FinerGitMain finerGitMain = new FinerGitMain(config);
-    finerGitMain.exec();
+    final FinerRepo finerRepo = finerGitMain.exec();
 
 
     timer.stop();
-    log.info("elapsed time {}", timer.toString());
+    log.info("elapsed time: {}", timer.toString());
+    log.info("  git-add:      {}", finerRepo.getAddCommandExecutionTime());
+    log.info("  git-checkout: {}", finerRepo.getCheckoutCommandExcecutionTime());
+    log.info("  git-commit:   {}", finerRepo.getCommitCommandExecutionTime());
+    log.info("  git-merge:    {}", finerRepo.getMergeCommandExecutionTime());
+    log.info("  git-rm:       {}", finerRepo.getRmCommandExecutionTime());
+    log.info("  git-status:   {}", finerRepo.getStatusCommandExcutionTime());
   }
 
   private final FinerGitConfig config;
@@ -41,11 +48,18 @@ public class FinerGitMain {
   public FinerGitMain(final FinerGitConfig config) {
     log.trace("enter FinerGitMain(FinerGitConfig");
     this.config = config;
+
+    final WindowCacheConfig windowCacheConfig = new WindowCacheConfig();
+    windowCacheConfig.setPackedGitMMAP(true);
+    windowCacheConfig.setPackedGitLimit(512 * WindowCacheConfig.MB);
+    windowCacheConfig.setPackedGitWindowSize(1024 * WindowCacheConfig.KB);
+    windowCacheConfig.setDeltaBaseCacheLimit(1024 * WindowCacheConfig.MB);
+    windowCacheConfig.install();
   }
 
-  public void exec() {
+  public FinerRepo exec() {
     log.trace("enter exec()");
     final FinerRepoBuilder builder = new FinerRepoBuilder(this.config);
-    builder.exec();
+    return builder.exec();
   }
 }
