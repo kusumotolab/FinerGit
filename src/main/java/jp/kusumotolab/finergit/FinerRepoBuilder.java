@@ -211,12 +211,14 @@ public class FinerRepoBuilder {
       newCommit = this.buildCommit(targetCommit, filesInPreviousCommit);
     }
 
-    final Status status = this.desRepo.doStatusCommand();
-    if (!status.isClean()) {
-      log.error("  status after rebuilding commit \"{}\" is not clean",
-          RevCommitUtil.getAbbreviatedID(targetCommit));
-      this.getDirtyFiles(status)
-          .forEach((f, s) -> log.error(s + f));
+    if (this.config.isCheckCommit()) {
+      final Status status = this.desRepo.doStatusCommand();
+      if (!status.isClean()) {
+        log.error("  status after rebuilding commit \"{}\" is not clean",
+            RevCommitUtil.getAbbreviatedID(targetCommit));
+        this.getDirtyFiles(status)
+            .forEach((f, s) -> log.error(s + f));
+      }
     }
 
     // オリジナルリポジトリと細粒度リポジトリのコミットのマップをとる
