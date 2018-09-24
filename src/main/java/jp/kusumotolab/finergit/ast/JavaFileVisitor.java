@@ -1041,8 +1041,16 @@ public class JavaFileVisitor extends ASTVisitor {
   // TODO テストできていない
   @Override
   public boolean visit(final MemberValuePair node) {
-    log.error("JavaFileVisitor#visit(MemberValuePair) is not implemented yet.");
-    return super.visit(node);
+    this.moduleStack.peek()
+        .addToken(new VARIABLENAME(node.getName()
+            .getIdentifier()));
+    this.moduleStack.peek()
+        .addToken(new ASSIGN());
+
+    node.getValue()
+        .accept(this);
+
+    return false;
   }
 
   // TODO テストできていない
@@ -1310,8 +1318,30 @@ public class JavaFileVisitor extends ASTVisitor {
   // TODO テストできていない
   @Override
   public boolean visit(final NormalAnnotation node) {
-    log.error("JavaFileVisitor#visit(NormalAnnotation) is not implemented yet.");
-    return super.visit(node);
+
+    final String annotationName = "@" + node.getTypeName();
+    this.moduleStack.peek()
+        .addToken(new ANNOTATION(annotationName));
+    this.moduleStack.peek()
+        .addToken(new LEFTPAREN());
+
+    @SuppressWarnings("unchecked")
+    final List<MemberValuePair> nodes = node.values();
+    if (null != nodes && !nodes.isEmpty()) {
+      nodes.get(0)
+          .accept(this);
+      for (int index = 1; index < nodes.size(); index++) {
+        this.moduleStack.peek()
+            .addToken(new COMMA());
+        nodes.get(index)
+            .accept(this);
+      }
+    }
+
+    this.moduleStack.peek()
+        .addToken(new RIGHTPAREN());
+
+    return false;
   }
 
   @Override
