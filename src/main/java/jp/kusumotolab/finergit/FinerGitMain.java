@@ -41,6 +41,7 @@ public class FinerGitMain {
     log.info("  git-merge:    {}", finerRepo.getMergeCommandExecutionTime());
     log.info("  git-rm:       {}", finerRepo.getRmCommandExecutionTime());
     log.info("  git-status:   {}", finerRepo.getStatusCommandExcutionTime());
+    log.info("  git-listfile: {}", finerRepo.getListFilesExcutionTime());
   }
 
   private final FinerGitConfig config;
