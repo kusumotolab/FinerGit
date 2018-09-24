@@ -3,10 +3,8 @@ package jp.kusumotolab.finergit;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -41,7 +39,6 @@ public class FinerRepoBuilder {
   private final Map<RevCommit, Integer> branchMap;
   private int numberOfTrackedCommits;
   private int numberOfRebuiltCommits;
-  private Timer collectingWorkingFilesTimer;
 
   public FinerRepoBuilder(final FinerGitConfig config) {
     log.trace("enter FinerRepoBuilder(FinerGitConfig)");
@@ -53,7 +50,6 @@ public class FinerRepoBuilder {
     this.branchMap = new HashMap<>();
     this.numberOfTrackedCommits = 0;
     this.numberOfRebuiltCommits = 0;
-    this.collectingWorkingFilesTimer = new Timer();
   }
 
   /**
@@ -81,7 +77,7 @@ public class FinerRepoBuilder {
     } catch (final Exception e) {
       e.printStackTrace();
     }
-    log.debug("collecting working files: " + this.collectingWorkingFilesTimer.toString());
+
     log.trace("exit exec()");
     return this.desRepo;
   }
@@ -136,8 +132,7 @@ public class FinerRepoBuilder {
       // master上のinitial commitでない場合は，orphanブランチを作る
       if (!BranchName.isMasterBranch(branchID)) {
         this.checkout(branchID, true, null, true, targetCommit);
-        final Set<String> filesInWorkingDir = this.getWorkingFiles(this.desRepo.path);
-        this.removeFiles(filesInWorkingDir);
+        this.removeAllFiles(this.desRepo.path);
       }
 
       // 対象コミットのファイル群を取得
@@ -179,7 +174,8 @@ public class FinerRepoBuilder {
         this.checkout(branchID, true, desParents[0], false, targetCommit);
       }
 
-      newCommit = this.buildCommit(targetCommit);
+      final Set<String> filesInPreviousCommit = this.desRepo.listFiles(desParents[0]);
+      newCommit = this.buildCommit(targetCommit, filesInPreviousCommit);
     }
 
     // 親が2つのとき（merge commit）の処理
@@ -211,7 +207,8 @@ public class FinerRepoBuilder {
       }
 
       // マージの成否にかかわらず，マージの結果は使わない．手動マージが行われていた場合に自動では絶対に再現できないため．
-      newCommit = this.buildCommit(targetCommit);
+      final Set<String> filesInPreviousCommit = this.desRepo.listFiles(desParents[0]);
+      newCommit = this.buildCommit(targetCommit, filesInPreviousCommit);
     }
 
     final Status status = this.desRepo.doStatusCommand();
@@ -238,8 +235,10 @@ public class FinerRepoBuilder {
 
   // 第一引数で与えられたコミットを再構築する．
   // 再構築したコミットを返す．
-  private RevCommit buildCommit(final RevCommit targetCommit) {
-    log.trace("enter buildCommit(RevCommit=\"{}\"", RevCommitUtil.getAbbreviatedID(targetCommit));
+  private RevCommit buildCommit(final RevCommit targetCommit,
+      final Set<String> filesInPreviousCommit) {
+    log.trace("enter buildCommit(RevCommit=\"{}\", Set<String>=\"{}\"",
+        RevCommitUtil.getAbbreviatedID(targetCommit), filesInPreviousCommit.size());
 
     // 対象コミットの変更一覧を取得
     final List<DiffEntry> diffEntries = this.srcRepo.getDiff(targetCommit);
@@ -273,18 +272,18 @@ public class FinerRepoBuilder {
 
     // 修正されたファイルから以前に生成された細粒度ファイルのうち，
     // 修正されたファイルから今回生成された細粒度ファイルに含まれないファイルに対して git-rm コマンドを実行
-    final Set<String> finerJavaFilesInWorkingDir =
-        this.getWorkingFiles(this.config.getDesPath(), "fjava", "mjava");
+    final Set<String> finerJavaFilesInPreviousCommit =
+        this.filterSet(filesInPreviousCommit, p -> p.endsWith(".fjava") || p.endsWith(".mjava"));
     final Set<String> modifiedJavaFilePrefixes = this.removePrefixes(modifiedFiles);
     final Set<String> finerJavaFilesToDelete1 =
-        this.getFilesHavingPrefix(finerJavaFilesInWorkingDir, modifiedJavaFilePrefixes);
+        this.getFilesHavingPrefix(finerJavaFilesInPreviousCommit, modifiedJavaFilePrefixes);
     finerJavaFilesToDelete1.removeAll(finerJavaFilesInModifiedFiles.keySet());
     this.removeFiles(finerJavaFilesToDelete1);
 
     // 削除されたファイルから以前に生成された細粒度ファイルに対して，git-rm コマンドを実行
     final Set<String> deletedJavaFilePrefixes = this.removePrefixes(deletedFiles);
     final Set<String> finerJavaFilesToDelete2 =
-        this.getFilesHavingPrefix(finerJavaFilesInWorkingDir, deletedJavaFilePrefixes);
+        this.getFilesHavingPrefix(finerJavaFilesInPreviousCommit, deletedJavaFilePrefixes);
     this.removeFiles(finerJavaFilesToDelete2);
 
     // 対象コミットに含まれるファイルのうち，
@@ -309,6 +308,9 @@ public class FinerRepoBuilder {
     final PersonIdent authorIdent = targetCommit.getAuthorIdent();
     final String id = RevCommitUtil.getAbbreviatedID(targetCommit);
     final String message = targetCommit.getFullMessage();
+
+    log.trace("exit buildCommit(RevCommit=\"{}\", Set<String>=\"{}\"",
+        RevCommitUtil.getAbbreviatedID(targetCommit), filesInPreviousCommit.size());
 
     return this.desRepo.doCommitCommand(authorIdent, id, message);
   }
@@ -443,36 +445,20 @@ public class FinerRepoBuilder {
     }
   }
 
-  private Set<String> getWorkingFiles(final Path repoPath, final String... extensions) {
-    this.collectingWorkingFilesTimer.start();
+  private void removeAllFiles(final Path repoPath) {
+    log.trace("enter removeAllFiles()");
     try {
-      return Files.walk(repoPath)
+      final Set<String> files = Files.walk(repoPath)
           .parallel()
-          .filter(path -> !isRepositoryFile(path)
-              && Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS))
+          .filter(path -> !isRepositoryFile(path) && Files.isRegularFile(path))
           .map(path -> repoPath.relativize(path))
           .map(path -> path.toString())
-          .filter(s -> endsWith(s, extensions))
           .collect(Collectors.toSet());
+      this.removeFiles(files);
     } catch (final IOException e) {
       log.error("failed to access \"{}\"", repoPath);
       log.error(e.getMessage());
-      return Collections.emptySet();
-    } finally {
-      this.collectingWorkingFilesTimer.suspend();
     }
-  }
-
-  private boolean endsWith(final String path, final String... extensions) {
-    if (0 == extensions.length) {
-      return true;
-    }
-    for (final String extension : extensions) {
-      if (path.endsWith(extension)) {
-        return true;
-      }
-    }
-    return false;
   }
 
   private boolean isRepositoryFile(final Path path) {

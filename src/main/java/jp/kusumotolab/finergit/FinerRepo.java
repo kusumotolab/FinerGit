@@ -3,6 +3,8 @@ package jp.kusumotolab.finergit;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import org.eclipse.jgit.api.AddCommand;
 import org.eclipse.jgit.api.CheckoutCommand;
 import org.eclipse.jgit.api.CommitCommand;
@@ -20,7 +22,9 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.merge.MergeStrategy;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.submodule.SubmoduleWalk.IgnoreSubmoduleMode;
+import org.eclipse.jgit.treewalk.TreeWalk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import jp.kusumotolab.finergit.util.RevCommitUtil;
@@ -37,6 +41,7 @@ public class FinerRepo {
   private final Timer mergeStopWatch;
   private final Timer rmStopWatch;
   private final Timer statusStopWatch;
+  private final Timer lfStopWatch;
 
   public FinerRepo(final Path path) {
     log.trace("enter FinerRepo(Path=\"{}\")", path.toString());
@@ -48,6 +53,7 @@ public class FinerRepo {
     this.mergeStopWatch = new Timer();
     this.rmStopWatch = new Timer();
     this.statusStopWatch = new Timer();
+    this.lfStopWatch = new Timer();
   }
 
   public boolean initialize() {
@@ -243,6 +249,30 @@ public class FinerRepo {
     }
   }
 
+  public Set<String> listFiles(final RevCommit commit) {
+
+    this.lfStopWatch.start();
+
+    final Set<String> files = new HashSet<>();
+
+
+    try (final TreeWalk treeWalk = new TreeWalk(this.git.getRepository())) {
+      final RevTree tree = commit.getTree();
+      treeWalk.addTree(tree);
+      treeWalk.setRecursive(true);
+      while (treeWalk.next()) {
+        final String file = treeWalk.getPathString();
+        files.add(file);
+      }
+    } catch (final IOException e) {
+      log.error("failed to access commit \"{}\"", RevCommitUtil.getAbbreviatedID(commit));
+    } finally {
+      this.lfStopWatch.suspend();
+    }
+
+    return files;
+  }
+
   public String getAddCommandExecutionTime() {
     return this.addStopWatch.toString();
   }
@@ -265,5 +295,9 @@ public class FinerRepo {
 
   public String getStatusCommandExcutionTime() {
     return this.statusStopWatch.toString();
+  }
+
+  public String getListFilesExcutionTime() {
+    return this.lfStopWatch.toString();
   }
 }
