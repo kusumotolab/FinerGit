@@ -1038,7 +1038,6 @@ public class JavaFileVisitor extends ASTVisitor {
     return super.visit(node);
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(final MemberValuePair node) {
     this.moduleStack.peek()
@@ -1315,7 +1314,6 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(final NormalAnnotation node) {
 
