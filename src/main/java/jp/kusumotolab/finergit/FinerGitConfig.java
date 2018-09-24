@@ -17,6 +17,7 @@ public class FinerGitConfig {
   private boolean isTokenized;
   private boolean isAccessModifierIncluded;
   private boolean isReturnTypeIncluded;
+  private boolean isCheckCommit;
   private int maxFileNameLength;
   private int hashLength;
 
@@ -29,6 +30,7 @@ public class FinerGitConfig {
     this.isTokenized = true;
     this.isAccessModifierIncluded = true;
     this.isReturnTypeIncluded = true;
+    this.isCheckCommit = false;
     this.maxFileNameLength = 255;
     this.hashLength = 7;
   }
@@ -63,6 +65,10 @@ public class FinerGitConfig {
 
   public boolean isReturnTypeIncluded() {
     return this.isReturnTypeIncluded;
+  }
+
+  public boolean isCheckCommit() {
+    return this.isCheckCommit;
   }
 
   public int getMaxFileNameLength() {
@@ -216,6 +222,25 @@ public class FinerGitConfig {
       }
       default: {
         System.err.println("\"--return-type-included\" option can take only true or false");
+        System.exit(0);
+      }
+    }
+  }
+
+  @Option(name = "--check-commit", metaVar = "<true|false>)",
+      usage = "check whether each rebuilt commit is fine state or not")
+  public void setCheckCommit(final String flag) {
+    switch (flag.toLowerCase()) {
+      case "true": {
+        this.isCheckCommit = true;
+        break;
+      }
+      case "false": {
+        this.isCheckCommit = false;
+        break;
+      }
+      default: {
+        System.err.println("\"--check-commit\" option can take only true or false");
         System.exit(0);
       }
     }
