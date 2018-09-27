@@ -116,7 +116,8 @@ public class SemanticVersioningMain {
     final RevCommit endCommit = RevCommitUtil.getRevCommit(repository, endCommitId);
     final FileTracker fileTracker = new FileTracker(repository, this.config);
     final LinkedHashMap<RevCommit, String> commitPathMap =
-        fileTracker.exec(targetFileRelativePathInRepository.toString());
+        fileTracker.exec(targetFileRelativePathInRepository.toString()
+            .replace("\\", "/")); // replace がないと Windows 環境で動かない
 
     if (commitPathMap.isEmpty()) {
       System.err.println("there is no commit on \"" + targetFilePath.toString() + "\"");
