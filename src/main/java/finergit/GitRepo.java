@@ -13,6 +13,7 @@ import org.eclipse.jgit.api.DiffCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.diff.RenameDetector;
 import org.eclipse.jgit.errors.AmbiguousObjectException;
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.errors.MissingObjectException;
@@ -31,6 +32,7 @@ import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import finergit.sv.MinimumRenameScore;
 import finergit.util.RevCommitUtil;
 
 public class GitRepo {
@@ -270,7 +272,7 @@ public class GitRepo {
     return null;
   }
 
-  private RevCommit getRevCommit(final AnyObjectId commitId) {
+  public RevCommit getRevCommit(final AnyObjectId commitId) {
     log.trace("enter getRevCommit(AnyObjectId=\"{}\")", RevCommitUtil.getAbbreviatedID(commitId));
 
     if (null == commitId) {
@@ -301,5 +303,49 @@ public class GitRepo {
       log.error(e.getMessage());
       return null;
     }
+  }
+
+  public Iterable<RevCommit> getLog(final String path, final AnyObjectId startCommit) {
+    try (final Git git = new Git(this.fileRepository)) {
+      return git.log()
+          .addPath(path)
+          .add(startCommit)
+          .call();
+    } catch (final Exception e) {
+      log.error("failed to execute git-log command for \"{}\"", path);
+      log.error(e.getMessage());
+    }
+    return Collections.emptyList();
+  }
+
+  public String getPathBeforeRename(final String path, final RevCommit commit,
+      final MinimumRenameScore minimumRenameScore) {
+
+    try (final TreeWalk treeWalk = new TreeWalk(this.fileRepository)) {
+      treeWalk.setRecursive(true);
+      final RevCommit parentCommit = this.getRevCommit(commit.getParent(0));
+      treeWalk.addTree(parentCommit.getTree());
+      treeWalk.addTree(commit.getTree());
+
+      final RenameDetector renameDetector = new RenameDetector(this.fileRepository);
+      if (!minimumRenameScore.isRepositoryDefault()) {
+        renameDetector.setRenameScore(minimumRenameScore.getValue());
+      }
+      renameDetector.addAll(DiffEntry.scan(treeWalk));
+      final List<DiffEntry> files = renameDetector.compute();
+      for (final DiffEntry file : files) {
+        if ((file.getChangeType() == DiffEntry.ChangeType.RENAME
+            || file.getChangeType() == DiffEntry.ChangeType.COPY) && file.getNewPath()
+                .contains(path)) {
+          return file.getOldPath();
+        }
+      }
+    } catch (final IOException e) {
+      log.error("failed to find path before rename for \"{}\"", path);
+      log.error(e.getMessage());
+      return null;
+    }
+
+    return null;
   }
 }

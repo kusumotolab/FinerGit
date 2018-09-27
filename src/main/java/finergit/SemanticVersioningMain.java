@@ -1,13 +1,11 @@
 package finergit;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.kohsuke.args4j.CmdLineException;
@@ -20,7 +18,6 @@ import finergit.sv.SemanticVersion;
 import finergit.sv.SemanticVersionGenerator;
 import finergit.sv.SemanticVersioningConfig;
 import finergit.util.LinkedHashMapSorter;
-import finergit.util.RevCommitUtil;
 
 public class SemanticVersioningMain {
 
@@ -101,7 +98,7 @@ public class SemanticVersioningMain {
   public void run() {
     log.info("enter run()");
     final Path baseDirPath = Paths.get(this.config.getBaseDir());
-    final Repository repository = findRepository(baseDirPath);
+    final GitRepo repository = findRepository(baseDirPath);
 
     if (null == repository) {
       System.err.println("git repository was not found.");
@@ -112,12 +109,12 @@ public class SemanticVersioningMain {
     final Path targetFilePath = this.config.getTargetFilePath();
     final Path targetFileAbsolutePath = baseDirPath.resolve(targetFilePath);
     final Path targetFileRelativePathInRepository =
-        this.getRelativePath(repository, targetFileAbsolutePath);
+        repository.path.relativize(targetFileAbsolutePath);
 
     final String startCommitId = this.config.getStartCommitId();
-    final RevCommit startCommit = RevCommitUtil.getRevCommit(repository, startCommitId);
+    final RevCommit startCommit = repository.getCommit(startCommitId);
     final String endCommitId = this.config.getEndCommitId();
-    final RevCommit endCommit = RevCommitUtil.getRevCommit(repository, endCommitId);
+    final RevCommit endCommit = repository.getCommit(endCommitId);
     final FileTracker fileTracker = new FileTracker(repository, this.config);
     final LinkedHashMap<RevCommit, String> commitPathMap =
         fileTracker.exec(targetFileRelativePathInRepository.toString()
@@ -155,7 +152,7 @@ public class SemanticVersioningMain {
     log.info("exit run()");
   }
 
-  private Repository findRepository(final Path path) {
+  private GitRepo findRepository(final Path path) {
     log.trace("enter findRepository(Path), path <{}>", path);
 
     if (null == path) {
@@ -164,12 +161,9 @@ public class SemanticVersioningMain {
 
     final Path gitConfigPath = path.resolve(".git");
     if (Files.isDirectory(gitConfigPath)) {
-      try {
-        return new FileRepository(gitConfigPath.toFile());
-      } catch (final IOException e) {
-        log.error("A FileRepository object cannot be created for {}", gitConfigPath.toFile());
-        return null;
-      }
+      final GitRepo repository = new GitRepo(path);
+      repository.initialize();
+      return repository;
     }
 
     else {
