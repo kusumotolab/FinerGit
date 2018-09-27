@@ -14,8 +14,8 @@ public class SemanticVersion {
   public final Path path;
   public final SemanticVersion parent;
 
-  public SemanticVersion(final int major, final int minor, final int patch, final RevCommit commit,
-      final Path path, final SemanticVersion parent) {
+  protected SemanticVersion(final int major, final int minor, final int patch,
+      final RevCommit commit, final Path path, final SemanticVersion parent) {
     this.major = major;
     this.minor = minor;
     this.patch = patch;
@@ -27,45 +27,45 @@ public class SemanticVersion {
   public String toString(final SemanticVersioningConfig config) {
     final StringBuilder text = new StringBuilder();
 
-    text.append(this.major);
-    text.append(".");
-    text.append(this.minor);
-    text.append(".");
-    text.append(this.patch);
+    text.append(this.major)
+        .append(".")
+        .append(this.minor)
+        .append(".")
+        .append(this.patch);
 
     if (null != config && config.isNumber()) {
-      text.append("\t");
-      text.append(this.getNumberOfChanges());
+      text.append("\t")
+          .append(this.getNumberOfChanges());
     }
 
     if (null != config && config.isCommit()) {
-      text.append("\t");
-      text.append(RevCommitUtil.getAbbreviatedID(this.commit));
+      text.append("\t")
+          .append(RevCommitUtil.getAbbreviatedID(this.commit));
     }
 
     if (null != config && config.isDate()) {
-      text.append("\t");
-      text.append(RevCommitUtil.getDate(this.commit, RevCommitUtil.DATE_FORMAT));
+      text.append("\t")
+          .append(RevCommitUtil.getDate(this.commit, RevCommitUtil.DATE_FORMAT));
     }
 
     if (null != config && config.isAuthor()) {
-      text.append("\t");
-      text.append(RevCommitUtil.getAuthor(this.commit));
+      text.append("\t")
+          .append(RevCommitUtil.getAuthor(this.commit));
     }
 
     if (null != config && config.isBirthCommit()) {
-      text.append("\t");
-      text.append(RevCommitUtil.getAbbreviatedID(this.getBirthCommit()));
+      text.append("\t")
+          .append(RevCommitUtil.getAbbreviatedID(this.getBirthCommit()));
     }
 
     if (null != config && config.isBirthDate()) {
-      text.append("\t");
-      text.append(RevCommitUtil.getDate(this.getBirthCommit(), RevCommitUtil.DATE_FORMAT));
+      text.append("\t")
+          .append(RevCommitUtil.getDate(this.getBirthCommit(), RevCommitUtil.DATE_FORMAT));
     }
 
     if (null != config && config.isPath()) {
-      text.append("\t");
-      text.append(this.path.toString());
+      text.append("\t")
+          .append(this.path.toString());
     }
 
     return text.toString();

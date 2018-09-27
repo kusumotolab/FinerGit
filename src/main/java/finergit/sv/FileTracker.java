@@ -15,7 +15,7 @@ public class FileTracker {
   }
 
   /**
-   * return the change history of a given file
+   * 引数で与えられたパス（ファイル）について，それが変更されたコミットと変更されたときのパスのMapを返す
    * 
    * @param path
    * @return
@@ -24,10 +24,12 @@ public class FileTracker {
     final LinkedHashMap<RevCommit, String> commitPathMap = new LinkedHashMap<>();
 
     String currentPath = path;
-    RevCommit start = this.repository.getHeadCommit();
+    RevCommit startCommit = this.repository.getHeadCommit();
 
     do {
-      final Iterable<RevCommit> commitIDs = this.repository.getLog(currentPath, start);
+
+      // 名前が変わっていない範囲の履歴は git-log で取得する
+      final Iterable<RevCommit> commitIDs = this.repository.getLog(currentPath, startCommit);
       for (final RevCommit commitID : commitIDs) {
 
         final RevCommit commit = this.repository.getRevCommit(commitID);
@@ -38,16 +40,18 @@ public class FileTracker {
         // }
 
         if (commitPathMap.containsKey(commit)) {
-          start = null;
+          startCommit = null;
         } else {
-          start = commit;
+          startCommit = commit;
           commitPathMap.put(commit, currentPath);
         }
       }
-      if (start == null) {
+      if (startCommit == null) {
         return commitPathMap;
       }
-    } while ((currentPath = this.repository.getPathBeforeRename(currentPath, start,
+
+      // 名前変更があるかないかを判定し，ある場合は繰り返し処理
+    } while ((currentPath = this.repository.getPathBeforeRename(currentPath, startCommit,
         this.config.minimumRenameScore)) != null);
 
     return commitPathMap;

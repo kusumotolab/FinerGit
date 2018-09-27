@@ -6,7 +6,6 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -44,12 +43,14 @@ public class SemanticVersioningMain {
 
     if (0 == otherArguments.size()) {
       System.err.println("target file is not specified");
+      cmdLineParser.printUsage(System.err);
       log.info("exit main(String[])");
       System.exit(0);
     }
 
     if (1 < otherArguments.size()) {
       System.err.println("two or more target files are specified");
+      cmdLineParser.printUsage(System.err);
       log.info("exit main(String[])");
       System.exit(0);
     }
@@ -69,13 +70,13 @@ public class SemanticVersioningMain {
     final Path targetFileAbsolutePath = baseDirPath.resolve(targetFilePath);
 
     if (!Files.exists(targetFileAbsolutePath)) {
-      System.err.println("\"" + targetFileAbsolutePath.toString() + "\" does not exist.");
+      System.err.println("file not found: " + targetFileAbsolutePath.toString());
       log.info("exit main(String[])");
       System.exit(0);
     }
 
     else if (!Files.isRegularFile(targetFileAbsolutePath)) {
-      System.err.println("\"" + targetFileAbsolutePath.toString() + "\" is not a regular file.");
+      System.err.println("not a regular file: " + targetFileAbsolutePath.toString());
       log.info("exit main(String[])");
       System.exit(0);
     }
@@ -170,17 +171,4 @@ public class SemanticVersioningMain {
       return findRepository(path.getParent());
     }
   }
-
-  private Path getRelativePath(final Repository repository, final Path targetFileAbsolutePath) {
-    log.trace(
-        "enter getRelativePath(Repository, Path), repository <{}>, targetFileAbsolutePath <{}>",
-        repository.getWorkTree()
-            .getAbsolutePath(),
-        targetFileAbsolutePath);
-    final Path repositoryAbsolutePath = Paths.get(repository.getWorkTree()
-        .getAbsolutePath());
-    return repositoryAbsolutePath.relativize(targetFileAbsolutePath);
-  }
-
-
 }
