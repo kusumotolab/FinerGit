@@ -40,13 +40,13 @@ public class GitRepo {
   private static final Logger log = LoggerFactory.getLogger(GitRepo.class);
 
   public final Path path;
-  private FileRepository fileRepository;
+  private FileRepository repository;
 
   public GitRepo(final Path path) {
     log.trace("enter GitRepo(Path=\"{}\")", path.toString());
 
     this.path = path;
-    this.fileRepository = null;
+    this.repository = null;
   }
 
   public boolean initialize() {
@@ -59,7 +59,7 @@ public class GitRepo {
     }
 
     try {
-      this.fileRepository = new FileRepository(configPath.toFile());
+      this.repository = new FileRepository(configPath.toFile());
     } catch (final IOException e) {
       log.error("repository \"" + configPath.toString()
           + "\" appears to already exist but cannot be accessed");
@@ -73,7 +73,7 @@ public class GitRepo {
 
   public void dispose() {
     log.trace("enter dispose()");
-    this.fileRepository.close();
+    this.repository.close();
   }
 
   public RevCommit getHeadCommit() {
@@ -109,7 +109,7 @@ public class GitRepo {
         RevCommitUtil.getAbbreviatedID(commit), paths.size());
 
     final Map<String, byte[]> files = new HashMap<>();
-    final ObjectReader reader = this.fileRepository.newObjectReader();
+    final ObjectReader reader = this.repository.newObjectReader();
     final RevTree tree = commit.getTree();
 
     for (final String path : paths) {
@@ -152,7 +152,7 @@ public class GitRepo {
   public Map<String, byte[]> getFiles(final RevCommit commit) {
     log.trace("enter getFiles(RevCommit=\"{}\")", RevCommitUtil.getAbbreviatedID(commit));
 
-    final ObjectReader reader = this.fileRepository.newObjectReader();
+    final ObjectReader reader = this.repository.newObjectReader();
     final CanonicalTreeParser parser = getCanonicalTreeParser(commit, reader);
     final RevTree tree = commit.getTree();
     final Map<String, byte[]> files = new HashMap<>();
@@ -206,14 +206,14 @@ public class GitRepo {
   public List<DiffEntry> getDiff(final RevCommit commit) {
     log.trace("enter getDiff(RevCommit=\"{}\")", RevCommitUtil.getAbbreviatedID(commit));
 
-    final Git git = new Git(this.fileRepository);
+    final Git git = new Git(this.repository);
     final RevCommit parentCommit = this.getRevCommit(commit.getParent(0));
     if (null == parentCommit) {
       git.close();
       return Collections.emptyList();
     }
 
-    final ObjectReader objectReader = this.fileRepository.newObjectReader();
+    final ObjectReader objectReader = this.repository.newObjectReader();
 
     final CanonicalTreeParser oldParser = this.getCanonicalTreeParser(parentCommit, objectReader);
     if (null == oldParser) {
@@ -254,7 +254,7 @@ public class GitRepo {
     }
 
     try {
-      final ObjectId objectId = this.fileRepository.resolve(name);
+      final ObjectId objectId = this.repository.resolve(name);
       return objectId;
     } catch (final RevisionSyntaxException e) {
       log.error("FileRepository#resolve is invoked with an incorrect formatted argument");
@@ -266,7 +266,7 @@ public class GitRepo {
       log.error("FileRepository#resolve is invoked with an ID of inappropriate object type");
       log.error(e.getMessage());
     } catch (final IOException e) {
-      log.error("cannot access to repository \"" + this.fileRepository.getWorkTree()
+      log.error("cannot access to repository \"" + this.repository.getWorkTree()
           .toString());
     }
     return null;
@@ -279,7 +279,7 @@ public class GitRepo {
       return null;
     }
 
-    try (final RevWalk revWalk = new RevWalk(this.fileRepository)) {
+    try (final RevWalk revWalk = new RevWalk(this.repository)) {
       final RevCommit commit = revWalk.parseCommit(commitId);
       return commit;
     } catch (IOException e) {
@@ -306,7 +306,7 @@ public class GitRepo {
   }
 
   public Iterable<RevCommit> getLog(final String path, final AnyObjectId startCommit) {
-    try (final Git git = new Git(this.fileRepository)) {
+    try (final Git git = new Git(this.repository)) {
       return git.log()
           .addPath(path)
           .add(startCommit)
@@ -321,13 +321,13 @@ public class GitRepo {
   public String getPathBeforeRename(final String path, final RevCommit commit,
       final MinimumRenameScore minimumRenameScore) {
 
-    try (final TreeWalk treeWalk = new TreeWalk(this.fileRepository)) {
+    try (final TreeWalk treeWalk = new TreeWalk(this.repository)) {
       treeWalk.setRecursive(true);
       final RevCommit parentCommit = this.getRevCommit(commit.getParent(0));
       treeWalk.addTree(parentCommit.getTree());
       treeWalk.addTree(commit.getTree());
 
-      final RenameDetector renameDetector = new RenameDetector(this.fileRepository);
+      final RenameDetector renameDetector = new RenameDetector(this.repository);
       if (!minimumRenameScore.isRepositoryDefault()) {
         renameDetector.setRenameScore(minimumRenameScore.getValue());
       }
