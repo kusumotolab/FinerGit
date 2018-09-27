@@ -125,7 +125,9 @@ public class FinerRepo {
     this.addStopWatch.start();
     final AddCommand addCommand = this.git.add()
         .setUpdate(false);
-    paths.forEach(addCommand::addFilepattern);
+    paths.stream()
+        .map(p -> p.replace("\\", "/")) // これがないとWindows環境で動かない
+        .forEach(p -> addCommand.addFilepattern(p));
     boolean success = true;
 
     try {
