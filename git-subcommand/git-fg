@@ -1,4 +1,4 @@
 #!/bin/bash
 CDIR=`pwd`
 JARDIR=`dirname $0`
-java -jar $JARDIR/git-fg.jar $@ 
+java -Xss48m -Xmx8g -jar $JARDIR/FinerGit.jar finergit.FinerGitMain $@ 
