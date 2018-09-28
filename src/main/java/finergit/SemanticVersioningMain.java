@@ -18,6 +18,12 @@ import finergit.sv.SemanticVersionGenerator;
 import finergit.sv.SemanticVersioningConfig;
 import finergit.util.LinkedHashMapSorter;
 
+/**
+ * 与えられたファイル（主な対象はメソッドファイル，拡張子は.mjava）のセマンティックバージョンを求めるためのメインクラス
+ * 
+ * @author higo
+ *
+ */
 public class SemanticVersioningMain {
 
   private static final Logger log = LoggerFactory.getLogger(SemanticVersioningMain.class);
@@ -35,33 +41,38 @@ public class SemanticVersioningMain {
       cmdLineParser.parseArgument(args);
     } catch (final CmdLineException e) {
       cmdLineParser.printUsage(System.err);
-      log.info("exit main(String[])");
+      System.exit(1);
+    }
+
+    // ヘルプ表示の引数が指定されていた場合は，ヘルプを表示して終了
+    if (config.isHelp()) {
+      cmdLineParser.printUsage(System.err);
       System.exit(0);
     }
 
     final List<String> otherArguments = config.getOtherArguments();
 
+    // 対象ファイルが指定されていない場合はエラーを出して終了
     if (0 == otherArguments.size()) {
       System.err.println("target file is not specified");
       cmdLineParser.printUsage(System.err);
-      log.info("exit main(String[])");
-      System.exit(0);
+      System.exit(1);
     }
 
+    // 対象ファイルが複数指定されていた場合はエラーを出して終了
     if (1 < otherArguments.size()) {
       System.err.println("two or more target files are specified");
       cmdLineParser.printUsage(System.err);
-      log.info("exit main(String[])");
-      System.exit(0);
+      System.exit(1);
     }
 
     final String targetFile = otherArguments.get(0);
     final Path targetFilePath = Paths.get(targetFile);
 
+    // 対象ファイルが絶対パスで指定されていた場合はエラーを出して終了
     if (targetFilePath.isAbsolute()) {
       System.err.println("target file must be specified with a relative path");
-      log.info("exit main(String[])");
-      System.exit(0);
+      System.exit(1);
     }
 
     final String baseDir = config.getBaseDir();
@@ -69,16 +80,16 @@ public class SemanticVersioningMain {
 
     final Path targetFileAbsolutePath = baseDirPath.resolve(targetFilePath);
 
+    // 指定された対象ファイルが存在しない場合はエラーを出して終了
     if (!Files.exists(targetFileAbsolutePath)) {
       System.err.println("file not found: " + targetFileAbsolutePath.toString());
-      log.info("exit main(String[])");
-      System.exit(0);
+      System.exit(1);
     }
 
+    // 指定された対象ファイルが通常のファイルではない場合（例えばディレクトリ）はエラーを出して終了
     else if (!Files.isRegularFile(targetFileAbsolutePath)) {
       System.err.println("not a regular file: " + targetFileAbsolutePath.toString());
-      log.info("exit main(String[])");
-      System.exit(0);
+      System.exit(1);
     }
 
     config.setTargetFilePath(targetFilePath);
@@ -86,54 +97,60 @@ public class SemanticVersioningMain {
     final SemanticVersioningMain main = new SemanticVersioningMain(config);
     main.run();
 
-    log.info("exit main(String[])");
+    log.trace("exit main(String[])");
   }
 
   private final SemanticVersioningConfig config;
 
   public SemanticVersioningMain(final SemanticVersioningConfig config) {
-    log.info("enter SemanticVersionMain(SemanticVersioningConfig)");
+    log.trace("enter SemanticVersionMain(SemanticVersioningConfig)");
     this.config = config;
   }
 
   public void run() {
-    log.info("enter run()");
+    log.trace("enter run()");
+
+    // 指定されたディレクトリから上にたどってgitのルートディレクトリ（リポジトリ）を検索する
     final Path baseDirPath = Paths.get(this.config.getBaseDir());
     final GitRepo repository = findRepository(baseDirPath);
 
+    // リポジトリが見つからなかった場合はエラーを出して終了
     if (null == repository) {
       System.err.println("git repository was not found.");
-      log.info("exit run()");
+      log.trace("exit run()");
       System.exit(0);
     }
 
+    // 指定された対象ファイルの，gitのルートディレクトリに対する相対パスを取得する
     final Path targetFilePath = this.config.getTargetFilePath();
     final Path targetFileAbsolutePath = baseDirPath.resolve(targetFilePath);
     final Path targetFileRelativePathInRepository =
         repository.path.relativize(targetFileAbsolutePath);
 
-    final String startCommitId = this.config.getStartCommitId();
-    final RevCommit startCommit = repository.getCommit(startCommitId);
-    final String endCommitId = this.config.getEndCommitId();
-    final RevCommit endCommit = repository.getCommit(endCommitId);
+    // ファイルを追跡するオブジェクト（FileTracker）を生成し，追跡処理を行う
     final FileTracker fileTracker = new FileTracker(repository, this.config);
     final LinkedHashMap<RevCommit, String> commitPathMap =
         fileTracker.exec(targetFileRelativePathInRepository.toString()
             .replace("\\", "/")); // replace がないと Windows 環境で動かない
 
+    // 指定されたファイルに対して操作しているコミットが全く無い場合は，その旨を表示して終了
     if (commitPathMap.isEmpty()) {
-      System.err.println("there is no commit on \"" + targetFilePath.toString() + "\"");
-      log.info("exit run()");
+      System.out.println("there is no commit on \"" + targetFilePath.toString() + "\"");
       System.exit(0);
     }
 
+    // ファイルを追跡する範囲を取得する
+    final RevCommit startCommit = repository.getCommit(this.config.getStartCommitId());
+    final RevCommit endCommit = repository.getCommit(this.config.getEndCommitId());
+
+    // ファイルの追跡結果から，セマンティックバージョンを計算する
     final LinkedHashMap<RevCommit, String> reversedCommitPathMap =
         LinkedHashMapSorter.reverse(commitPathMap);
-
     final SemanticVersionGenerator semanticVersionGenerator = new SemanticVersionGenerator();
     final SemanticVersion semanticVersion =
         semanticVersionGenerator.exec(reversedCommitPathMap, startCommit, endCommit);
 
+    // ファイルを操作している各コミットについての情報を出力する場合
     if (this.config.isFollow()) {
 
       final List<SemanticVersion> semanticVersions = semanticVersion.getAllSemanticVersions();
@@ -146,13 +163,20 @@ public class SemanticVersioningMain {
           .forEach(System.out::println);
     }
 
+    // 各コミットについては情報を出力せず，追跡の結果を一行で表示する場合
     else {
       System.out.println(semanticVersion.toString(this.config));
     }
 
-    log.info("exit run()");
+    log.trace("exit run()");
   }
 
+  /**
+   * 引数で与えられたパス（ディレクトリ）から上にたどりながら，gitのルートディレクトリ（".git"を含むディレクトリ）を探す
+   * 
+   * @param path 対象パス（ディレクトリ）
+   * @return gitのルートディレクトリが見つかった場合はそのGitRepoオプジェクト，見つからなかった場合はnull
+   */
   private GitRepo findRepository(final Path path) {
     log.trace("enter findRepository(Path), path <{}>", path);
 

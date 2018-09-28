@@ -47,17 +47,23 @@ public class FileTracker {
         // continue;
         // }
 
+        // 訪れたコミットがすでに追跡済みの場合
         if (commitPathMap.containsKey(commit)) {
           log.debug("commit \"{}\" has already been in commitPathMap",
               RevCommitUtil.getAbbreviatedID(commit));
           startCommit = null;
-        } else {
-          log.debug("commit \"{}\" has been added to commitPathMap",
-              RevCommitUtil.getAbbreviatedID(commit));
+        }
+
+        // 訪れたコミットがまだ追跡されていない場合は，それをcommitPathMapに追加
+        else {
+          log.debug("commit \"{}\" has been mapped to path \"{}\"",
+              RevCommitUtil.getAbbreviatedID(commit), currentPath);
           startCommit = commit;
           commitPathMap.put(commit, currentPath);
         }
       }
+
+      // 新しく訪れるべきコミットがない場合は commitPathMap を返す
       if (startCommit == null) {
         return commitPathMap;
       }
