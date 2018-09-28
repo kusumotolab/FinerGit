@@ -2,6 +2,12 @@ package finergit;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * 細粒度リポジトリ内のブランチ名を表すクラス．
+ * 
+ * @author higo
+ *
+ */
 public class BranchName {
 
   static public String getLabel(final int id) {
