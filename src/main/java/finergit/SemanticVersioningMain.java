@@ -58,30 +58,20 @@ public class SemanticVersioningMain {
     final String targetFile = otherArguments.get(0);
     final Path targetFilePath = Paths.get(targetFile);
 
-    if (targetFilePath.isAbsolute()) {
-      System.err.println("target file must be specified with a relative path");
+    if (!Files.exists(targetFilePath)) {
+      System.err.println("file not found: " + targetFilePath.toString());
       log.info("exit main(String[])");
       System.exit(0);
     }
 
-    final String baseDir = config.getBaseDir();
-    final Path baseDirPath = Paths.get(baseDir);
-
-    final Path targetFileAbsolutePath = baseDirPath.resolve(targetFilePath);
-
-    if (!Files.exists(targetFileAbsolutePath)) {
-      System.err.println("file not found: " + targetFileAbsolutePath.toString());
+    else if (!Files.isRegularFile(targetFilePath)) {
+      System.err.println("not a regular file: " + targetFilePath.toString());
       log.info("exit main(String[])");
       System.exit(0);
     }
 
-    else if (!Files.isRegularFile(targetFileAbsolutePath)) {
-      System.err.println("not a regular file: " + targetFileAbsolutePath.toString());
-      log.info("exit main(String[])");
-      System.exit(0);
-    }
-
-    config.setTargetFilePath(targetFilePath);
+    final Path targetFileAbsolutePath = targetFilePath.toAbsolutePath();
+    config.setTargetFilePath(targetFileAbsolutePath);
 
     final SemanticVersioningMain main = new SemanticVersioningMain(config);
     main.run();
@@ -98,8 +88,9 @@ public class SemanticVersioningMain {
 
   public void run() {
     log.info("enter run()");
-    final Path baseDirPath = Paths.get(this.config.getBaseDir());
-    final GitRepo repository = findRepository(baseDirPath);
+
+    final Path targetFilePath = this.config.getTargetFilePath();
+    final GitRepo repository = findRepository(targetFilePath);
 
     if (null == repository) {
       System.err.println("git repository was not found.");
@@ -107,10 +98,7 @@ public class SemanticVersioningMain {
       System.exit(0);
     }
 
-    final Path targetFilePath = this.config.getTargetFilePath();
-    final Path targetFileAbsolutePath = baseDirPath.resolve(targetFilePath);
-    final Path targetFileRelativePathInRepository =
-        repository.path.relativize(targetFileAbsolutePath);
+    final Path targetFileRelativePathInRepository = repository.path.relativize(targetFilePath);
 
     final String startCommitId = this.config.getStartCommitId();
     final RevCommit startCommit = repository.getCommit(startCommitId);
