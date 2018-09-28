@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ch.qos.logback.classic.Level;
 
-public class SemanticVersioningConfig {
+public class SemanticVersioningConfig implements Cloneable {
 
   @Option(name = "-a", aliases = "--author", usage = "print author's name of the version")
   private boolean author;
@@ -183,5 +183,30 @@ public class SemanticVersioningConfig {
       usage = "specify a minimum score for file rename")
   public void setMinimumRenameScore(final int minimumRenameScore) {
     this.minimumRenameScore.setValue(minimumRenameScore);
+  }
+
+  @Override
+  public SemanticVersioningConfig clone() {
+    final SemanticVersioningConfig clone = new SemanticVersioningConfig();
+    clone.author = this.author;
+    clone.commit = this.commit;
+    clone.date = this.date;
+    clone.follow = this.follow;
+    clone.number = this.number;
+    clone.path = this.path;
+    clone.reverse = this.reverse;
+    clone.all = this.all;
+    clone.help = this.help;
+    clone.baseDir = this.baseDir;
+    if (!this.minimumRenameScore.isRepositoryDefault()) {
+      clone.minimumRenameScore.setValue(this.minimumRenameScore.getValue());
+    }
+    clone.startCommitId = this.startCommitId;
+    clone.endCommitId = this.endCommitId;
+    clone.birthCommit = this.birthCommit;
+    clone.birthDate = this.birthDate;
+    clone.targetFilePath = this.targetFilePath;
+    clone.otherArguments = new ArrayList<>(this.otherArguments);
+    return clone;
   }
 }
