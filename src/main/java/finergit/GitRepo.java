@@ -13,6 +13,7 @@ import org.eclipse.jgit.api.DiffCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.diff.RenameDetector;
 import org.eclipse.jgit.errors.AmbiguousObjectException;
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.errors.MissingObjectException;
@@ -31,6 +32,7 @@ import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import finergit.sv.MinimumRenameScore;
 import finergit.util.RevCommitUtil;
 
 public class GitRepo {
@@ -38,13 +40,13 @@ public class GitRepo {
   private static final Logger log = LoggerFactory.getLogger(GitRepo.class);
 
   public final Path path;
-  private FileRepository fileRepository;
+  private FileRepository repository;
 
   public GitRepo(final Path path) {
     log.trace("enter GitRepo(Path=\"{}\")", path.toString());
 
     this.path = path;
-    this.fileRepository = null;
+    this.repository = null;
   }
 
   public boolean initialize() {
@@ -57,7 +59,7 @@ public class GitRepo {
     }
 
     try {
-      this.fileRepository = new FileRepository(configPath.toFile());
+      this.repository = new FileRepository(configPath.toFile());
     } catch (final IOException e) {
       log.error("repository \"" + configPath.toString()
           + "\" appears to already exist but cannot be accessed");
@@ -71,7 +73,7 @@ public class GitRepo {
 
   public void dispose() {
     log.trace("enter dispose()");
-    this.fileRepository.close();
+    this.repository.close();
   }
 
   public RevCommit getHeadCommit() {
@@ -107,7 +109,7 @@ public class GitRepo {
         RevCommitUtil.getAbbreviatedID(commit), paths.size());
 
     final Map<String, byte[]> files = new HashMap<>();
-    final ObjectReader reader = this.fileRepository.newObjectReader();
+    final ObjectReader reader = this.repository.newObjectReader();
     final RevTree tree = commit.getTree();
 
     for (final String path : paths) {
@@ -150,7 +152,7 @@ public class GitRepo {
   public Map<String, byte[]> getFiles(final RevCommit commit) {
     log.trace("enter getFiles(RevCommit=\"{}\")", RevCommitUtil.getAbbreviatedID(commit));
 
-    final ObjectReader reader = this.fileRepository.newObjectReader();
+    final ObjectReader reader = this.repository.newObjectReader();
     final CanonicalTreeParser parser = getCanonicalTreeParser(commit, reader);
     final RevTree tree = commit.getTree();
     final Map<String, byte[]> files = new HashMap<>();
@@ -204,14 +206,14 @@ public class GitRepo {
   public List<DiffEntry> getDiff(final RevCommit commit) {
     log.trace("enter getDiff(RevCommit=\"{}\")", RevCommitUtil.getAbbreviatedID(commit));
 
-    final Git git = new Git(this.fileRepository);
+    final Git git = new Git(this.repository);
     final RevCommit parentCommit = this.getRevCommit(commit.getParent(0));
     if (null == parentCommit) {
       git.close();
       return Collections.emptyList();
     }
 
-    final ObjectReader objectReader = this.fileRepository.newObjectReader();
+    final ObjectReader objectReader = this.repository.newObjectReader();
 
     final CanonicalTreeParser oldParser = this.getCanonicalTreeParser(parentCommit, objectReader);
     if (null == oldParser) {
@@ -252,7 +254,7 @@ public class GitRepo {
     }
 
     try {
-      final ObjectId objectId = this.fileRepository.resolve(name);
+      final ObjectId objectId = this.repository.resolve(name);
       return objectId;
     } catch (final RevisionSyntaxException e) {
       log.error("FileRepository#resolve is invoked with an incorrect formatted argument");
@@ -264,20 +266,20 @@ public class GitRepo {
       log.error("FileRepository#resolve is invoked with an ID of inappropriate object type");
       log.error(e.getMessage());
     } catch (final IOException e) {
-      log.error("cannot access to repository \"" + this.fileRepository.getWorkTree()
+      log.error("cannot access to repository \"" + this.repository.getWorkTree()
           .toString());
     }
     return null;
   }
 
-  private RevCommit getRevCommit(final AnyObjectId commitId) {
+  public RevCommit getRevCommit(final AnyObjectId commitId) {
     log.trace("enter getRevCommit(AnyObjectId=\"{}\")", RevCommitUtil.getAbbreviatedID(commitId));
 
     if (null == commitId) {
       return null;
     }
 
-    try (final RevWalk revWalk = new RevWalk(this.fileRepository)) {
+    try (final RevWalk revWalk = new RevWalk(this.repository)) {
       final RevCommit commit = revWalk.parseCommit(commitId);
       return commit;
     } catch (IOException e) {
@@ -301,5 +303,49 @@ public class GitRepo {
       log.error(e.getMessage());
       return null;
     }
+  }
+
+  public Iterable<RevCommit> getLog(final String path, final AnyObjectId startCommit) {
+    try (final Git git = new Git(this.repository)) {
+      return git.log()
+          .addPath(path)
+          .add(startCommit)
+          .call();
+    } catch (final Exception e) {
+      log.error("failed to execute git-log command for \"{}\"", path);
+      log.error(e.getMessage());
+    }
+    return Collections.emptyList();
+  }
+
+  public String getPathBeforeRename(final String path, final RevCommit commit,
+      final MinimumRenameScore minimumRenameScore) {
+
+    try (final TreeWalk treeWalk = new TreeWalk(this.repository)) {
+      treeWalk.setRecursive(true);
+      final RevCommit parentCommit = this.getRevCommit(commit.getParent(0));
+      treeWalk.addTree(parentCommit.getTree());
+      treeWalk.addTree(commit.getTree());
+
+      final RenameDetector renameDetector = new RenameDetector(this.repository);
+      if (!minimumRenameScore.isRepositoryDefault()) {
+        renameDetector.setRenameScore(minimumRenameScore.getValue());
+      }
+      renameDetector.addAll(DiffEntry.scan(treeWalk));
+      final List<DiffEntry> files = renameDetector.compute();
+      for (final DiffEntry file : files) {
+        if ((file.getChangeType() == DiffEntry.ChangeType.RENAME
+            || file.getChangeType() == DiffEntry.ChangeType.COPY) && file.getNewPath()
+                .contains(path)) {
+          return file.getOldPath();
+        }
+      }
+    } catch (final IOException e) {
+      log.error("failed to find path before rename for \"{}\"", path);
+      log.error(e.getMessage());
+      return null;
+    }
+
+    return null;
   }
 }

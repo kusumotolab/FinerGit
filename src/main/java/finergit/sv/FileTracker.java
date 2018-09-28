@@ -1,107 +1,59 @@
 package finergit.sv;
 
-import java.io.IOException;
 import java.util.LinkedHashMap;
-import java.util.List;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.diff.DiffEntry;
-import org.eclipse.jgit.diff.RenameDetector;
-import org.eclipse.jgit.lib.Constants;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.treewalk.TreeWalk;
+import finergit.GitRepo;
 
 public class FileTracker {
 
-  private final Repository repository;
+  private final GitRepo repository;
   private final SemanticVersioningConfig config;
 
-  public FileTracker(final Repository repository, final SemanticVersioningConfig config) {
+  public FileTracker(final GitRepo repository, final SemanticVersioningConfig config) {
     this.repository = repository;
     this.config = config;
   }
 
   /**
-   * return the change history of a given file
+   * 引数で与えられたパス（ファイル）について，それが変更されたコミットと変更されたときのパスのMapを返す
    * 
    * @param path
    * @return
    */
   public LinkedHashMap<RevCommit, String> exec(final String path) {
     final LinkedHashMap<RevCommit, String> commitPathMap = new LinkedHashMap<>();
-    final Git git = new Git(this.repository);
+
     String currentPath = path;
+    RevCommit startCommit = this.repository.getHeadCommit();
 
-    try {
+    do {
 
-      final RevWalk revWalk = new RevWalk(this.repository);
-      RevCommit start = revWalk.parseCommit(this.repository.resolve(Constants.HEAD));
+      // 名前が変わっていない範囲の履歴は git-log で取得する
+      final Iterable<RevCommit> commitIDs = this.repository.getLog(currentPath, startCommit);
+      for (final RevCommit commitID : commitIDs) {
 
-      do {
-        final Iterable<RevCommit> commitIDs = git.log()
-            .addPath(currentPath)
-            .add(start)
-            .call();
-        for (final RevCommit commitID : commitIDs) {
+        final RevCommit commit = this.repository.getRevCommit(commitID);
 
-          final RevCommit commit = revWalk.parseCommit(commitID);
+        // マージコミットは対象外
+        // if (1 < commit.getParents().length) {
+        // continue;
+        // }
 
-          // マージコミットは対象外
-          // if (1 < commit.getParents().length) {
-          // continue;
-          // }
-
-          if (commitPathMap.containsKey(commit)) {
-            start = null;
-          } else {
-            start = commit;
-            commitPathMap.put(commit, currentPath);
-          }
+        if (commitPathMap.containsKey(commit)) {
+          startCommit = null;
+        } else {
+          startCommit = commit;
+          commitPathMap.put(commit, currentPath);
         }
-        if (start == null) {
-          revWalk.close();
-          git.close();
-          return commitPathMap;
-        }
-      } while ((currentPath = getRenamedPath(git, currentPath, start)) != null);
+      }
+      if (startCommit == null) {
+        return commitPathMap;
+      }
 
-      revWalk.close();
-      git.close();
-
-    } catch (final GitAPIException | IOException e) {
-      e.printStackTrace();
-    }
+      // 名前変更があるかないかを判定し，ある場合は繰り返し処理
+    } while ((currentPath = this.repository.getPathBeforeRename(currentPath, startCommit,
+        this.config.minimumRenameScore)) != null);
 
     return commitPathMap;
-  }
-
-  private String getRenamedPath(final Git git, final String path, final RevCommit start)
-      throws IOException, GitAPIException {
-
-    final Iterable<RevCommit> commits = git.log()
-        .add(start)
-        .call();
-    for (final RevCommit commit : commits) {
-      final TreeWalk treeWalk = new TreeWalk(this.repository);
-      treeWalk.addTree(commit.getTree());
-      treeWalk.addTree(start.getTree());
-      treeWalk.setRecursive(true);
-      final RenameDetector renameDetector = new RenameDetector(this.repository);
-      if (!this.config.minimumRenameScore.isRepositoryDefault()) {
-        renameDetector.setRenameScore(this.config.minimumRenameScore.getValue());
-      }
-      renameDetector.addAll(DiffEntry.scan(treeWalk));
-      final List<DiffEntry> files = renameDetector.compute();
-      for (final DiffEntry file : files) {
-        if ((file.getChangeType() == DiffEntry.ChangeType.RENAME
-            || file.getChangeType() == DiffEntry.ChangeType.COPY) && file.getNewPath()
-                .contains(path)) {
-          return file.getOldPath();
-        }
-      }
-    }
-    return null;
   }
 }

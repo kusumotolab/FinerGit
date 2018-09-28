@@ -1,14 +1,11 @@
 package finergit;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import org.eclipse.jgit.internal.storage.file.FileRepository;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -20,7 +17,6 @@ import finergit.sv.SemanticVersion;
 import finergit.sv.SemanticVersionGenerator;
 import finergit.sv.SemanticVersioningConfig;
 import finergit.util.LinkedHashMapSorter;
-import finergit.util.RevCommitUtil;
 
 public class SemanticVersioningMain {
 
@@ -47,12 +43,14 @@ public class SemanticVersioningMain {
 
     if (0 == otherArguments.size()) {
       System.err.println("target file is not specified");
+      cmdLineParser.printUsage(System.err);
       log.info("exit main(String[])");
       System.exit(0);
     }
 
     if (1 < otherArguments.size()) {
       System.err.println("two or more target files are specified");
+      cmdLineParser.printUsage(System.err);
       log.info("exit main(String[])");
       System.exit(0);
     }
@@ -72,13 +70,13 @@ public class SemanticVersioningMain {
     final Path targetFileAbsolutePath = baseDirPath.resolve(targetFilePath);
 
     if (!Files.exists(targetFileAbsolutePath)) {
-      System.err.println("\"" + targetFileAbsolutePath.toString() + "\" does not exist.");
+      System.err.println("file not found: " + targetFileAbsolutePath.toString());
       log.info("exit main(String[])");
       System.exit(0);
     }
 
     else if (!Files.isRegularFile(targetFileAbsolutePath)) {
-      System.err.println("\"" + targetFileAbsolutePath.toString() + "\" is not a regular file.");
+      System.err.println("not a regular file: " + targetFileAbsolutePath.toString());
       log.info("exit main(String[])");
       System.exit(0);
     }
@@ -101,7 +99,7 @@ public class SemanticVersioningMain {
   public void run() {
     log.info("enter run()");
     final Path baseDirPath = Paths.get(this.config.getBaseDir());
-    final Repository repository = findRepository(baseDirPath);
+    final GitRepo repository = findRepository(baseDirPath);
 
     if (null == repository) {
       System.err.println("git repository was not found.");
@@ -112,12 +110,12 @@ public class SemanticVersioningMain {
     final Path targetFilePath = this.config.getTargetFilePath();
     final Path targetFileAbsolutePath = baseDirPath.resolve(targetFilePath);
     final Path targetFileRelativePathInRepository =
-        this.getRelativePath(repository, targetFileAbsolutePath);
+        repository.path.relativize(targetFileAbsolutePath);
 
     final String startCommitId = this.config.getStartCommitId();
-    final RevCommit startCommit = RevCommitUtil.getRevCommit(repository, startCommitId);
+    final RevCommit startCommit = repository.getCommit(startCommitId);
     final String endCommitId = this.config.getEndCommitId();
-    final RevCommit endCommit = RevCommitUtil.getRevCommit(repository, endCommitId);
+    final RevCommit endCommit = repository.getCommit(endCommitId);
     final FileTracker fileTracker = new FileTracker(repository, this.config);
     final LinkedHashMap<RevCommit, String> commitPathMap =
         fileTracker.exec(targetFileRelativePathInRepository.toString()
@@ -155,7 +153,7 @@ public class SemanticVersioningMain {
     log.info("exit run()");
   }
 
-  private Repository findRepository(final Path path) {
+  private GitRepo findRepository(final Path path) {
     log.trace("enter findRepository(Path), path <{}>", path);
 
     if (null == path) {
@@ -164,29 +162,13 @@ public class SemanticVersioningMain {
 
     final Path gitConfigPath = path.resolve(".git");
     if (Files.isDirectory(gitConfigPath)) {
-      try {
-        return new FileRepository(gitConfigPath.toFile());
-      } catch (final IOException e) {
-        log.error("A FileRepository object cannot be created for {}", gitConfigPath.toFile());
-        return null;
-      }
+      final GitRepo repository = new GitRepo(path);
+      repository.initialize();
+      return repository;
     }
 
     else {
       return findRepository(path.getParent());
     }
   }
-
-  private Path getRelativePath(final Repository repository, final Path targetFileAbsolutePath) {
-    log.trace(
-        "enter getRelativePath(Repository, Path), repository <{}>, targetFileAbsolutePath <{}>",
-        repository.getWorkTree()
-            .getAbsolutePath(),
-        targetFileAbsolutePath);
-    final Path repositoryAbsolutePath = Paths.get(repository.getWorkTree()
-        .getAbsolutePath());
-    return repositoryAbsolutePath.relativize(targetFileAbsolutePath);
-  }
-
-
 }
