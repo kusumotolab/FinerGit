@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 
 public class JarEntryPoint {
 
-  private static final Logger log = LoggerFactory.getLogger(FinerGitMain.class);
+  private static final Logger log = LoggerFactory.getLogger(JarEntryPoint.class);
 
   public static void main(final String[] args) {
 
