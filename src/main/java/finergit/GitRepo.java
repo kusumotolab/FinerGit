@@ -321,6 +321,19 @@ public class GitRepo {
   public String getPathBeforeRename(final String path, final RevCommit commit,
       final MinimumRenameScore minimumRenameScore) {
 
+    log.trace("enter getPathBeforeName(String=\"{}\", RevCommit=\"{}\", MinimumRenameScore=\"{}\")",
+        path, RevCommitUtil.getAbbreviatedID(commit), minimumRenameScore.getValue());
+
+    if (null == commit) {
+      log.debug("return because the target commit doesn't exist");
+      return null;
+    }
+
+    if (0 == commit.getParentCount()) {
+      log.debug("return because parent commit doesn\'t exist");
+      return null;
+    }
+
     try (final TreeWalk treeWalk = new TreeWalk(this.repository)) {
       treeWalk.setRecursive(true);
       final RevCommit parentCommit = this.getRevCommit(commit.getParent(0));
@@ -337,7 +350,9 @@ public class GitRepo {
         if ((file.getChangeType() == DiffEntry.ChangeType.RENAME
             || file.getChangeType() == DiffEntry.ChangeType.COPY) && file.getNewPath()
                 .contains(path)) {
-          return file.getOldPath();
+          final String oldPath = file.getOldPath();
+          log.debug("an old path was found \"{}\"", oldPath);
+          return oldPath;
         }
       }
     } catch (final IOException e) {
@@ -346,6 +361,7 @@ public class GitRepo {
       return null;
     }
 
+    log.debug("old path not found");
     return null;
   }
 }

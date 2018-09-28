@@ -2,14 +2,20 @@ package finergit.sv;
 
 import java.util.LinkedHashMap;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import finergit.GitRepo;
+import finergit.util.RevCommitUtil;
 
 public class FileTracker {
+
+  private static final Logger log = LoggerFactory.getLogger(FileTracker.class);
 
   private final GitRepo repository;
   private final SemanticVersioningConfig config;
 
   public FileTracker(final GitRepo repository, final SemanticVersioningConfig config) {
+    log.trace("enter FileTracker(GitRepo, SemanticVersioningConfig)");
     this.repository = repository;
     this.config = config;
   }
@@ -22,6 +28,8 @@ public class FileTracker {
    */
   public LinkedHashMap<RevCommit, String> exec(final String path) {
     final LinkedHashMap<RevCommit, String> commitPathMap = new LinkedHashMap<>();
+
+    log.trace("enter exec(String=\"{}\"", path);
 
     String currentPath = path;
     RevCommit startCommit = this.repository.getHeadCommit();
@@ -40,8 +48,12 @@ public class FileTracker {
         // }
 
         if (commitPathMap.containsKey(commit)) {
+          log.debug("commit \"{}\" has already been in commitPathMap",
+              RevCommitUtil.getAbbreviatedID(commit));
           startCommit = null;
         } else {
+          log.debug("commit \"{}\" has been added to commitPathMap",
+              RevCommitUtil.getAbbreviatedID(commit));
           startCommit = commit;
           commitPathMap.put(commit, currentPath);
         }

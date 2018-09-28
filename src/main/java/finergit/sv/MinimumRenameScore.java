@@ -16,6 +16,7 @@ public class MinimumRenameScore {
   }
 
   public void setValue(final int value) {
+    log.trace("enter setValue(int=\"{}\"", value);
     if (value < 0 || 100 < value) {
       log.error("value for option \"-m (--minimum-rename-score)\" must be between 0 and 100");
       System.exit(0);
@@ -25,6 +26,7 @@ public class MinimumRenameScore {
   }
 
   public boolean isRepositoryDefault() {
+    log.trace("enter isRepositoryDefault");
     return this.isRepositoryDefault;
   }
 
