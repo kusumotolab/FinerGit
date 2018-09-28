@@ -39,51 +39,15 @@ public class FinerGitConfig {
     return this.srcPath;
   }
 
-  public Path getDesPath() {
-    return this.desPath;
-  }
-
-  public String getHeadCommitId() {
-    return this.headCommitId;
-  }
-
-  public boolean isOriginalJavaIncluded() {
-    return this.isOriginalJavaIncluded;
-  }
-
-  public boolean isOtherFilesIncluded() {
-    return this.isOtherFilesIncluded;
-  }
-
-  public boolean isTokenized() {
-    return this.isTokenized;
-  }
-
-  public boolean isAccessModifierIncluded() {
-    return this.isAccessModifierIncluded;
-  }
-
-  public boolean isReturnTypeIncluded() {
-    return this.isReturnTypeIncluded;
-  }
-
-  public boolean isCheckCommit() {
-    return this.isCheckCommit;
-  }
-
-  public int getMaxFileNameLength() {
-    return this.maxFileNameLength;
-  }
-
-  public int getHashLength() {
-    return this.hashLength;
-  }
-
   @Option(name = "-s", required = true, aliases = "--src", metaVar = "<path>",
       usage = "path to input repository")
   public void setSrcPath(final String path) {
     this.srcPath = Paths.get(path)
         .toAbsolutePath();
+  }
+
+  public Path getDesPath() {
+    return this.desPath;
   }
 
   @Option(name = "-d", required = true, aliases = "--des", metaVar = "<path>",
@@ -93,10 +57,17 @@ public class FinerGitConfig {
         .toAbsolutePath();
   }
 
+  public String getHeadCommitId() {
+    return this.headCommitId;
+  }
 
   @Option(name = "--head", metaVar = "<commitId>", usage = "commitId for HEAD of finer repository")
-  public void setEndCommit(final String endCommitId) {
-    this.headCommitId = endCommitId;
+  public void setHeadCommit(final String headCommitId) {
+    this.headCommitId = headCommitId;
+  }
+
+  public boolean isOriginalJavaIncluded() {
+    return this.isOriginalJavaIncluded;
   }
 
   @Option(name = "-o", aliases = "--original-javafiles", metaVar = "<true|false>)",
@@ -118,6 +89,10 @@ public class FinerGitConfig {
     }
   }
 
+  public boolean isOtherFilesIncluded() {
+    return this.isOtherFilesIncluded;
+  }
+
   @Option(name = "-p", aliases = "--otherfiles", metaVar = "<true|false>)",
       usage = "finer repository includes whether other files or not")
   public void setOtherFilesIncluded(final String flag) {
@@ -137,6 +112,10 @@ public class FinerGitConfig {
     }
   }
 
+  public boolean isTokenized() {
+    return this.isTokenized;
+  }
+
   @Option(name = "-t", aliases = "--tokenize", metaVar = "<true|false>)",
       usage = "do tokenize Java method files")
   public void setTokenized(final String flag) {
@@ -154,6 +133,102 @@ public class FinerGitConfig {
         System.exit(0);
       }
     }
+  }
+
+  public boolean isAccessModifierIncluded() {
+    return this.isAccessModifierIncluded;
+  }
+
+  @Option(name = "--access-modifier-included", metaVar = "<true|false>)",
+      usage = "include access modifiers in Java method files")
+  public void setAccessModifierIncluded(final String flag) {
+    switch (flag.toLowerCase()) {
+      case "true": {
+        this.isAccessModifierIncluded = true;
+        break;
+      }
+      case "false": {
+        this.isAccessModifierIncluded = false;
+        break;
+      }
+      default: {
+        System.err.println("\"--access-modifier-included\" option can take only true or false");
+        System.exit(0);
+      }
+    }
+  }
+
+  public boolean isReturnTypeIncluded() {
+    return this.isReturnTypeIncluded;
+  }
+
+  @Option(name = "--return-type-included", metaVar = "<true|false>)",
+      usage = "include return types in Java method files")
+  public void setReturnTypeIncluded(final String flag) {
+    switch (flag.toLowerCase()) {
+      case "true": {
+        this.isReturnTypeIncluded = true;
+        break;
+      }
+      case "false": {
+        this.isReturnTypeIncluded = false;
+        break;
+      }
+      default: {
+        System.err.println("\"--return-type-included\" option can take only true or false");
+        System.exit(0);
+      }
+    }
+  }
+
+  public boolean isCheckCommit() {
+    return this.isCheckCommit;
+  }
+
+  @Option(name = "--check-commit", metaVar = "<true|false>)",
+      usage = "check whether each rebuilt commit is fine state or not")
+  public void setCheckCommit(final String flag) {
+    switch (flag.toLowerCase()) {
+      case "true": {
+        this.isCheckCommit = true;
+        break;
+      }
+      case "false": {
+        this.isCheckCommit = false;
+        break;
+      }
+      default: {
+        System.err.println("\"--check-commit\" option can take only true or false");
+        System.exit(0);
+      }
+    }
+  }
+
+  public int getMaxFileNameLength() {
+    return this.maxFileNameLength;
+  }
+
+  @Option(name = "--max-file-name-length",
+      usage = "max file name length for Java method files [13, 255]")
+  public void setMaxFileNameLength(final int maxFileNameLength) {
+    if (maxFileNameLength < 13 || 255 < maxFileNameLength) {
+      System.err.println("option \"--max-file-name-length\" must be between 13 and 255");
+      System.exit(0);
+    }
+    this.maxFileNameLength = maxFileNameLength;
+  }
+
+  public int getHashLength() {
+    return this.hashLength;
+  }
+
+  @Option(name = "--hash-length", usage = "length of hash value attached to too long name files")
+  public void setHashLength(final int hashLength) {
+    if (hashLength < 7 || 40 < hashLength) {
+      System.err.println("option \"--hash-length\" must be between 7 and 40");
+      System.exit(0);
+    }
+    this.hashLength = hashLength;
   }
 
   @Option(name = "-l", aliases = "--log-level", metaVar = "<level>",
@@ -187,81 +262,5 @@ public class FinerGitConfig {
         System.exit(0);
       }
     }
-  }
-
-  @Option(name = "--access-modifier-included", metaVar = "<true|false>)",
-      usage = "include access modifiers in Java method files")
-  public void setAccessModifierIncluded(final String flag) {
-    switch (flag.toLowerCase()) {
-      case "true": {
-        this.isAccessModifierIncluded = true;
-        break;
-      }
-      case "false": {
-        this.isAccessModifierIncluded = false;
-        break;
-      }
-      default: {
-        System.err.println("\"--access-modifier-included\" option can take only true or false");
-        System.exit(0);
-      }
-    }
-  }
-
-  @Option(name = "--return-type-included", metaVar = "<true|false>)",
-      usage = "include return types in Java method files")
-  public void setReturnTypeIncluded(final String flag) {
-    switch (flag.toLowerCase()) {
-      case "true": {
-        this.isReturnTypeIncluded = true;
-        break;
-      }
-      case "false": {
-        this.isReturnTypeIncluded = false;
-        break;
-      }
-      default: {
-        System.err.println("\"--return-type-included\" option can take only true or false");
-        System.exit(0);
-      }
-    }
-  }
-
-  @Option(name = "--check-commit", metaVar = "<true|false>)",
-      usage = "check whether each rebuilt commit is fine state or not")
-  public void setCheckCommit(final String flag) {
-    switch (flag.toLowerCase()) {
-      case "true": {
-        this.isCheckCommit = true;
-        break;
-      }
-      case "false": {
-        this.isCheckCommit = false;
-        break;
-      }
-      default: {
-        System.err.println("\"--check-commit\" option can take only true or false");
-        System.exit(0);
-      }
-    }
-  }
-
-  @Option(name = "--max-file-name-length",
-      usage = "max file name length for Java method files [13, 255]")
-  public void setMaxFileNameLength(final int maxFileNameLength) {
-    if (maxFileNameLength < 13 || 255 < maxFileNameLength) {
-      System.err.println("option \"--max-file-name-length\" must be between 13 and 255");
-      System.exit(0);
-    }
-    this.maxFileNameLength = maxFileNameLength;
-  }
-
-  @Option(name = "--hash-length", usage = "length of hash value attached to too long name files")
-  public void setHashLength(final int hashLength) {
-    if (hashLength < 7 || 40 < hashLength) {
-      System.err.println("option \"--hash-length\" must be between 7 and 40");
-      System.exit(0);
-    }
-    this.hashLength = hashLength;
   }
 }

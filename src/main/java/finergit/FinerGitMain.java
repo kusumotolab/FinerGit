@@ -11,6 +11,11 @@ public class FinerGitMain {
 
   private static final Logger log = LoggerFactory.getLogger(FinerGitMain.class);
 
+  /**
+   * Gitリポジトリから細粒度リポジトリを作成するためのメインメソッド
+   * 
+   * @param args
+   */
   public static void main(final String[] args) {
 
     final ch.qos.logback.classic.Logger rootLog =
