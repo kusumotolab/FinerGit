@@ -31,7 +31,11 @@ public class BranchName {
     this.id = new AtomicInteger(0);
   }
 
+  public int getID() {
+    return this.id.get();
+  }
+
   public int newID() {
-    return this.id.getAndIncrement();
+    return this.id.incrementAndGet();
   }
 }
