@@ -1,4 +1,3 @@
 #!/bin/bash
-CDIR=`pwd`
 JARDIR=`dirname $0`
-java -jar $JARDIR/FinerGit.jar finergit.SemanticVersioningMain $@ -b $CDIR
+java -jar $JARDIR/FinerGit.jar finergit.SemanticVersioningMain $@ 

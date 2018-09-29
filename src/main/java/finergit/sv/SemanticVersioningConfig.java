@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ch.qos.logback.classic.Level;
 
-public class SemanticVersioningConfig {
+public class SemanticVersioningConfig implements Cloneable {
 
   @Option(name = "-a", aliases = "--author", usage = "print author's name of the version")
   private boolean author;
@@ -52,9 +52,6 @@ public class SemanticVersioningConfig {
   @Option(name = "-h", aliases = "--help", usage = "print help for this command")
   private boolean help;
 
-  @Option(name = "-b", aliases = "--base-dir", usage = "specify a base directory")
-  private String baseDir;
-
   public final MinimumRenameScore minimumRenameScore;
 
   @Argument
@@ -72,7 +69,6 @@ public class SemanticVersioningConfig {
     this.reverse = false;
     this.all = false;
     this.help = false;
-    this.baseDir = System.getProperty("user.dir");
     this.minimumRenameScore = new MinimumRenameScore();
     this.startCommitId = null;
     this.endCommitId = null;
@@ -112,10 +108,6 @@ public class SemanticVersioningConfig {
 
   public boolean isHelp() {
     return this.help;
-  }
-
-  public String getBaseDir() {
-    return this.baseDir;
   }
 
   public String getStartCommitId() {
@@ -183,5 +175,29 @@ public class SemanticVersioningConfig {
       usage = "specify a minimum score for file rename")
   public void setMinimumRenameScore(final int minimumRenameScore) {
     this.minimumRenameScore.setValue(minimumRenameScore);
+  }
+
+  @Override
+  public SemanticVersioningConfig clone() {
+    final SemanticVersioningConfig clone = new SemanticVersioningConfig();
+    clone.author = this.author;
+    clone.commit = this.commit;
+    clone.date = this.date;
+    clone.follow = this.follow;
+    clone.number = this.number;
+    clone.path = this.path;
+    clone.reverse = this.reverse;
+    clone.all = this.all;
+    clone.help = this.help;
+    if (!this.minimumRenameScore.isRepositoryDefault()) {
+      clone.minimumRenameScore.setValue(this.minimumRenameScore.getValue());
+    }
+    clone.startCommitId = this.startCommitId;
+    clone.endCommitId = this.endCommitId;
+    clone.birthCommit = this.birthCommit;
+    clone.birthDate = this.birthDate;
+    clone.targetFilePath = this.targetFilePath;
+    clone.otherArguments = new ArrayList<>(this.otherArguments);
+    return clone;
   }
 }

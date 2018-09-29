@@ -69,30 +69,22 @@ public class SemanticVersioningMain {
     final String targetFile = otherArguments.get(0);
     final Path targetFilePath = Paths.get(targetFile);
 
-    // 対象ファイルが絶対パスで指定されていた場合はエラーを出して終了
-    if (targetFilePath.isAbsolute()) {
-      System.err.println("target file must be specified with a relative path");
-      System.exit(1);
-    }
-
-    final String baseDir = config.getBaseDir();
-    final Path baseDirPath = Paths.get(baseDir);
-
-    final Path targetFileAbsolutePath = baseDirPath.resolve(targetFilePath);
-
-    // 指定された対象ファイルが存在しない場合はエラーを出して終了
-    if (!Files.exists(targetFileAbsolutePath)) {
-      System.err.println("file not found: " + targetFileAbsolutePath.toString());
-      System.exit(1);
+    // 対象ファイルが存在しない場合はエラーを出して終了
+    if (!Files.exists(targetFilePath)) {
+      System.err.println("file not found: " + targetFilePath.toString());
+      log.info("exit main(String[])");
+      System.exit(0);
     }
 
     // 指定された対象ファイルが通常のファイルではない場合（例えばディレクトリ）はエラーを出して終了
-    else if (!Files.isRegularFile(targetFileAbsolutePath)) {
-      System.err.println("not a regular file: " + targetFileAbsolutePath.toString());
-      System.exit(1);
+    else if (!Files.isRegularFile(targetFilePath)) {
+      System.err.println("not a regular file: " + targetFilePath.toString());
+      log.info("exit main(String[])");
+      System.exit(0);
     }
 
-    config.setTargetFilePath(targetFilePath);
+    final Path targetFileAbsolutePath = targetFilePath.toAbsolutePath();
+    config.setTargetFilePath(targetFileAbsolutePath);
 
     final SemanticVersioningMain main = new SemanticVersioningMain(config);
     main.run();
@@ -108,11 +100,12 @@ public class SemanticVersioningMain {
   }
 
   public void run() {
-    log.trace("enter run()");
 
-    // 指定されたディレクトリから上にたどってgitのルートディレクトリ（リポジトリ）を検索する
-    final Path baseDirPath = Paths.get(this.config.getBaseDir());
-    final GitRepo repository = findRepository(baseDirPath);
+    log.info("enter run()");
+
+    // 対象ファイルから上にたどってgitのルートディレクトリ（リポジトリ）を検索する
+    final Path targetFilePath = this.config.getTargetFilePath();
+    final GitRepo repository = findRepository(targetFilePath);
 
     // リポジトリが見つからなかった場合はエラーを出して終了
     if (null == repository) {
@@ -122,10 +115,7 @@ public class SemanticVersioningMain {
     }
 
     // 指定された対象ファイルの，gitのルートディレクトリに対する相対パスを取得する
-    final Path targetFilePath = this.config.getTargetFilePath();
-    final Path targetFileAbsolutePath = baseDirPath.resolve(targetFilePath);
-    final Path targetFileRelativePathInRepository =
-        repository.path.relativize(targetFileAbsolutePath);
+    final Path targetFileRelativePathInRepository = repository.path.relativize(targetFilePath);
 
     // ファイルを追跡するオブジェクト（FileTracker）を生成し，追跡処理を行う
     final FileTracker fileTracker = new FileTracker(repository, this.config);
