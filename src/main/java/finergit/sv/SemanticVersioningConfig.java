@@ -52,9 +52,6 @@ public class SemanticVersioningConfig implements Cloneable {
   @Option(name = "-h", aliases = "--help", usage = "print help for this command")
   private boolean help;
 
-  @Option(name = "-b", aliases = "--base-dir", usage = "specify a base directory")
-  private String baseDir;
-
   public final MinimumRenameScore minimumRenameScore;
 
   @Argument
@@ -72,7 +69,6 @@ public class SemanticVersioningConfig implements Cloneable {
     this.reverse = false;
     this.all = false;
     this.help = false;
-    this.baseDir = System.getProperty("user.dir");
     this.minimumRenameScore = new MinimumRenameScore();
     this.startCommitId = null;
     this.endCommitId = null;
@@ -112,10 +108,6 @@ public class SemanticVersioningConfig implements Cloneable {
 
   public boolean isHelp() {
     return this.help;
-  }
-
-  public String getBaseDir() {
-    return this.baseDir;
   }
 
   public String getStartCommitId() {
@@ -197,7 +189,6 @@ public class SemanticVersioningConfig implements Cloneable {
     clone.reverse = this.reverse;
     clone.all = this.all;
     clone.help = this.help;
-    clone.baseDir = this.baseDir;
     if (!this.minimumRenameScore.isRepositoryDefault()) {
       clone.minimumRenameScore.setValue(this.minimumRenameScore.getValue());
     }
