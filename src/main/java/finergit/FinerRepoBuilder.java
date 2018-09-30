@@ -77,7 +77,7 @@ public class FinerRepoBuilder {
         System.exit(0);
       }
 
-      exec(headCommit, this.branchID.newID(), new HashSet<RevCommit>());
+      exec(headCommit, this.branchID.getID(), new HashSet<RevCommit>());
 
     } catch (final Exception e) {
       e.printStackTrace();
