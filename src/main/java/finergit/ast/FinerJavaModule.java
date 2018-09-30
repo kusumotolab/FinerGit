@@ -5,10 +5,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import finergit.FinerGitConfig;
 import finergit.ast.token.JavaToken;
 
 public abstract class FinerJavaModule {
+
+  private static final Logger log = LoggerFactory.getLogger(FinerJavaModule.class);
 
   public final String name;
   public final FinerJavaModule outerModule;
@@ -43,7 +47,35 @@ public abstract class FinerJavaModule {
 
   public abstract Path getDirectory();
 
-  public abstract String getFileName();
+  /**
+   * このモジュールのファイル名を返す．モジュールのファイル名は，"外側のモジュール名 + 自分のベースネーム + 拡張子"である．
+   * モジュール名がしきい値よりも長い場合には，しきい値の長さになるように縮められる．なお，その場合はモジュール名から算出したハッシュ値が後ろに付く．
+   * 
+   * @return
+   */
+  public final String getFileName() {
+    String name = this.getBaseName() + this.getExtension();
+    final int maxFileNameLength = this.config.getMaxFileNameLength();
+    if (maxFileNameLength < name.length()) {
+      log.warn("\"{}\" is shrinked to {} characters due to too long name", name, maxFileNameLength);
+      name = this.shrink(name);
+    }
+    return name;
+  }
+
+  private String shrink(final String name) {
+    final int maxFileNameLength = this.config.getMaxFileNameLength();
+    final int hashLength = this.config.getHashLength();
+    final String sha1 = DigestUtils.sha1Hex(name)
+        .substring(0, hashLength);
+    final StringBuilder shrinkedName = new StringBuilder();
+    shrinkedName
+        .append(name.substring(0, maxFileNameLength - (hashLength + getExtension().length() + 1)))
+        .append("_")
+        .append(sha1)
+        .append(getExtension());
+    return shrinkedName.toString();
+  }
 
   /**
    * ベースネーム（拡張子がないファイル名を返す．
@@ -66,18 +98,4 @@ public abstract class FinerJavaModule {
   }
 
   public abstract String getExtension();
-
-  protected String shrink(final String name) {
-    final int maxFileNameLength = this.config.getMaxFileNameLength();
-    final int hashLength = this.config.getHashLength();
-    final String sha1 = DigestUtils.sha1Hex(name)
-        .substring(0, hashLength);
-    final StringBuilder shrinkedName = new StringBuilder();
-    shrinkedName
-        .append(name.substring(0, maxFileNameLength - (hashLength + getExtension().length() + 1)))
-        .append("_")
-        .append(sha1)
-        .append(getExtension());
-    return shrinkedName.toString();
-  }
 }
