@@ -4,7 +4,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import finergit.sv.SemanticVersioningConfig;
@@ -50,18 +56,46 @@ public class MultipleSemanticVersioningMain {
       System.exit(1);
     }
 
+    final int numberOfCPUs = Runtime.getRuntime()
+        .availableProcessors();
+    final ExecutorService executorService = Executors.newFixedThreadPool(numberOfCPUs - 1);
     try {
-      final List<String> lines = Files.readAllLines(targetFilePath);
-      lines.parallelStream()
-          .forEach(line -> {
+      final List<String> lines = readAllLines(targetFilePath);
+      final List<Future<?>> futures = new ArrayList<>();
+      for (final String line : lines) {
+        final Future<?> future = executorService.submit(new Runnable() {
+
+          @Override
+          public void run() {
             final SemanticVersioningConfig clonedConfig = config.clone();
-            clonedConfig.setTargetFilePath(Paths.get(line));
+            final Path path = Paths.get(line);
+            clonedConfig.setTargetFilePath(path.toAbsolutePath());
             final SemanticVersioningMain main = new SemanticVersioningMain(clonedConfig);
             main.run();
-          });
-    } catch (IOException e) {
+          }
+        });
+        futures.add(future);
+      }
+
+      for (final Future<?> future : futures) {
+        try {
+          future.get();
+        } catch (final InterruptedException | ExecutionException e) {
+          System.err.println(e.getMessage());
+        }
+      }
+    } finally {
+      executorService.shutdownNow();
+    }
+  }
+
+  private static List<String> readAllLines(final Path path) {
+    try {
+      return Files.readAllLines(path);
+    } catch (final IOException e) {
       System.err.println(e.getMessage());
       System.exit(1);
     }
+    return Collections.emptyList();
   }
 }
