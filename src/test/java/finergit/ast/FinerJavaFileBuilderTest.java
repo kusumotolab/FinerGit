@@ -18,7 +18,7 @@ public class FinerJavaFileBuilderTest {
         Paths.get("src/test/resources/finergit/ast/token/MethodAndConstructor.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
     final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
-    final List<FinerJavaModule> modules = builder.constructAST(targetPath.toString(), text);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
 
     final Set<String> moduleNames = modules.stream()
         .map(m -> m.getFileName())
@@ -34,7 +34,7 @@ public class FinerJavaFileBuilderTest {
         Paths.get("src/test/resources/finergit/ast/token/MethodAndConstructor.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
     final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
-    final List<FinerJavaModule> modules = builder.constructAST(targetPath.toString(), text);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
 
     for (final FinerJavaModule module : modules) {
 

@@ -400,7 +400,7 @@ public class FinerRepoBuilder {
 
           final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(this.config);
           final String text = new String(data, StandardCharsets.UTF_8);
-          final List<FinerJavaModule> finerJavaModules = builder.constructAST(path, text);
+          final List<FinerJavaModule> finerJavaModules = builder.getFinerJavaModules(path, text);
 
           for (final FinerJavaModule module : finerJavaModules) {
             final Path finerPath = module.getPath();
