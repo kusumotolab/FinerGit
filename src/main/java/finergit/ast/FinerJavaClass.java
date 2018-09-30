@@ -6,13 +6,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import finergit.FinerGitConfig;
 
-public class FinerJavaMethod extends FinerJavaModule {
+public class FinerJavaClass extends FinerJavaModule {
 
-  private static final Logger log = LoggerFactory.getLogger(FinerJavaMethod.class);
-  private static final String METHOD_FILE_EXTENSION = ".mjava";
+  private static final Logger log = LoggerFactory.getLogger(FinerJavaClass.class);
+  private static final String CLASS_FILE_EXTENSION = ".cjava";
   private final FinerGitConfig config;
 
-  public FinerJavaMethod(final String name, final FinerJavaModule outerModule,
+  public FinerJavaClass(final String name, final FinerJavaModule outerModule,
       final FinerGitConfig config) {
     super(name, outerModule);
     this.config = config;
@@ -41,16 +41,16 @@ public class FinerJavaMethod extends FinerJavaModule {
         .substring(0, hashLength);
     final StringBuilder shrinkedName = new StringBuilder();
     shrinkedName
-        .append(name.substring(0,
-            maxFileNameLength - (hashLength + METHOD_FILE_EXTENSION.length() + 1)))
+        .append(
+            name.substring(0, maxFileNameLength - (hashLength + CLASS_FILE_EXTENSION.length() + 1)))
         .append("_")
         .append(sha1)
-        .append(METHOD_FILE_EXTENSION);
+        .append(CLASS_FILE_EXTENSION);
     return shrinkedName.toString();
   }
 
   @Override
   public String getExtension() {
-    return METHOD_FILE_EXTENSION;
+    return CLASS_FILE_EXTENSION;
   }
 }

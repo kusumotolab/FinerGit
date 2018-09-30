@@ -23,7 +23,7 @@ public class FinerJavaFileBuilderTest {
     final Set<String> moduleNames = modules.stream()
         .map(m -> m.getFileName())
         .collect(Collectors.toSet());
-    assertThat(moduleNames).containsExactlyInAnyOrder("MethodAndConstructor.fjava",
+    assertThat(moduleNames).containsExactlyInAnyOrder("MethodAndConstructor.cjava",
         "MethodAndConstructor$MethodAndConstructor().mjava",
         "MethodAndConstructor$void_method01().mjava", "MethodAndConstructor$void_method02().mjava");
   }

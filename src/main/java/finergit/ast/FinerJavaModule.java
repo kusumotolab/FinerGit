@@ -40,8 +40,19 @@ public abstract class FinerJavaModule {
 
   public abstract String getFileName();
 
+  /**
+   * ベースネーム（拡張子がないファイル名を返す．
+   * 
+   * @return
+   */
   public final String getBaseName() {
-    return this.name;
+    final StringBuilder builder = new StringBuilder();
+    if ((null != this.outerModule) && !(this.outerModule instanceof FinerJavaFile)) {
+      builder.append(this.outerModule.getBaseName());
+      builder.append("$");
+    }
+    builder.append(this.name);
+    return builder.toString();
   }
 
   public final Path getPath() {

@@ -16,6 +16,7 @@ public class MethodAndConstructor {
   void method02() {
     new String();
 
+    // 抽出されないはず
     class InnerClass01 {
 
       // 抽出されないはず
@@ -29,7 +30,7 @@ public class MethodAndConstructor {
     }
   }
 
-  // インナークラス内のメソッドとコンストラクタは抽出の対象外
+  // 抽出されないはず
   class InnerClass02 {
 
     // 抽出されないはず

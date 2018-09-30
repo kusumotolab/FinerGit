@@ -291,7 +291,7 @@ public class FinerRepoBuilder {
     // 修正されたファイルから以前に生成された細粒度ファイルのうち，
     // 修正されたファイルから今回生成された細粒度ファイルに含まれないファイルに対して git-rm コマンドを実行
     final Set<String> finerJavaFilesInPreviousCommit =
-        this.filterSet(filesInPreviousCommit, p -> p.endsWith(".fjava") || p.endsWith(".mjava"));
+        this.filterSet(filesInPreviousCommit, p -> p.endsWith(".cjava") || p.endsWith(".mjava"));
     final Set<String> modifiedJavaFilePrefixes = this.removeExtension(modifiedFiles);
     final Set<String> finerJavaFilesToDelete1 =
         this.getFilesHavingPrefix(finerJavaFilesInPreviousCommit, modifiedJavaFilePrefixes);
