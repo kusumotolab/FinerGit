@@ -90,6 +90,7 @@ public class JavaFileVisitor extends ASTVisitor {
   private final Stack<FinerJavaModule> moduleStack;
   private final List<FinerJavaModule> moduleList;
   private final Stack<Class<?>> contexts;
+  private int classNestLevel;
 
   public JavaFileVisitor(final Path path, final FinerGitConfig config) {
 
@@ -98,6 +99,7 @@ public class JavaFileVisitor extends ASTVisitor {
     this.moduleStack = new Stack<>();
     this.moduleList = new ArrayList<>();
     this.contexts = new Stack<>();
+    this.classNestLevel = 0;
 
     final Path parent = path.getParent();
     final String fileName = FilenameUtils.getBaseName(path.toString());
@@ -112,6 +114,8 @@ public class JavaFileVisitor extends ASTVisitor {
 
   @Override
   public boolean visit(final AnnotationTypeDeclaration node) {
+
+    this.classNestLevel++;
 
     final Javadoc javadoc = node.getJavadoc();
     if (null != javadoc) {
@@ -142,6 +146,8 @@ public class JavaFileVisitor extends ASTVisitor {
 
     this.moduleStack.peek()
         .addToken(new RIGHTBRACKET());
+
+    this.classNestLevel--;
 
     return false;
   }
@@ -188,6 +194,8 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final AnonymousClassDeclaration node) {
 
+    this.classNestLevel++;
+
     this.moduleStack.peek()
         .addToken(new LEFTBRACKET());
 
@@ -198,6 +206,8 @@ public class JavaFileVisitor extends ASTVisitor {
 
     this.moduleStack.peek()
         .addToken(new RIGHTBRACKET());
+
+    this.classNestLevel--;
 
     return false;
   }
@@ -1186,11 +1196,9 @@ public class JavaFileVisitor extends ASTVisitor {
     final FinerJavaModule dummyMethod = this.moduleStack.pop();
 
     // 内部クラス内のメソッドかどうかの判定
-    final FinerJavaModule peekModule = this.moduleStack.peek();
-    final boolean isInnerMethod =
-        1 < this.moduleStack.size() && peekModule instanceof FinerJavaMethod;
+    final boolean isInnerMethod = 1 < this.classNestLevel;
 
-    final FinerJavaMethod methodModule;
+    final FinerJavaModule methodModule;
     if (!isInnerMethod) { // 内部クラス内のメソッドではないとき
       final FinerJavaModule outerModule = this.moduleStack.peek();
       methodModule = new FinerJavaMethod(methodFileName.toString(), outerModule, this.config);
@@ -1199,12 +1207,13 @@ public class JavaFileVisitor extends ASTVisitor {
     }
 
     else { // 内部クラスのメソッドのとき
-      methodModule = (FinerJavaMethod) peekModule;
+      methodModule = this.moduleStack.peek();
     }
 
-    // ダミーメソッド内のトークンを新しいメソッドモジュールに移行
+    // ダミーメソッド内のトークンを抽出し，methodModule に移行
+    // methodModule は現在のメソッドがインナークラス内のメソッドであれば現在のメソッドを表し，
+    // 現在のメソッドがインナークラス内のメソッドであれば，モジュールスタックの一番上にあるモジュールを表す．
     dummyMethod.getTokens()
-        .stream()
         .forEach(methodModule::addToken);
 
     // メソッドの中身の処理
@@ -1563,6 +1572,11 @@ public class JavaFileVisitor extends ASTVisitor {
           .addToken(new IMPORTNAME(identifier));
     }
 
+    else if (CLASSNAME.class == context) {
+      this.moduleStack.peek()
+          .addToken(new CLASSNAME(identifier));
+    }
+
     else if (LABELNAME.class == context) {
       this.moduleStack.peek()
           .addToken(new LABELNAME(identifier));
@@ -1885,6 +1899,8 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final TypeDeclaration node) {
 
+    this.classNestLevel++;
+
     final Javadoc javadoc = node.getJavadoc();
     if (null != javadoc) {
       this.moduleStack.peek()
@@ -1954,6 +1970,8 @@ public class JavaFileVisitor extends ASTVisitor {
     // "}"の処理
     this.moduleStack.peek()
         .addToken(new RIGHTBRACKET());
+
+    this.classNestLevel--;
 
     return false;
   }
