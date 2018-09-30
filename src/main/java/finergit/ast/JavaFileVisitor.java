@@ -105,7 +105,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final Path parent = path.getParent();
     final String fileName = FilenameUtils.getBaseName(path.toString());
-    final FinerJavaFile finerJavaFile = new FinerJavaFile(parent, fileName);
+    final FinerJavaFile finerJavaFile = new FinerJavaFile(parent, fileName, config);
     this.moduleStack.push(finerJavaFile);
     this.moduleList.add(finerJavaFile);
   }

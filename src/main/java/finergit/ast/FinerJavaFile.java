@@ -3,14 +3,15 @@ package finergit.ast;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import finergit.FinerGitConfig;
 
 public class FinerJavaFile extends FinerJavaModule {
 
   public final Path directory;
   private final List<FinerJavaModule> innerJavaModules;
 
-  public FinerJavaFile(final Path directory, final String name) {
-    super(name, null);
+  public FinerJavaFile(final Path directory, final String name, final FinerGitConfig config) {
+    super(name, null, config);
     this.directory = directory;
     this.innerJavaModules = new ArrayList<>();
   }
