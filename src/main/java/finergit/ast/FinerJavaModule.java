@@ -78,13 +78,13 @@ public abstract class FinerJavaModule {
   }
 
   /**
-   * ベースネーム（拡張子がないファイル名を返す．
+   * ベースネーム（拡張子がないファイル名）を返す．
    * 
    * @return
    */
   public final String getBaseName() {
     final StringBuilder builder = new StringBuilder();
-    if ((null != this.outerModule) && !(this.outerModule instanceof FinerJavaFile)) {
+    if ((null != this.outerModule) && (FinerJavaFile.class != this.outerModule.getClass())) {
       builder.append(this.outerModule.getBaseName());
       builder.append("$");
     }
