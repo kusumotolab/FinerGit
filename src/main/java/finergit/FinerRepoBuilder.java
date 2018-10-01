@@ -77,7 +77,7 @@ public class FinerRepoBuilder {
         System.exit(0);
       }
 
-      exec(headCommit, this.branchID.newID(), new HashSet<RevCommit>());
+      exec(headCommit, this.branchID.getID(), new HashSet<RevCommit>());
 
     } catch (final Exception e) {
       e.printStackTrace();
@@ -291,7 +291,7 @@ public class FinerRepoBuilder {
     // 修正されたファイルから以前に生成された細粒度ファイルのうち，
     // 修正されたファイルから今回生成された細粒度ファイルに含まれないファイルに対して git-rm コマンドを実行
     final Set<String> finerJavaFilesInPreviousCommit =
-        this.filterSet(filesInPreviousCommit, p -> p.endsWith(".fjava") || p.endsWith(".mjava"));
+        this.filterSet(filesInPreviousCommit, p -> p.endsWith(".cjava") || p.endsWith(".mjava"));
     final Set<String> modifiedJavaFilePrefixes = this.removeExtension(modifiedFiles);
     final Set<String> finerJavaFilesToDelete1 =
         this.getFilesHavingPrefix(finerJavaFilesInPreviousCommit, modifiedJavaFilePrefixes);
@@ -400,7 +400,7 @@ public class FinerRepoBuilder {
 
           final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(this.config);
           final String text = new String(data, StandardCharsets.UTF_8);
-          final List<FinerJavaModule> finerJavaModules = builder.constructAST(path, text);
+          final List<FinerJavaModule> finerJavaModules = builder.getFinerJavaModules(path, text);
 
           for (final FinerJavaModule module : finerJavaModules) {
             final Path finerPath = module.getPath();

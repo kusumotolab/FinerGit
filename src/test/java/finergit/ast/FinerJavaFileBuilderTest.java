@@ -13,28 +13,28 @@ import finergit.FinerGitConfig;
 public class FinerJavaFileBuilderTest {
 
   @Test
-  public void constructASTSuccessTest01() throws Exception {
+  public void getFinerJavaModulesSuccessTest01() throws Exception {
     final Path targetPath =
         Paths.get("src/test/resources/finergit/ast/token/MethodAndConstructor.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
     final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
-    final List<FinerJavaModule> modules = builder.constructAST(targetPath.toString(), text);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
 
     final Set<String> moduleNames = modules.stream()
         .map(m -> m.getFileName())
         .collect(Collectors.toSet());
-    assertThat(moduleNames).containsExactlyInAnyOrder("MethodAndConstructor.fjava",
+    assertThat(moduleNames).containsExactlyInAnyOrder("MethodAndConstructor.cjava",
         "MethodAndConstructor$MethodAndConstructor().mjava",
         "MethodAndConstructor$void_method01().mjava", "MethodAndConstructor$void_method02().mjava");
   }
 
   @Test
-  public void constructASTSuccessTest02() throws Exception {
+  public void getFinerJavaModulesSuccessTest02() throws Exception {
     final Path targetPath =
         Paths.get("src/test/resources/finergit/ast/token/MethodAndConstructor.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
     final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
-    final List<FinerJavaModule> modules = builder.constructAST(targetPath.toString(), text);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
 
     for (final FinerJavaModule module : modules) {
 
@@ -54,6 +54,51 @@ public class FinerJavaFileBuilderTest {
               "(", ")", ";", "class", "InnerClass01", "{", "InnerClass01", "(", ")", "{", "new",
               "String", "(", ")", ";", "}", "void", "method03", "(", ")", "{", "new", "String", "(",
               ")", ";", "}", "}", "}");
+          break;
+        default:
+          assertThat(true).isEqualTo(false);
+      }
+    }
+  }
+
+  @Test
+  public void getFinerJavaModulesSuccessTest03() throws Exception {
+    final Path targetPath = Paths.get("src/test/resources/finergit/ast/token/NestedClass.java");
+    final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
+
+    final Set<String> moduleNames = modules.stream()
+        .map(m -> m.getFileName())
+        .collect(Collectors.toSet());
+    assertThat(moduleNames).containsExactlyInAnyOrder("NestedClass.cjava",
+        "NestedClass$void_method01().mjava", "NestedClass$void_method02().mjava");
+  }
+
+  @Test
+  public void getFinerJavaModulesSuccessTest04() throws Exception {
+    final Path targetPath = Paths.get("src/test/resources/finergit/ast/token/NestedClass.java");
+    final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
+
+    for (final FinerJavaModule module : modules) {
+
+      final List<String> tokens = module.getTokens()
+          .stream()
+          .map(t -> t.value)
+          .collect(Collectors.toList());
+      switch (module.name) {
+        case "NestedClass":
+          break;
+        case "void_method01()":
+          assertThat(tokens).containsExactly("void", "method01", "(", ")", "{", "new", "Runnable",
+              "(", ")", "{", "@Override", "public", "void", "run", "(", ")", "{", "}", "}", ";",
+              "}");
+          break;
+        case "void_method02()":
+          assertThat(tokens).containsExactly("void", "method02", "(", ")", "{", "class",
+              "InnerClass02", "{", "}", "}");
           break;
         default:
           assertThat(true).isEqualTo(false);

@@ -21,9 +21,9 @@ public class FinerJavaFileBuilder {
     this.config = config;
   }
 
-  public List<FinerJavaModule> constructASTs(final Map<String, String> pathToTextMap) {
+  public List<FinerJavaModule> getFinerJavaModules(final Map<String, String> pathToTextMap) {
 
-    final List<FinerJavaModule> files = new ArrayList<>();
+    final List<FinerJavaModule> finerJavaModules = new ArrayList<>();
     final FileASTRequestor requestor = new FileASTRequestor() {
 
       @Override
@@ -34,8 +34,8 @@ public class FinerJavaFileBuilder {
           final JavaFileVisitor visitor =
               new JavaFileVisitor(path, FinerJavaFileBuilder.this.config);
           ast.accept(visitor);
-          final List<FinerJavaModule> finerJavaModules = visitor.getFinerJavaModules();
-          files.addAll(finerJavaModules);
+          final List<FinerJavaModule> modules = visitor.getFinerJavaModules(false, true, true);
+          finerJavaModules.addAll(modules);
         }
       }
     };
@@ -46,16 +46,16 @@ public class FinerJavaFileBuilder {
         .toArray(String[]::new);
     parser.createASTs(filePaths, null, new String[] {}, requestor, null);
 
-    return files;
+    return finerJavaModules;
   }
 
-  public List<FinerJavaModule> constructAST(final String path, final String text) {
+  public List<FinerJavaModule> getFinerJavaModules(final String path, final String text) {
     final ASTParser parser = createNewParser();
     parser.setSource(text.toCharArray());
     final CompilationUnit ast = (CompilationUnit) parser.createAST(null);
     final JavaFileVisitor visitor = new JavaFileVisitor(Paths.get(path), this.config);
     ast.accept(visitor);
-    return visitor.getFinerJavaModules();
+    return visitor.getFinerJavaModules(false, true, true);
   }
 
   private ASTParser createNewParser() {

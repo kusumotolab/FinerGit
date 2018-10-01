@@ -3,11 +3,11 @@ package finergit.ast;
 import java.nio.file.Path;
 import finergit.FinerGitConfig;
 
-public class FinerJavaMethod extends FinerJavaModule {
+public class FinerJavaClass extends FinerJavaModule {
 
-  private static final String METHOD_FILE_EXTENSION = ".mjava";
+  private static final String CLASS_FILE_EXTENSION = ".cjava";
 
-  public FinerJavaMethod(final String name, final FinerJavaModule outerModule,
+  public FinerJavaClass(final String name, final FinerJavaModule outerModule,
       final FinerGitConfig config) {
     super(name, outerModule, config);
   }
@@ -19,6 +19,6 @@ public class FinerJavaMethod extends FinerJavaModule {
 
   @Override
   public String getExtension() {
-    return METHOD_FILE_EXTENSION;
+    return CLASS_FILE_EXTENSION;
   }
 }

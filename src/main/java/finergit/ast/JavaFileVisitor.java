@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.io.FilenameUtils;
 import org.eclipse.jdt.core.dom.*;
@@ -34,6 +35,7 @@ import finergit.ast.token.ELSE;
 import finergit.ast.token.EXTENDS;
 import finergit.ast.token.FINALLY;
 import finergit.ast.token.FOR;
+import finergit.ast.token.FinerJavaClassToken;
 import finergit.ast.token.FinerJavaMethodToken;
 import finergit.ast.token.GREAT;
 import finergit.ast.token.IF;
@@ -103,13 +105,18 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final Path parent = path.getParent();
     final String fileName = FilenameUtils.getBaseName(path.toString());
-    final FinerJavaFile finerJavaFile = new FinerJavaFile(parent, fileName);
+    final FinerJavaFile finerJavaFile = new FinerJavaFile(parent, fileName, config);
     this.moduleStack.push(finerJavaFile);
     this.moduleList.add(finerJavaFile);
   }
 
-  public List<FinerJavaModule> getFinerJavaModules() {
-    return this.moduleList;
+  public List<FinerJavaModule> getFinerJavaModules(final boolean wantFile, final boolean wantClass,
+      final boolean wantMethod) {
+    return this.moduleList.stream()
+        .filter(m -> (FinerJavaFile.class == m.getClass() && wantFile)
+            || (FinerJavaClass.class == m.getClass() && wantClass)
+            || (FinerJavaMethod.class == m.getClass() && wantMethod))
+        .collect(Collectors.toList());
   }
 
   @Override
@@ -1899,6 +1906,16 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final TypeDeclaration node) {
 
+    // インナークラス出ない場合は，新しいクラスモジュールを作り，モジュールスタックにpush
+    if (0 == this.classNestLevel) {
+      final FinerJavaModule outerModule = this.moduleStack.peek();
+      final String className = node.getName()
+          .getIdentifier();
+      final FinerJavaClass classModule = new FinerJavaClass(className, outerModule, this.config);
+      this.moduleStack.push(classModule);
+      this.moduleList.add(classModule);
+    }
+
     this.classNestLevel++;
 
     final Javadoc javadoc = node.getJavadoc();
@@ -1972,6 +1989,15 @@ public class JavaFileVisitor extends ASTVisitor {
         .addToken(new RIGHTBRACKET());
 
     this.classNestLevel--;
+
+    // インナークラスでない場合は，モジュールスタックからクラスモジュールをポップし，外側のモジュールにクラスを表すトークンを追加する
+    if (0 == this.classNestLevel) {
+      final FinerJavaClass finerJavaClass = (FinerJavaClass) this.moduleStack.pop();
+      this.moduleStack.peek()
+          .addToken(
+              new FinerJavaClassToken("ClassToken[" + finerJavaClass.name + "]", finerJavaClass));
+    }
+
 
     return false;
   }
