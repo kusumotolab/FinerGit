@@ -17,6 +17,7 @@ public class MethodAndConstructor {
     new String();
 
     // 抽出されないはず
+    @SuppressWarnings("unused")
     class InnerClass01 {
 
       // 抽出されないはず
