@@ -51,9 +51,9 @@ public class FinerJavaFileBuilderTest {
           break;
         case "void_method02()":
           assertThat(tokens).containsExactly("void", "method02", "(", ")", "{", "new", "String",
-              "(", ")", ";", "class", "InnerClass01", "{", "InnerClass01", "(", ")", "{", "new",
-              "String", "(", ")", ";", "}", "void", "method03", "(", ")", "{", "new", "String", "(",
-              ")", ";", "}", "}", "}");
+              "(", ")", ";", "@SuppressWarnings(\"unused\")", "class", "InnerClass01", "{",
+              "InnerClass01", "(", ")", "{", "new", "String", "(", ")", ";", "}", "void",
+              "method03", "(", ")", "{", "new", "String", "(", ")", ";", "}", "}", "}");
           break;
         default:
           assertThat(true).isEqualTo(false);
@@ -97,8 +97,8 @@ public class FinerJavaFileBuilderTest {
               "}");
           break;
         case "void_method02()":
-          assertThat(tokens).containsExactly("void", "method02", "(", ")", "{", "class",
-              "InnerClass02", "{", "}", "}");
+          assertThat(tokens).containsExactly("void", "method02", "(", ")", "{",
+              "@SuppressWarnings(\"unused\")", "class", "InnerClass02", "{", "}", "}");
           break;
         default:
           assertThat(true).isEqualTo(false);

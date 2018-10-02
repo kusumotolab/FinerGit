@@ -22,6 +22,7 @@ public class NestedClass {
   void method02() {
 
     // 抽出されないはず
+    @SuppressWarnings("unused")
     class InnerClass02 {
     }
   }

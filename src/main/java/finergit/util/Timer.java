@@ -1,4 +1,4 @@
-package finergit;
+package finergit.util;
 
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.time.StopWatch;

@@ -1,9 +1,10 @@
-package finergit.sv;
+package finergit.ast;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.ExpectedSystemExit;
+import finergit.MinimumRenameScore;
 
 public class MinimumRenameScoreTest {
 

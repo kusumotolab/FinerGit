@@ -1,4 +1,4 @@
-package finergit.sv;
+package finergit;
 
 import java.nio.file.Path;
 import java.util.List;
