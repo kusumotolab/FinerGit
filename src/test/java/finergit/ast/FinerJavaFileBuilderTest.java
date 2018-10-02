@@ -105,4 +105,54 @@ public class FinerJavaFileBuilderTest {
       }
     }
   }
+
+  @Test
+  public void getFinerJavaModulesSuccessTest05() throws Exception {
+    final Path targetPath = Paths.get("src/test/resources/finergit/ast/token/GetterAndSetter.java");
+    final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
+
+    final Set<String> moduleNames = modules.stream()
+        .map(m -> m.getFileName())
+        .collect(Collectors.toSet());
+    assertThat(moduleNames).containsExactlyInAnyOrder("GetterAndSetter.cjava",
+        "GetterAndSetter$GetterAndSetter(String).mjava", "GetterAndSetter$String_getText().mjava",
+        "GetterAndSetter$void_setText(String).mjava");
+  }
+
+  @Test
+  public void getFinerJavaModulesSuccessTest06() throws Exception {
+    final Path targetPath = Paths.get("src/test/resources/finergit/ast/token/GetterAndSetter.java");
+    final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
+
+    for (final FinerJavaModule module : modules) {
+
+      final List<String> tokens = module.getTokens()
+          .stream()
+          .map(t -> t.value)
+          .collect(Collectors.toList());
+      switch (module.name) {
+        case "GetterAndSetter":
+          break;
+        case "GetterAndSetter(String)":
+          assertThat(tokens).containsExactly("GetterAndSetter", "(", "String", "text", ")", "{",
+              "this", ".", "text", "=", "text", ";", "}");
+          break;
+        case "String_getText()":
+          assertThat(tokens).containsExactly("String", "getText", "(", ")", "{", "return", "text",
+              ";", "}");
+          break;
+        case "void_setText(String)":
+          assertThat(tokens).containsExactly("void", "setText", "(", "String", "text", ")", "{",
+              "this", ".", "text", "=", "text", ";", "}");
+          break;
+        default:
+          System.err.println(module.name);
+          assertThat(true).isEqualTo(false);
+      }
+    }
+  }
 }
