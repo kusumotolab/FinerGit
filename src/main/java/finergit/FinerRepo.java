@@ -28,6 +28,7 @@ import org.eclipse.jgit.treewalk.TreeWalk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import finergit.util.RevCommitUtil;
+import finergit.util.Timer;
 
 public class FinerRepo {
 

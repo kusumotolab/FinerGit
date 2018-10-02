@@ -1,10 +1,9 @@
-package finergit.sv;
+package finergit;
 
 import java.util.LinkedHashMap;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import finergit.GitRepo;
 import finergit.util.RevCommitUtil;
 
 public class FileTracker {

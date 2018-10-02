@@ -32,7 +32,6 @@ import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import finergit.sv.MinimumRenameScore;
 import finergit.util.RevCommitUtil;
 
 public class GitRepo {

@@ -13,7 +13,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
-import finergit.sv.SemanticVersioningConfig;
 
 public class MultipleSemanticVersioningMain {
 
