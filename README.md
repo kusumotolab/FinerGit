@@ -78,7 +78,7 @@ FinerGit では，Java メソッドのセマンティックバージョニング
 
 ## 最後に
 
-FinerGit は主に，Mac + Java10 + Eclipse で，FinerGit の開発を行っています．Windows 上ではほぼテストを行っていません．
+FinerGit は主に，Mac + Java10 + Eclipse を用いて開発されています．git-subcommand/FinerGit.jar も Java10 でビルドされています．Windows 上ではほぼテストを行っていません．
 
 
 
