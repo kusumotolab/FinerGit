@@ -34,9 +34,15 @@ public class SemanticVersioningConfig implements Cloneable {
     return this.date || this.all;
   }
 
+  @Option(name = "m", aliases = "--message", usage = "print the first line of commit message")
+  private boolean message;
+
+  public boolean isMessage() {
+    return this.message || this.all;
+  }
+
   @Option(name = "-f", aliases = "--follow", usage = "print the history of the specified file")
   private boolean follow;
-
 
   public boolean isFollow() {
     return this.follow || this.all;
@@ -120,6 +126,7 @@ public class SemanticVersioningConfig implements Cloneable {
     this.author = false;
     this.commit = false;
     this.date = false;
+    this.message = false;
     this.follow = false;
     this.number = false;
     this.path = false;
@@ -181,8 +188,7 @@ public class SemanticVersioningConfig implements Cloneable {
     }
   }
 
-  @Option(name = "-m", aliases = "--minimum-rename-score",
-      usage = "specify a minimum score for file rename")
+  @Option(name = "--minimum-rename-score", usage = "specify a minimum score for file rename")
   public void setMinimumRenameScore(final int minimumRenameScore) {
     this.minimumRenameScore.setValue(minimumRenameScore);
   }

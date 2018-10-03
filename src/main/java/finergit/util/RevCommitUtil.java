@@ -51,6 +51,16 @@ public class RevCommitUtil {
     return date;
   }
 
+  // 引数で与えられた RevCommit のコミットメッセージを返す
+  public static String getMessage(final RevCommit commit) {
+
+    if (null == commit) {
+      return null;
+    }
+
+    return commit.getShortMessage();
+  }
+
   // 第一引数で与えられた RevCommit の時刻情報を，第二引数で与えられたフォーマットで返す
   public static String getDate(final RevCommit commit, final SimpleDateFormat format) {
     final Date date = getDate(commit);

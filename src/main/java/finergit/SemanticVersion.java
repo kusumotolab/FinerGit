@@ -80,6 +80,12 @@ public class SemanticVersion {
           .append(RevCommitUtil.getAuthor(this.commit));
     }
 
+    // コミットのメッセージを追加
+    if (null != config && config.isMessage()) {
+      text.append("\t")
+          .append(RevCommitUtil.getMessage(this.commit));
+    }
+
     // このファイルが生成されたコミットIDを追加
     if (null != config && config.isBirthCommit()) {
       text.append("\t")
