@@ -14,24 +14,57 @@ public class SemanticVersioningConfig implements Cloneable {
   @Option(name = "-a", aliases = "--author", usage = "print author's name of the version")
   private boolean author;
 
+
+  public boolean isAuthor() {
+    return this.author || this.all;
+  }
+
   @Option(name = "-c", aliases = "--commit", usage = "print commit ID of the version")
   private boolean commit;
+
+  public boolean isCommit() {
+    return this.commit || this.all;
+  }
 
   @Option(name = "-d", aliases = "--date", usage = "print date of the version")
   private boolean date;
 
+
+  public boolean isDate() {
+    return this.date || this.all;
+  }
+
   @Option(name = "-f", aliases = "--follow", usage = "print the history of the specified file")
   private boolean follow;
+
+
+  public boolean isFollow() {
+    return this.follow || this.all;
+  }
 
   @Option(name = "-n", aliases = "--number",
       usage = "print the number of changes of the specified file")
   private boolean number;
 
+
+  public boolean isNumber() {
+    return this.number || this.all;
+  }
+
   @Option(name = "-p", aliases = "--path", usage = "print path of the specified file")
   private boolean path;
 
+
+  public boolean isPath() {
+    return this.path || this.all;
+  }
+
   @Option(name = "-r", aliases = "--reverse", usage = "print the history with the reverse order")
   private boolean reverse;
+
+  public boolean isReverse() {
+    return this.reverse;
+  }
 
   @Option(name = "--all",
       usage = "this option means all the \"-a\", \"-c\", \"-d\", \"-f\", \"-n\", and \"-p\" are specified")
@@ -40,17 +73,41 @@ public class SemanticVersioningConfig implements Cloneable {
   @Option(name = "--start-commit", usage = "specify a start commit for counting semantic version")
   private String startCommitId;
 
+
+  public String getStartCommitId() {
+    return this.startCommitId;
+  }
+
   @Option(name = "--end-commit", usage = "specify an end commit for counting semantic version")
   private String endCommitId;
+
+
+  public String getEndCommitId() {
+    return this.endCommitId;
+  }
 
   @Option(name = "--birth-commit", usage = "print the birth commit of the specified file")
   private boolean birthCommit;
 
+
+  public boolean isBirthCommit() {
+    return this.birthCommit;
+  }
+
   @Option(name = "--birth-date", usage = "print the birth date of the specified file")
   private boolean birthDate;
 
+
+  public boolean isBirthDate() {
+    return this.birthDate;
+  }
+
   @Option(name = "-h", aliases = "--help", usage = "print help for this command")
   private boolean help;
+
+  public boolean isHelp() {
+    return this.help;
+  }
 
   public final MinimumRenameScore minimumRenameScore;
 
@@ -78,53 +135,6 @@ public class SemanticVersioningConfig implements Cloneable {
     this.otherArguments = new ArrayList<>();
   }
 
-  public boolean isAuthor() {
-    return this.author || this.all;
-  }
-
-  public boolean isCommit() {
-    return this.commit || this.all;
-  }
-
-  public boolean isDate() {
-    return this.date || this.all;
-  }
-
-  public boolean isFollow() {
-    return this.follow || this.all;
-  }
-
-  public boolean isNumber() {
-    return this.number || this.all;
-  }
-
-  public boolean isPath() {
-    return this.path || this.all;
-  }
-
-  public boolean isReverse() {
-    return this.reverse;
-  }
-
-  public boolean isHelp() {
-    return this.help;
-  }
-
-  public String getStartCommitId() {
-    return this.startCommitId;
-  }
-
-  public String getEndCommitId() {
-    return this.endCommitId;
-  }
-
-  public boolean isBirthCommit() {
-    return this.birthCommit;
-  }
-
-  public boolean isBirthDate() {
-    return this.birthDate;
-  }
 
   public List<String> getOtherArguments() {
     return this.otherArguments;
