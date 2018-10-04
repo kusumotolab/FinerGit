@@ -380,7 +380,13 @@ public class GitRepo {
     return null;
   }
 
-
+  /**
+   * 与えられた名前変更の下限値を用いて，RenameDetectorオブジェクトを初期化． 実際は与えられた下限値からBONUS_FOR_METHOD_NAME_MATCHINGの値を引いて，
+   * それを下限値として用いる． メソッド名が同一のときは，ファイルコンテンツの一致度が低くても追跡するための処理．
+   * 
+   * @param score
+   * @return
+   */
   private RenameDetector initializeRenameDetector(final MinimumRenameScore score) {
     final RenameDetector renameDetector = new RenameDetector(this.repository);
     if (!score.isRepositoryDefault()) {
@@ -392,13 +398,25 @@ public class GitRepo {
     return renameDetector;
   }
 
+  /**
+   * 与えられた文字列（リポジトリルートからの相対パス）に含まれるメソッド名を抽出する．
+   * 
+   * @param path
+   * @return
+   */
   private String extractMethodName(final String path) {
+
+    // メソッド名の前の文字列を切り離す
     final String methodSignature = path.substring(path.indexOf('$') + 1);
+
+    // メソッド名のあとの"("以降の文字列を切り離す
     final String modifierReturnName = methodSignature.substring(0, methodSignature.indexOf('('));
+
+    // 可視修飾子や返り値が含まれている可能性があるので，最後に出現する"_"の位置を取得
     final int lastUnderbarIndex = modifierReturnName.lastIndexOf('_');
-    if (lastUnderbarIndex < 0) {
+    if (lastUnderbarIndex < 0) { // 可視修飾子と返り値がどちらも含まれていないときØÏ
       return modifierReturnName;
-    } else {
+    } else { // どちらか，もしくは両方が含まれているとき
       return modifierReturnName.substring(lastUnderbarIndex + 1);
     }
   }
