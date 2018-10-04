@@ -48,6 +48,8 @@ import finergit.ast.token.JAVADOCCOMMENT;
 import finergit.ast.token.JavaToken;
 import finergit.ast.token.LABELNAME;
 import finergit.ast.token.LEFTBRACKET;
+import finergit.ast.token.LEFTMETHODBRACKET;
+import finergit.ast.token.LEFTMETHODPAREN;
 import finergit.ast.token.LEFTPAREN;
 import finergit.ast.token.LEFTSQUAREBRACKET;
 import finergit.ast.token.LESS;
@@ -67,6 +69,8 @@ import finergit.ast.token.QUESTION;
 import finergit.ast.token.RETURN;
 import finergit.ast.token.RIGHTARROW;
 import finergit.ast.token.RIGHTBRACKET;
+import finergit.ast.token.RIGHTMETHODBRACKET;
+import finergit.ast.token.RIGHTMETHODPAREN;
 import finergit.ast.token.RIGHTPAREN;
 import finergit.ast.token.RIGHTSQUAREBRACKET;
 import finergit.ast.token.SEMICOLON;
@@ -324,7 +328,7 @@ public class JavaFileVisitor extends ASTVisitor {
   public boolean visit(final Block node) {
 
     this.moduleStack.peek()
-        .addToken(new LEFTBRACKET());
+        .addToken(this.isMethodBlock(node) ? new LEFTMETHODBRACKET() : new LEFTBRACKET());
 
     final List<?> statements = node.statements();
     for (final Object statement : statements) {
@@ -332,9 +336,17 @@ public class JavaFileVisitor extends ASTVisitor {
     }
 
     this.moduleStack.peek()
-        .addToken(new RIGHTBRACKET());
+        .addToken(this.isMethodBlock(node) ? new RIGHTMETHODBRACKET() : new RIGHTBRACKET());
 
     return false;
+  }
+
+  private boolean isMethodBlock(final Block node) {
+    final ASTNode parent = node.getParent();
+    if (null == parent) {
+      return false;
+    }
+    return MethodDeclaration.class == parent.getClass();
   }
 
   @Override
@@ -1125,7 +1137,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     // "(" の処理（ダミーメソッドに追加）
     this.moduleStack.peek()
-        .addToken(new LEFTPAREN());
+        .addToken(new LEFTMETHODPAREN());
 
     // 引数の処理（ダミーメソッドに追加）
     final List<?> parameters = node.parameters();
@@ -1140,7 +1152,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     // ")" の処理（ダミーメソッドに追加）
     this.moduleStack.peek()
-        .addToken(new RIGHTPAREN());
+        .addToken(new RIGHTMETHODPAREN());
 
     // throws 節の処理
     final List<?> exceptions = node.thrownExceptionTypes();
