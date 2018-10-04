@@ -9,6 +9,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import finergit.FinerGitConfig;
 import finergit.ast.token.JavaToken;
+import finergit.ast.token.LEFTMETHODBRACKET;
+import finergit.ast.token.LEFTMETHODPAREN;
+import finergit.ast.token.RIGHTMETHODBRACKET;
+import finergit.ast.token.RIGHTMETHODPAREN;
 
 public abstract class FinerJavaModule {
 
@@ -41,6 +45,10 @@ public abstract class FinerJavaModule {
 
   public List<String> getLines() {
     return this.tokens.stream()
+        .filter(t -> LEFTMETHODPAREN.class != t.getClass())
+        .filter(t -> RIGHTMETHODPAREN.class != t.getClass())
+        .filter(t -> LEFTMETHODBRACKET.class != t.getClass())
+        .filter(t -> RIGHTMETHODBRACKET.class != t.getClass())
         .map(t -> t.getValueAndAttributeString())
         .collect(Collectors.toList());
   }
