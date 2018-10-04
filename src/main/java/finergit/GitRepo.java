@@ -1,9 +1,6 @@
 package finergit;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.StringReader;
-import java.lang.ref.SoftReference;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -12,8 +9,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import org.eclipse.jgit.api.DiffCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -43,8 +38,6 @@ public class GitRepo {
 
   private static final Logger log = LoggerFactory.getLogger(GitRepo.class);
   private static final int BONUS_FOR_METHOD_NAME_MATCHING = 20;
-  private static final ConcurrentMap<RevCommit, SoftReference<Map<String, byte[]>>> COMMIT_CACHE =
-      new ConcurrentHashMap<>();
 
   public final Path path;
   private FileRepository repository;
@@ -369,13 +362,6 @@ public class GitRepo {
 
       final String methodNameBeforeRename = this.extractMethodName(oldPath);
       final String methodNameAfterRename = this.extractMethodName(path);
-
-      /*
-       * final String textBeforeRename = this.getFileContent(parentCommit, oldPath); final String
-       * textAfterRename = this.getFileContent(commit, path); final String methodNameBeforeRename =
-       * this.getMethodName(textBeforeRename); final String methodNameAfterRename =
-       * this.getMethodName(textAfterRename);
-       */
       if (methodNameBeforeRename.equals(methodNameAfterRename)) {
         return oldPath;
       }
@@ -415,31 +401,5 @@ public class GitRepo {
     } else {
       return modifierReturnName.substring(lastUnderbarIndex + 1);
     }
-  }
-
-  private String getFileContent(final RevCommit commit, final String path) {
-
-    SoftReference<Map<String, byte[]>> softReference = COMMIT_CACHE.get(commit);
-    Map<String, byte[]> files = null;
-    if (null == softReference || null == (files = softReference.get())) {
-      files = this.getFiles(commit);
-      softReference = new SoftReference<Map<String, byte[]>>(files);
-      COMMIT_CACHE.put(commit, softReference);
-    }
-
-    if (!files.containsKey(path)) {
-      return "";
-    }
-
-    return new String(files.get(path));
-  }
-
-  private String getMethodName(final String text) {
-    final BufferedReader reader = new BufferedReader(new StringReader(text));
-    return reader.lines()
-        .filter(line -> line.endsWith("DECLAREDMETHODNAME"))
-        .findFirst()
-        .get()
-        .split("\t")[0];
   }
 }
