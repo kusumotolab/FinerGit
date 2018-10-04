@@ -11,4 +11,13 @@ public abstract class JavaToken {
     this.line = 0;
     this.index = 0;
   }
+
+  final public String getValueAndAttributeString() {
+    final StringBuilder text = new StringBuilder();
+    text.append(this.value);
+    text.append("\t");
+    text.append(this.getClass()
+        .getSimpleName());
+    return text.toString();
+  }
 }

@@ -41,7 +41,7 @@ public abstract class FinerJavaModule {
 
   public List<String> getLines() {
     return this.tokens.stream()
-        .map(t -> t.value)
+        .map(t -> t.getValueAndAttributeString())
         .collect(Collectors.toList());
   }
 
