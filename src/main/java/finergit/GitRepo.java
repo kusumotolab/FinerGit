@@ -1,6 +1,9 @@
 package finergit;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.StringReader;
+import java.lang.ref.SoftReference;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -9,6 +12,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.eclipse.jgit.api.DiffCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -37,6 +42,9 @@ import finergit.util.RevCommitUtil;
 public class GitRepo {
 
   private static final Logger log = LoggerFactory.getLogger(GitRepo.class);
+  private static final int BONUS_FOR_METHOD_NAME_MATCHING = 20;
+  private static final ConcurrentMap<RevCommit, SoftReference<Map<String, byte[]>>> COMMIT_CACHE =
+      new ConcurrentHashMap<>();
 
   public final Path path;
   private FileRepository repository;
@@ -339,21 +347,43 @@ public class GitRepo {
       treeWalk.addTree(parentCommit.getTree());
       treeWalk.addTree(commit.getTree());
 
-      final RenameDetector renameDetector = new RenameDetector(this.repository);
-      if (!minimumRenameScore.isRepositoryDefault()) {
-        renameDetector.setRenameScore(minimumRenameScore.getValue());
-      }
+      final RenameDetector renameDetector = this.initializeRenameDetector(minimumRenameScore);
       renameDetector.addAll(DiffEntry.scan(treeWalk));
       final List<DiffEntry> files = renameDetector.compute();
+      String oldPath = null;
+      int similarityScore = -1;
       for (final DiffEntry file : files) {
         if ((file.getChangeType() == DiffEntry.ChangeType.RENAME
             || file.getChangeType() == DiffEntry.ChangeType.COPY) && file.getNewPath()
                 .contains(path)) {
-          final String oldPath = file.getOldPath();
-          log.debug("an old path was found \"{}\"", oldPath);
-          return oldPath;
+          oldPath = file.getOldPath();
+          similarityScore = file.getScore();
+          log.debug("an old path was found \"{}\", it's similarity score is {}", oldPath,
+              similarityScore);
+          break;
         }
       }
+      if (null == oldPath) {
+        return null;
+      }
+
+      final String methodNameBeforeRename = this.extractMethodName(oldPath);
+      final String methodNameAfterRename = this.extractMethodName(path);
+
+      /*
+       * final String textBeforeRename = this.getFileContent(parentCommit, oldPath); final String
+       * textAfterRename = this.getFileContent(commit, path); final String methodNameBeforeRename =
+       * this.getMethodName(textBeforeRename); final String methodNameAfterRename =
+       * this.getMethodName(textAfterRename);
+       */
+      if (methodNameBeforeRename.equals(methodNameAfterRename)) {
+        return oldPath;
+      }
+
+      if ((renameDetector.getRenameScore() + BONUS_FOR_METHOD_NAME_MATCHING) <= similarityScore) {
+        return oldPath;
+      }
+
     } catch (final IOException e) {
       log.error("failed to find path before rename for \"{}\"", path);
       log.error(e.getMessage());
@@ -362,5 +392,54 @@ public class GitRepo {
 
     log.debug("old path not found");
     return null;
+  }
+
+
+  private RenameDetector initializeRenameDetector(final MinimumRenameScore score) {
+    final RenameDetector renameDetector = new RenameDetector(this.repository);
+    if (!score.isRepositoryDefault()) {
+      renameDetector.setRenameScore(score.getValue());
+    }
+    final int renameScore = renameDetector.getRenameScore();
+    renameDetector.setRenameScore(renameScore < BONUS_FOR_METHOD_NAME_MATCHING ? 0
+        : renameScore - BONUS_FOR_METHOD_NAME_MATCHING);
+    return renameDetector;
+  }
+
+  private String extractMethodName(final String path) {
+    final String methodSignature = path.substring(path.indexOf('$') + 1);
+    final String modifierReturnName = methodSignature.substring(0, methodSignature.indexOf('('));
+    final int lastUnderbarIndex = modifierReturnName.lastIndexOf('_');
+    if (lastUnderbarIndex < 0) {
+      return modifierReturnName;
+    } else {
+      return modifierReturnName.substring(lastUnderbarIndex + 1);
+    }
+  }
+
+  private String getFileContent(final RevCommit commit, final String path) {
+
+    SoftReference<Map<String, byte[]>> softReference = COMMIT_CACHE.get(commit);
+    Map<String, byte[]> files = null;
+    if (null == softReference || null == (files = softReference.get())) {
+      files = this.getFiles(commit);
+      softReference = new SoftReference<Map<String, byte[]>>(files);
+      COMMIT_CACHE.put(commit, softReference);
+    }
+
+    if (!files.containsKey(path)) {
+      return "";
+    }
+
+    return new String(files.get(path));
+  }
+
+  private String getMethodName(final String text) {
+    final BufferedReader reader = new BufferedReader(new StringReader(text));
+    return reader.lines()
+        .filter(line -> line.endsWith("DECLAREDMETHODNAME"))
+        .findFirst()
+        .get()
+        .split("\t")[0];
   }
 }
