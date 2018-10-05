@@ -56,6 +56,7 @@ import finergit.ast.token.LESS;
 import finergit.ast.token.LINECOMMENT;
 import finergit.ast.token.LineToken;
 import finergit.ast.token.METHODREFERENCE;
+import finergit.ast.token.METHODSEMICOLON;
 import finergit.ast.token.ModifierFactory;
 import finergit.ast.token.NEW;
 import finergit.ast.token.NULL;
@@ -1241,7 +1242,7 @@ public class JavaFileVisitor extends ASTVisitor {
       body.accept(this);
     } else {
       this.moduleStack.peek()
-          .addToken(new SEMICOLON());
+          .addToken(new METHODSEMICOLON());
     }
 
     if (!isInnerMethod) { // 内部クラス内のメソッドではないとき
