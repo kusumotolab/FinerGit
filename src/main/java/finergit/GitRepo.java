@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.assertj.core.util.Arrays;
 import org.eclipse.jgit.api.DiffCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -30,6 +31,8 @@ import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
+import org.eclipse.jgit.treewalk.filter.PathSuffixFilter;
+import org.eclipse.jgit.treewalk.filter.TreeFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import finergit.util.RevCommitUtil;
@@ -341,7 +344,24 @@ public class GitRepo {
       treeWalk.addTree(commit.getTree());
 
       final RenameDetector renameDetector = this.initializeRenameDetector(minimumRenameScore);
-      renameDetector.addAll(DiffEntry.scan(treeWalk));
+
+      // 拡張子が.mjavaのときはメソッドファイルのみが検索対象
+      if (path.endsWith(".mjava")) {
+        final TreeFilter methodFileFilter = PathSuffixFilter.create(".mjava");
+        renameDetector.addAll(DiffEntry.scan(treeWalk, false, Arrays.array(methodFileFilter)));
+      }
+
+      // 拡張子が.cjavaのときはクラスファイルのみが検索対象
+      else if (path.endsWith(".cjava")) {
+        final TreeFilter classFileFilter = PathSuffixFilter.create(".cjava");
+        renameDetector.addAll(DiffEntry.scan(treeWalk, false, Arrays.array(classFileFilter)));
+      }
+
+      // 拡張子が.mjavaでも.cjavaでもない場合は，検索対象は限定しない
+      else {
+        renameDetector.addAll(DiffEntry.scan(treeWalk));
+      }
+      
       final List<DiffEntry> files = renameDetector.compute();
       String oldPath = null;
       int similarityScore = -1;
@@ -357,16 +377,23 @@ public class GitRepo {
         }
       }
       if (null == oldPath) {
+        log.debug("old path was not found");
         return null;
       }
 
-      final String methodNameBeforeRename = this.extractMethodName(oldPath);
-      final String methodNameAfterRename = this.extractMethodName(path);
-      if (methodNameBeforeRename.equals(methodNameAfterRename)) {
-        return oldPath;
+      // メソッドファイルの場合はメソッド名の一致を調べる．一致してる場合は下げたしきい値以上であれば追跡する．
+      if (path.endsWith(".mjava")) {
+        final String methodNameBeforeRename = this.extractMethodName(oldPath);
+        final String methodNameAfterRename = this.extractMethodName(path);
+        if (methodNameBeforeRename.equals(methodNameAfterRename)) {
+          log.debug("new method name equals to its old name");
+          return oldPath;
+        }
       }
 
+      // メソッドファイルでない場合，メソッドファイルであってもメソッド名が一致していない場合は元々のしきい値以上で追跡する
       if ((renameDetector.getRenameScore() + BONUS_FOR_METHOD_NAME_MATCHING) <= similarityScore) {
+        log.debug("new method name didn't equal to its old name");
         return oldPath;
       }
 
@@ -406,6 +433,11 @@ public class GitRepo {
    */
   private String extractMethodName(final String path) {
 
+    // '$'が'('が含まれていない場合は与えられたpathをそのまま返す
+    if (path.indexOf('$') < 0 || path.indexOf('(') < 0) {
+      return path;
+    }
+
     // メソッド名の前の文字列を切り離す
     final String methodSignature = path.substring(path.indexOf('$') + 1);
 
@@ -414,7 +446,7 @@ public class GitRepo {
 
     // 可視修飾子や返り値が含まれている可能性があるので，最後に出現する"_"の位置を取得
     final int lastUnderbarIndex = modifierReturnName.lastIndexOf('_');
-    if (lastUnderbarIndex < 0) { // 可視修飾子と返り値がどちらも含まれていないときØÏ
+    if (lastUnderbarIndex < 0) { // 可視修飾子と返り値がどちらも含まれていないとき
       return modifierReturnName;
     } else { // どちらか，もしくは両方が含まれているとき
       return modifierReturnName.substring(lastUnderbarIndex + 1);
