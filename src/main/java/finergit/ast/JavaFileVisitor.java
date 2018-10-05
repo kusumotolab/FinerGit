@@ -1099,7 +1099,8 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final MethodDeclaration node) {
 
-    { // ダミーメソッドを生成し，モジュールスタックに追加
+    // 内部クラスのメソッドでない場合は，ダミーメソッドを生成し，モジュールスタックに追加
+    if (1 == this.classNestLevel) {
       final FinerJavaModule outerModule = this.moduleStack.peek();
       final FinerJavaMethod dummyMethod = new FinerJavaMethod("DummyMethod", outerModule, null);
       this.moduleStack.push(dummyMethod);
@@ -1212,29 +1213,31 @@ public class JavaFileVisitor extends ASTVisitor {
     methodFileName.append(String.join(",", types));
     methodFileName.append(")");
 
-    // ダミーメソッドをスタックから取り除く
-    final FinerJavaModule dummyMethod = this.moduleStack.pop();
-
-    // 内部クラス内のメソッドかどうかの判定
-    final boolean isInnerMethod = 1 < this.classNestLevel;
-
-    final FinerJavaModule methodModule;
-    if (!isInnerMethod) { // 内部クラス内のメソッドではないとき
+    // 内部クラスのメソッドでない場合は，ダミーメソッドをスタックから取り除く
+    if (1 == this.classNestLevel) {
+      final FinerJavaModule dummyMethod = this.moduleStack.pop();
       final FinerJavaModule outerModule = this.moduleStack.peek();
-      methodModule = new FinerJavaMethod(methodFileName.toString(), outerModule, this.config);
-      this.moduleStack.push(methodModule);
-      this.moduleList.add(methodModule);
-    }
+      final FinerJavaMethod javaMethod =
+          new FinerJavaMethod(methodFileName.toString(), outerModule, this.config);
+      this.moduleStack.push(javaMethod);
+      this.moduleList.add(javaMethod);
 
-    else { // 内部クラスのメソッドのとき
-      methodModule = this.moduleStack.peek();
-    }
+      // 一行一トークンの場合は，ダミーメソッド内のトークンを抽出し，methodModule に移行
+      if (this.config.isTokenized()) {
+        dummyMethod.getTokens()
+            .forEach(javaMethod::addToken);
+      }
 
-    // ダミーメソッド内のトークンを抽出し，methodModule に移行
-    // methodModule は現在のメソッドがインナークラス内のメソッドであれば現在のメソッドを表し，
-    // 現在のメソッドがインナークラス内のメソッドであれば，モジュールスタックの一番上にあるモジュールを表す．
-    dummyMethod.getTokens()
-        .forEach(methodModule::addToken);
+      // 一行一トークンでない場合は，メソッドの文字列表現からトークンを作り出し，それらをメソッドモジュールに追加し，処理を終了する
+      else {
+        Stream.of(node.toString()
+            .split("(\\r\\n|\\r|\\n)"))
+            .map(l -> new LineToken(l))
+            .forEach(javaMethod::addToken);
+        this.moduleStack.pop();
+        return false;
+      }
+    }
 
     // メソッドの中身の処理
     final Block body = node.getBody();
@@ -1245,19 +1248,12 @@ public class JavaFileVisitor extends ASTVisitor {
           .addToken(new METHODSEMICOLON());
     }
 
-    if (!isInnerMethod) { // 内部クラス内のメソッドではないとき
+    // 内部クラス内のメソッドではない場合は，メソッドモジュールをスタックから取り出す
+    if (1 == this.classNestLevel) {
       final FinerJavaMethod finerJavaMethod = (FinerJavaMethod) this.moduleStack.pop();
       this.moduleStack.peek()
           .addToken(new FinerJavaMethodToken("MetodToken[" + finerJavaMethod.name + "]",
               finerJavaMethod));
-    }
-
-    if (!this.config.isTokenized()) { // 1行1トークンにしないとき
-      methodModule.clearTokens();
-      Stream.of(node.toString()
-          .split("(\\r\\n|\\r|\\n)"))
-          .map(l -> new LineToken(l))
-          .forEach(methodModule::addToken);
     }
 
     return false;
@@ -1919,7 +1915,7 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final TypeDeclaration node) {
 
-    // インナークラス出ない場合は，新しいクラスモジュールを作り，モジュールスタックにpush
+    // インナークラスでない場合は，新しいクラスモジュールを作り，モジュールスタックにpush
     if (0 == this.classNestLevel) {
       final FinerJavaModule outerModule = this.moduleStack.peek();
       final String className = node.getName()
