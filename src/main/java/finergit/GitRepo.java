@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.assertj.core.util.Arrays;
 import org.eclipse.jgit.api.DiffCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -30,6 +31,8 @@ import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
+import org.eclipse.jgit.treewalk.filter.PathSuffixFilter;
+import org.eclipse.jgit.treewalk.filter.TreeFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import finergit.util.RevCommitUtil;
@@ -37,6 +40,7 @@ import finergit.util.RevCommitUtil;
 public class GitRepo {
 
   private static final Logger log = LoggerFactory.getLogger(GitRepo.class);
+  private static final int BONUS_FOR_METHOD_NAME_MATCHING = 20;
 
   public final Path path;
   private FileRepository repository;
@@ -339,21 +343,60 @@ public class GitRepo {
       treeWalk.addTree(parentCommit.getTree());
       treeWalk.addTree(commit.getTree());
 
-      final RenameDetector renameDetector = new RenameDetector(this.repository);
-      if (!minimumRenameScore.isRepositoryDefault()) {
-        renameDetector.setRenameScore(minimumRenameScore.getValue());
+      final RenameDetector renameDetector = this.initializeRenameDetector(minimumRenameScore);
+
+      // 拡張子が.mjavaのときはメソッドファイルのみが検索対象
+      if (path.endsWith(".mjava")) {
+        final TreeFilter methodFileFilter = PathSuffixFilter.create(".mjava");
+        renameDetector.addAll(DiffEntry.scan(treeWalk, false, Arrays.array(methodFileFilter)));
       }
-      renameDetector.addAll(DiffEntry.scan(treeWalk));
+
+      // 拡張子が.cjavaのときはクラスファイルのみが検索対象
+      else if (path.endsWith(".cjava")) {
+        final TreeFilter classFileFilter = PathSuffixFilter.create(".cjava");
+        renameDetector.addAll(DiffEntry.scan(treeWalk, false, Arrays.array(classFileFilter)));
+      }
+
+      // 拡張子が.mjavaでも.cjavaでもない場合は，検索対象は限定しない
+      else {
+        renameDetector.addAll(DiffEntry.scan(treeWalk));
+      }
+      
       final List<DiffEntry> files = renameDetector.compute();
+      String oldPath = null;
+      int similarityScore = -1;
       for (final DiffEntry file : files) {
         if ((file.getChangeType() == DiffEntry.ChangeType.RENAME
             || file.getChangeType() == DiffEntry.ChangeType.COPY) && file.getNewPath()
                 .contains(path)) {
-          final String oldPath = file.getOldPath();
-          log.debug("an old path was found \"{}\"", oldPath);
+          oldPath = file.getOldPath();
+          similarityScore = file.getScore();
+          log.debug("an old path was found \"{}\", it's similarity score is {}", oldPath,
+              similarityScore);
+          break;
+        }
+      }
+      if (null == oldPath) {
+        log.debug("old path was not found");
+        return null;
+      }
+
+      // メソッドファイルの場合はメソッド名の一致を調べる．一致してる場合は下げたしきい値以上であれば追跡する．
+      if (path.endsWith(".mjava")) {
+        final String methodNameBeforeRename = this.extractMethodName(oldPath);
+        final String methodNameAfterRename = this.extractMethodName(path);
+        if (methodNameBeforeRename.equals(methodNameAfterRename)) {
+          log.debug("new method name equals to its old name");
           return oldPath;
         }
       }
+
+      // メソッドファイルでない場合，メソッドファイルであってもメソッド名が一致していない場合は元々のしきい値以上で追跡する
+      if ((renameDetector.getRenameScore() + BONUS_FOR_METHOD_NAME_MATCHING) <= similarityScore) {
+        log.debug("new method name didn't equal to its old name");
+        return oldPath;
+      }
+
     } catch (final IOException e) {
       log.error("failed to find path before rename for \"{}\"", path);
       log.error(e.getMessage());
@@ -362,5 +405,51 @@ public class GitRepo {
 
     log.debug("old path not found");
     return null;
+  }
+
+  /**
+   * 与えられた名前変更の下限値を用いて，RenameDetectorオブジェクトを初期化． 実際は与えられた下限値からBONUS_FOR_METHOD_NAME_MATCHINGの値を引いて，
+   * それを下限値として用いる． メソッド名が同一のときは，ファイルコンテンツの一致度が低くても追跡するための処理．
+   * 
+   * @param score
+   * @return
+   */
+  private RenameDetector initializeRenameDetector(final MinimumRenameScore score) {
+    final RenameDetector renameDetector = new RenameDetector(this.repository);
+    if (!score.isRepositoryDefault()) {
+      renameDetector.setRenameScore(score.getValue());
+    }
+    final int renameScore = renameDetector.getRenameScore();
+    renameDetector.setRenameScore(renameScore < BONUS_FOR_METHOD_NAME_MATCHING ? 0
+        : renameScore - BONUS_FOR_METHOD_NAME_MATCHING);
+    return renameDetector;
+  }
+
+  /**
+   * 与えられた文字列（リポジトリルートからの相対パス）に含まれるメソッド名を抽出する．
+   * 
+   * @param path
+   * @return
+   */
+  private String extractMethodName(final String path) {
+
+    // '$'が'('が含まれていない場合は与えられたpathをそのまま返す
+    if (path.indexOf('$') < 0 || path.indexOf('(') < 0) {
+      return path;
+    }
+
+    // メソッド名の前の文字列を切り離す
+    final String methodSignature = path.substring(path.indexOf('$') + 1);
+
+    // メソッド名のあとの"("以降の文字列を切り離す
+    final String modifierReturnName = methodSignature.substring(0, methodSignature.indexOf('('));
+
+    // 可視修飾子や返り値が含まれている可能性があるので，最後に出現する"_"の位置を取得
+    final int lastUnderbarIndex = modifierReturnName.lastIndexOf('_');
+    if (lastUnderbarIndex < 0) { // 可視修飾子と返り値がどちらも含まれていないとき
+      return modifierReturnName;
+    } else { // どちらか，もしくは両方が含まれているとき
+      return modifierReturnName.substring(lastUnderbarIndex + 1);
+    }
   }
 }
