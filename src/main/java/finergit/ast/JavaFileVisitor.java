@@ -269,7 +269,7 @@ public class JavaFileVisitor extends ASTVisitor {
       assert STRINGLITERAL.class == context : "error happend at visit(BreakStatement)";
     }
 
-    this.addToPeekModule(new SEMICOLON());
+    this.addToPeekModule(new BREAKSTATEMENTSEMICOLON());
 
     return false;
   }
@@ -395,7 +395,7 @@ public class JavaFileVisitor extends ASTVisitor {
     }
 
     this.addToPeekModule(new RIGHTCONSTRUCTORINVOCATIONPAREN());
-    this.addToPeekModule(new SEMICOLON());
+    this.addToPeekModule(new CONSTRUCTORINVOCATIONSEMICOLON());
 
     return false;
   }
@@ -413,7 +413,7 @@ public class JavaFileVisitor extends ASTVisitor {
       assert STRINGLITERAL.class == context : "error happend at visit(ContinueStatement)";
     }
 
-    this.addToPeekModule(new SEMICOLON());
+    this.addToPeekModule(new CONTINUESTATEMENTSEMICOLON());
 
     return false;
   }
@@ -467,14 +467,14 @@ public class JavaFileVisitor extends ASTVisitor {
         .accept(this);
 
     this.addToPeekModule(new RIGHTDOPAREN());
-    this.addToPeekModule(new SEMICOLON());
+    this.addToPeekModule(new DOSTATEMENTSEMICOLON());
 
     return false;
   }
 
   @Override
   public boolean visit(final EmptyStatement node) {
-    this.addToPeekModule(new SEMICOLON());
+    this.addToPeekModule(new EMPTYSTATEMENTSEMICOLON());
     return false;
   }
 
@@ -610,7 +610,7 @@ public class JavaFileVisitor extends ASTVisitor {
     node.getExpression()
         .accept(this);
 
-    this.addToPeekModule(new SEMICOLON());
+    this.addToPeekModule(new EXPRESSIONSTATEMENTSEMICOLON());
 
     return false;
   }
@@ -655,7 +655,7 @@ public class JavaFileVisitor extends ASTVisitor {
       ((VariableDeclarationFragment) fragment).accept(this);
     }
 
-    this.addToPeekModule(new SEMICOLON());
+    this.addToPeekModule(new FIELDDECLARATIONSEMICOLON());
 
     return false;
   }
@@ -676,7 +676,7 @@ public class JavaFileVisitor extends ASTVisitor {
       }
     }
 
-    this.addToPeekModule(new SEMICOLON());
+    this.addToPeekModule(new FORINITIALIZERSEMICOLON());
 
     // 条件節の処理
     final Expression condition = node.getExpression();
@@ -684,7 +684,7 @@ public class JavaFileVisitor extends ASTVisitor {
       condition.accept(this);
     }
 
-    this.addToPeekModule(new SEMICOLON());
+    this.addToPeekModule(new FORCONDITIONSEMICOLON());
 
     // 更新子の処理
     final List<?> updaters = node.updaters();
@@ -1072,7 +1072,7 @@ public class JavaFileVisitor extends ASTVisitor {
       body.accept(this);
       this.addToPeekModule(new RIGHTMETHODBRACKET());
     } else {
-      this.addToPeekModule(new METHODSEMICOLON());
+      this.addToPeekModule(new METHODDECLARATIONSEMICOLON());
     }
 
     // 内部クラス内のメソッドではない場合は，メソッドモジュールをスタックから取り出す
@@ -1345,7 +1345,7 @@ public class JavaFileVisitor extends ASTVisitor {
       expression.accept(this);
     }
 
-    this.addToPeekModule(new SEMICOLON());
+    this.addToPeekModule(new RETURNSTATEMENTSEMICOLON());
 
     return false;
   }
@@ -1466,7 +1466,7 @@ public class JavaFileVisitor extends ASTVisitor {
     }
 
     this.addToPeekModule(new RIGHTSUPERCONSTRUCTORINVOCATIONPAREN());
-    this.addToPeekModule(new SEMICOLON());
+    this.addToPeekModule(new SUPERCONSTRUCTORINVOCATIONSEMICOLON());
 
     return false;
   }
@@ -1629,7 +1629,7 @@ public class JavaFileVisitor extends ASTVisitor {
     node.getExpression()
         .accept(this);
 
-    this.addToPeekModule(new SEMICOLON());
+    this.addToPeekModule(new THROWSTATEMENTSEMICOLON());
 
     return false;
   }
@@ -1644,10 +1644,10 @@ public class JavaFileVisitor extends ASTVisitor {
       this.addToPeekModule(new LEFTTRYPAREN());
 
       ((Expression) resources.get(0)).accept(this);
-      this.addToPeekModule(new SEMICOLON());
+      this.addToPeekModule(new TRYRESOURCESEMICOLON());
 
       for (int index = 1; index < resources.size(); index++) {
-        this.addToPeekModule(new SEMICOLON());
+        this.addToPeekModule(new TRYRESOURCESEMICOLON());
         ((Expression) resources.get(index)).accept(this);
       }
 
@@ -1870,7 +1870,7 @@ public class JavaFileVisitor extends ASTVisitor {
       ((VariableDeclarationFragment) fragments.get(index)).accept(this);
     }
 
-    this.addToPeekModule(new SEMICOLON());
+    this.addToPeekModule(new VARIABLEDECLARATIONSTATEMENTSEMICOLON());
 
     return false;
   }
