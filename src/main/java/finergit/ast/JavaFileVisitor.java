@@ -118,7 +118,7 @@ public class JavaFileVisitor extends ASTVisitor {
       defaultValue.accept(this);
     }
 
-    this.addToPeekModule(new SEMICOLON());
+    this.addToPeekModule(new ANNOTATIONTYPEMEMBERDECLARATIONSEMICOLON());
 
     return false;
   }
@@ -214,7 +214,7 @@ public class JavaFileVisitor extends ASTVisitor {
       message.accept(this);
     }
 
-    this.addToPeekModule(new SEMICOLON());
+    this.addToPeekModule(new ASSERTSTATEMENTSEMICOLON());
 
     return false;
   }
@@ -277,12 +277,12 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final CastExpression node) {
 
-    this.addToPeekModule(new LEFTPAREN());
+    this.addToPeekModule(new LEFTCASTPAREN());
 
     node.getType()
         .accept(this);
 
-    this.addToPeekModule(new RIGHTPAREN());
+    this.addToPeekModule(new RIGHTCASTPAREN());
 
     node.getExpression()
         .accept(this);
@@ -294,12 +294,12 @@ public class JavaFileVisitor extends ASTVisitor {
   public boolean visit(final CatchClause node) {
 
     this.addToPeekModule(new CATCH());
-    this.addToPeekModule(new LEFTPAREN());
+    this.addToPeekModule(new LEFTCATCHCLAUSEPAREN());
 
     node.getException()
         .accept(this);
 
-    this.addToPeekModule(new RIGHTPAREN());
+    this.addToPeekModule(new RIGHTCATCHCLAUSEPAREN());
     this.addToPeekModule(new LEFTCATCHCLAUSEBRACKET());
 
     node.getBody()
@@ -333,7 +333,7 @@ public class JavaFileVisitor extends ASTVisitor {
     node.getType()
         .accept(this);
 
-    this.addToPeekModule(new LEFTPAREN());
+    this.addToPeekModule(new LEFTCLASSINSTANCECREATIONPAREN());
 
     final List<?> arguments = node.arguments();
     if (null != arguments && !arguments.isEmpty()) {
@@ -344,7 +344,7 @@ public class JavaFileVisitor extends ASTVisitor {
       }
     }
 
-    this.addToPeekModule(new RIGHTPAREN());
+    this.addToPeekModule(new RIGHTCLASSINSTANCECREATIONPAREN());
 
     final AnonymousClassDeclaration acd = node.getAnonymousClassDeclaration();
     if (null != acd) {
@@ -383,7 +383,7 @@ public class JavaFileVisitor extends ASTVisitor {
   public boolean visit(final ConstructorInvocation node) {
 
     this.addToPeekModule(new THIS());
-    this.addToPeekModule(new LEFTPAREN());
+    this.addToPeekModule(new LEFTCONSTRUCTORINVOCATIONPAREN());
 
     final List<?> arguments = node.arguments();
     if (null != arguments && !arguments.isEmpty()) {
@@ -394,7 +394,7 @@ public class JavaFileVisitor extends ASTVisitor {
       }
     }
 
-    this.addToPeekModule(new RIGHTPAREN());
+    this.addToPeekModule(new RIGHTCONSTRUCTORINVOCATIONPAREN());
     this.addToPeekModule(new SEMICOLON());
 
     return false;
@@ -461,12 +461,12 @@ public class JavaFileVisitor extends ASTVisitor {
 
     this.addToPeekModule(new RIGHTDOBRACKET());
     this.addToPeekModule(new WHILE());
-    this.addToPeekModule(new LEFTPAREN());
+    this.addToPeekModule(new LEFTDOPAREN());
 
     node.getExpression()
         .accept(this);
 
-    this.addToPeekModule(new RIGHTPAREN());
+    this.addToPeekModule(new RIGHTDOPAREN());
     this.addToPeekModule(new SEMICOLON());
 
     return false;
@@ -482,7 +482,7 @@ public class JavaFileVisitor extends ASTVisitor {
   public boolean visit(final EnhancedForStatement node) {
 
     this.addToPeekModule(new FOR());
-    this.addToPeekModule(new LEFTPAREN());
+    this.addToPeekModule(new LEFTENHANCEDFORPAREN());
 
     node.getParameter()
         .accept(this);
@@ -492,7 +492,7 @@ public class JavaFileVisitor extends ASTVisitor {
     node.getExpression()
         .accept(this);
 
-    this.addToPeekModule(new RIGHTPAREN());
+    this.addToPeekModule(new RIGHTENHANCEDFORPAREN());
     this.addToPeekModule(new LEFTENHANCEDFORBRACKET());
 
     node.getBody()
@@ -528,7 +528,7 @@ public class JavaFileVisitor extends ASTVisitor {
     final List<?> arguments = node.arguments();
     if (null != arguments && !arguments.isEmpty()) {
 
-      this.addToPeekModule(new LEFTPAREN());
+      this.addToPeekModule(new LEFTENUMPAREN());
 
       ((Expression) arguments.get(0)).accept(this);
       for (int index = 1; index < arguments.size(); index++) {
@@ -536,7 +536,7 @@ public class JavaFileVisitor extends ASTVisitor {
         ((Expression) arguments.get(index)).accept(this);
       }
 
-      this.addToPeekModule(new RIGHTPAREN());
+      this.addToPeekModule(new RIGHTENUMPAREN());
     }
 
     final AnonymousClassDeclaration acd = node.getAnonymousClassDeclaration();
@@ -664,7 +664,7 @@ public class JavaFileVisitor extends ASTVisitor {
   public boolean visit(final ForStatement node) {
 
     this.addToPeekModule(new FOR());
-    this.addToPeekModule(new LEFTPAREN());
+    this.addToPeekModule(new LEFTFORPAREN());
 
     // 初期化子の処理
     final List<?> initializers = node.initializers();
@@ -696,7 +696,7 @@ public class JavaFileVisitor extends ASTVisitor {
       }
     }
 
-    this.addToPeekModule(new LEFTPAREN());
+    this.addToPeekModule(new RIGHTFORPAREN());
 
     final Statement body = node.getBody();
     if (null != body) {
@@ -713,12 +713,12 @@ public class JavaFileVisitor extends ASTVisitor {
   public boolean visit(final IfStatement node) {
 
     this.addToPeekModule(new IF());
-    this.addToPeekModule(new LEFTPAREN());
+    this.addToPeekModule(new LEFTIFPAREN());
 
     node.getExpression()
         .accept(this);
 
-    this.addToPeekModule(new RIGHTPAREN());
+    this.addToPeekModule(new RIGHTIFPAREN());
 
     final Statement thenStatement = node.getThenStatement();
     if (null != thenStatement) {
@@ -854,7 +854,7 @@ public class JavaFileVisitor extends ASTVisitor {
   public boolean visit(final LambdaExpression node) {
 
     if (node.hasParentheses()) {
-      this.addToPeekModule(new LEFTPAREN());
+      this.addToPeekModule(new LEFTLAMBDAEXPRESSIONPAREN());
     }
 
     final List<?> parameters = node.parameters();
@@ -867,7 +867,7 @@ public class JavaFileVisitor extends ASTVisitor {
     }
 
     if (node.hasParentheses()) {
-      this.addToPeekModule(new RIGHTPAREN());
+      this.addToPeekModule(new RIGHTLAMBDAEXPRESSIONPAREN());
     }
 
     this.addToPeekModule(new RIGHTARROW());
@@ -1100,7 +1100,7 @@ public class JavaFileVisitor extends ASTVisitor {
     final Class<?> context = this.contexts.pop();
     assert INVOKEDMETHODNAME.class == context : "error happened at visit(MethodInvocation)";
 
-    this.addToPeekModule(new LEFTPAREN());
+    this.addToPeekModule(new LEFTMETHODINVOCATIONPAREN());
 
     final List<?> arguments = node.arguments();
     if (null != arguments && !arguments.isEmpty()) {
@@ -1111,7 +1111,7 @@ public class JavaFileVisitor extends ASTVisitor {
       }
     }
 
-    this.addToPeekModule(new RIGHTPAREN());
+    this.addToPeekModule(new RIGHTMETHODINVOCATIONPAREN());
 
     return false;
   }
@@ -1165,7 +1165,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final String annotationName = "@" + node.getTypeName();
     this.addToPeekModule(new ANNOTATION(annotationName));
-    this.addToPeekModule(new LEFTPAREN());
+    this.addToPeekModule(new LEFTANNOTATIONPAREN());
 
     @SuppressWarnings("unchecked")
     final List<MemberValuePair> nodes = node.values();
@@ -1179,7 +1179,7 @@ public class JavaFileVisitor extends ASTVisitor {
       }
     }
 
-    this.addToPeekModule(new RIGHTPAREN());
+    this.addToPeekModule(new RIGHTANNOTATIONPAREN());
 
     return false;
   }
@@ -1242,12 +1242,12 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final ParenthesizedExpression node) {
 
-    this.addToPeekModule(new LEFTPAREN());
+    this.addToPeekModule(new LEFTPARENTHESIZEDEXPRESSIONPAREN());
 
     node.getExpression()
         .accept(this);
 
-    this.addToPeekModule(new RIGHTPAREN());
+    this.addToPeekModule(new RIGHTPARENTHESIZEDEXPRESSIONPAREN());
 
     return false;
   }
@@ -1454,7 +1454,7 @@ public class JavaFileVisitor extends ASTVisitor {
     }
 
     this.addToPeekModule(new SUPER());
-    this.addToPeekModule(new LEFTPAREN());
+    this.addToPeekModule(new LEFTSUPERCONSTRUCTORINVOCATIONPAREN());
 
     final List<?> arguments = node.arguments();
     if (null != arguments && !arguments.isEmpty()) {
@@ -1465,7 +1465,7 @@ public class JavaFileVisitor extends ASTVisitor {
       }
     }
 
-    this.addToPeekModule(new RIGHTPAREN());
+    this.addToPeekModule(new RIGHTSUPERCONSTRUCTORINVOCATIONPAREN());
     this.addToPeekModule(new SEMICOLON());
 
     return false;
@@ -1506,7 +1506,7 @@ public class JavaFileVisitor extends ASTVisitor {
     final Class<?> context = this.contexts.pop();
     assert INVOKEDMETHODNAME.class == context : "error happend at JavaFileVisitor#visit(SuperMethodInvocation)";
 
-    this.addToPeekModule(new LEFTPAREN());
+    this.addToPeekModule(new LEFTMETHODINVOCATIONPAREN());
 
     final List<?> arguments = node.arguments();
     if (null != arguments && !arguments.isEmpty()) {
@@ -1517,7 +1517,7 @@ public class JavaFileVisitor extends ASTVisitor {
       }
     }
 
-    this.addToPeekModule(new RIGHTPAREN());
+    this.addToPeekModule(new RIGHTMETHODINVOCATIONPAREN());
 
     return false;
   }
@@ -1563,12 +1563,12 @@ public class JavaFileVisitor extends ASTVisitor {
   public boolean visit(final SwitchStatement node) {
 
     this.addToPeekModule(new SWITCH());
-    this.addToPeekModule(new LEFTPAREN());
+    this.addToPeekModule(new LEFTSWITCHPAREN());
 
     node.getExpression()
         .accept(this);
 
-    this.addToPeekModule(new RIGHTPAREN());
+    this.addToPeekModule(new RIGHTSWITCHPAREN());
     this.addToPeekModule(new LEFTSWITCHBRACKET());
 
     final List<?> statements = node.statements();
@@ -1585,12 +1585,12 @@ public class JavaFileVisitor extends ASTVisitor {
   public boolean visit(final SynchronizedStatement node) {
 
     this.addToPeekModule(new SYNCHRONIZED());
-    this.addToPeekModule(new LEFTPAREN());
+    this.addToPeekModule(new LEFTSYNCHRONIZEDPAREN());
 
     node.getExpression()
         .accept(this);
 
-    this.addToPeekModule(new RIGHTPAREN());
+    this.addToPeekModule(new RIGHTSYNCHRONIZEDPAREN());
     this.addToPeekModule(new LEFTSYNCHRONIZEDBRACKET());
 
     node.getBody()
@@ -1641,7 +1641,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final List<?> resources = node.resources();
     if (null != resources && !resources.isEmpty()) {
-      this.addToPeekModule(new LEFTPAREN());
+      this.addToPeekModule(new LEFTTRYPAREN());
 
       ((Expression) resources.get(0)).accept(this);
       this.addToPeekModule(new SEMICOLON());
@@ -1651,7 +1651,7 @@ public class JavaFileVisitor extends ASTVisitor {
         ((Expression) resources.get(index)).accept(this);
       }
 
-      this.addToPeekModule(new RIGHTPAREN());
+      this.addToPeekModule(new RIGHTTRYPAREN());
     }
 
     this.addToPeekModule(new LEFTTRYBRACKET());
@@ -1897,12 +1897,12 @@ public class JavaFileVisitor extends ASTVisitor {
   public boolean visit(final WhileStatement node) {
 
     this.addToPeekModule(new WHILE());
-    this.addToPeekModule(new LEFTPAREN());
+    this.addToPeekModule(new LEFTWHILEPAREN());
 
     node.getExpression()
         .accept(this);
 
-    this.addToPeekModule(new RIGHTPAREN());
+    this.addToPeekModule(new RIGHTWHILEPAREN());
 
     final Statement body = node.getBody();
     if (null != body) {
