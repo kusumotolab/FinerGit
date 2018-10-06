@@ -12,81 +12,7 @@ import org.eclipse.jdt.core.dom.InfixExpression.Operator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import finergit.FinerGitConfig;
-import finergit.ast.token.AND;
-import finergit.ast.token.ANNOTATION;
-import finergit.ast.token.ASSERT;
-import finergit.ast.token.ASSIGN;
-import finergit.ast.token.BLOCKCOMMENT;
-import finergit.ast.token.BREAK;
-import finergit.ast.token.BooleanLiteralFactory;
-import finergit.ast.token.CASE;
-import finergit.ast.token.CATCH;
-import finergit.ast.token.CHARLITERAL;
-import finergit.ast.token.CLASS;
-import finergit.ast.token.CLASSNAME;
-import finergit.ast.token.COLON;
-import finergit.ast.token.COMMA;
-import finergit.ast.token.CONTINUE;
-import finergit.ast.token.DECLAREDMETHODNAME;
-import finergit.ast.token.DEFAULT;
-import finergit.ast.token.DO;
-import finergit.ast.token.DOT;
-import finergit.ast.token.ELSE;
-import finergit.ast.token.EXTENDS;
-import finergit.ast.token.FINALLY;
-import finergit.ast.token.FOR;
-import finergit.ast.token.FinerJavaClassToken;
-import finergit.ast.token.FinerJavaMethodToken;
-import finergit.ast.token.GREAT;
-import finergit.ast.token.IF;
-import finergit.ast.token.IMPLEMENTS;
-import finergit.ast.token.IMPORT;
-import finergit.ast.token.IMPORTNAME;
-import finergit.ast.token.INSTANCEOF;
-import finergit.ast.token.INVOKEDMETHODNAME;
-import finergit.ast.token.JAVADOCCOMMENT;
-import finergit.ast.token.JavaToken;
-import finergit.ast.token.LABELNAME;
-import finergit.ast.token.LEFTBRACKET;
-import finergit.ast.token.LEFTMETHODBRACKET;
-import finergit.ast.token.LEFTMETHODPAREN;
-import finergit.ast.token.LEFTPAREN;
-import finergit.ast.token.LEFTSQUAREBRACKET;
-import finergit.ast.token.LESS;
-import finergit.ast.token.LINECOMMENT;
-import finergit.ast.token.LineToken;
-import finergit.ast.token.METHODREFERENCE;
-import finergit.ast.token.METHODSEMICOLON;
-import finergit.ast.token.ModifierFactory;
-import finergit.ast.token.NEW;
-import finergit.ast.token.NULL;
-import finergit.ast.token.NUMBERLITERAL;
-import finergit.ast.token.OR;
-import finergit.ast.token.OperatorFactory;
-import finergit.ast.token.PACKAGE;
-import finergit.ast.token.PACKAGENAME;
-import finergit.ast.token.PrimitiveTypeFactory;
-import finergit.ast.token.QUESTION;
-import finergit.ast.token.RETURN;
-import finergit.ast.token.RIGHTARROW;
-import finergit.ast.token.RIGHTBRACKET;
-import finergit.ast.token.RIGHTMETHODBRACKET;
-import finergit.ast.token.RIGHTMETHODPAREN;
-import finergit.ast.token.RIGHTPAREN;
-import finergit.ast.token.RIGHTSQUAREBRACKET;
-import finergit.ast.token.SEMICOLON;
-import finergit.ast.token.STATIC;
-import finergit.ast.token.STRINGLITERAL;
-import finergit.ast.token.SUPER;
-import finergit.ast.token.SWITCH;
-import finergit.ast.token.SYNCHRONIZED;
-import finergit.ast.token.THIS;
-import finergit.ast.token.THROW;
-import finergit.ast.token.THROWS;
-import finergit.ast.token.TRY;
-import finergit.ast.token.TYPENAME;
-import finergit.ast.token.VARIABLENAME;
-import finergit.ast.token.WHILE;
+import finergit.ast.token.*;
 
 public class JavaFileVisitor extends ASTVisitor {
 
@@ -147,14 +73,14 @@ public class JavaFileVisitor extends ASTVisitor {
     final Class<?> context = this.contexts.pop();
     assert CLASSNAME.class == context : "error happened at JavaFileVisitor#visit(AnnotationTypeDeclaration)";
 
-    this.addToPeekModule(new LEFTBRACKET());
+    this.addToPeekModule(new LEFTCLASSBRACKET());
 
     final List<?> bodies = node.bodyDeclarations();
     for (final Object body : bodies) {
       ((BodyDeclaration) body).accept(this);
     }
 
-    this.addToPeekModule(new RIGHTBRACKET());
+    this.addToPeekModule(new RIGHTCLASSBRACKET());
 
     this.classNestLevel--;
 
@@ -202,14 +128,14 @@ public class JavaFileVisitor extends ASTVisitor {
 
     this.classNestLevel++;
 
-    this.addToPeekModule(new LEFTBRACKET());
+    this.addToPeekModule(new LEFTCLASSBRACKET());
 
     final List<?> bodies = node.bodyDeclarations();
     for (final Object body : bodies) {
       ((BodyDeclaration) body).accept(this);
     }
 
-    this.addToPeekModule(new RIGHTBRACKET());
+    this.addToPeekModule(new RIGHTCLASSBRACKET());
 
     this.classNestLevel--;
 
@@ -251,7 +177,7 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final ArrayInitializer node) {
 
-    this.addToPeekModule(new LEFTBRACKET());
+    this.addToPeekModule(new LEFTARRAYINITIALIZERBRACKET());
 
     final List<?> expressions = node.expressions();
     if (null != expressions && !expressions.isEmpty()) {
@@ -262,7 +188,7 @@ public class JavaFileVisitor extends ASTVisitor {
       }
     }
 
-    this.addToPeekModule(new RIGHTBRACKET());
+    this.addToPeekModule(new RIGHTARRAYINITIALIZERBRACKET());
 
     return false;
   }
@@ -374,12 +300,12 @@ public class JavaFileVisitor extends ASTVisitor {
         .accept(this);
 
     this.addToPeekModule(new RIGHTPAREN());
-    this.addToPeekModule(new LEFTBRACKET());
+    this.addToPeekModule(new LEFTCATCHCLAUSEBRACKET());
 
     node.getBody()
         .accept(this);
 
-    this.addToPeekModule(new RIGHTBRACKET());
+    this.addToPeekModule(new RIGHTCATCHCLAUSEBRACKET());
 
     return false;
   }
@@ -528,12 +454,12 @@ public class JavaFileVisitor extends ASTVisitor {
   public boolean visit(final DoStatement node) {
 
     this.addToPeekModule(new DO());
-    this.addToPeekModule(new LEFTBRACKET());
+    this.addToPeekModule(new LEFTDOBRACKET());
 
     node.getBody()
         .accept(this);
 
-    this.addToPeekModule(new RIGHTBRACKET());
+    this.addToPeekModule(new RIGHTDOBRACKET());
     this.addToPeekModule(new WHILE());
     this.addToPeekModule(new LEFTPAREN());
 
@@ -567,12 +493,12 @@ public class JavaFileVisitor extends ASTVisitor {
         .accept(this);
 
     this.addToPeekModule(new RIGHTPAREN());
-    this.addToPeekModule(new LEFTBRACKET());
+    this.addToPeekModule(new LEFTENHANCEDFORBRACKET());
 
     node.getBody()
         .accept(this);
 
-    this.addToPeekModule(new RIGHTBRACKET());
+    this.addToPeekModule(new RIGHTENHANCEDFORBRACKET());
 
     return false;
   }
@@ -643,13 +569,13 @@ public class JavaFileVisitor extends ASTVisitor {
     final Class<?> context = this.contexts.pop();
     assert CLASSNAME.class == context : "error happend at JavaFileVisitor#visit(EnumDeclaration)";
 
-    this.addToPeekModule(new LEFTBRACKET());
+    this.addToPeekModule(new LEFTENUMBRACKET());
 
     for (final Object enumConstant : node.enumConstants()) {
       ((EnumConstantDeclaration) enumConstant).accept(this);
     }
 
-    this.addToPeekModule(new RIGHTBRACKET());
+    this.addToPeekModule(new RIGHTENUMBRACKET());
 
     return false;
   }
@@ -774,9 +700,9 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final Statement body = node.getBody();
     if (null != body) {
-      this.addToPeekModule(new LEFTBRACKET());
+      this.addToPeekModule(new LEFTFORBRACKET());
       body.accept(this);
-      this.addToPeekModule(new RIGHTBRACKET());
+      this.addToPeekModule(new RIGHTFORBRACKET());
     }
 
     return false;
@@ -863,12 +789,12 @@ public class JavaFileVisitor extends ASTVisitor {
       this.addToPeekModule(modifierToken);
     }
 
-    this.addToPeekModule(new LEFTBRACKET());
+    this.addToPeekModule(new LEFTINITIALIZERBRACKET());
 
     node.getBody()
         .accept(this);
 
-    this.addToPeekModule(new RIGHTBRACKET());
+    this.addToPeekModule(new RIGHTINITIALIZERBRACKET());
 
     return false;
   }
@@ -917,12 +843,9 @@ public class JavaFileVisitor extends ASTVisitor {
     assert LABELNAME.class == context : "error happened at JavaFileVisitor#visit(LabeledStatement)";
 
     this.addToPeekModule(new COLON());
-    this.addToPeekModule(new LEFTBRACKET());
 
     node.getBody()
         .accept(this);
-
-    this.addToPeekModule(new RIGHTBRACKET());
 
     return false;
   }
@@ -948,12 +871,13 @@ public class JavaFileVisitor extends ASTVisitor {
     }
 
     this.addToPeekModule(new RIGHTARROW());
-    this.addToPeekModule(new LEFTBRACKET());
+    // TODO "{"と"}"が必要かどうかの場合分けが必要のはず
+    this.addToPeekModule(new LEFTLAMBDAEXPRESSIONBRACKET());
 
     node.getBody()
         .accept(this);
 
-    this.addToPeekModule(new RIGHTBRACKET());
+    this.addToPeekModule(new RIGHTLAMBDAEXPRESSIONBRACKET());
 
     return false;
   }
@@ -1645,14 +1569,14 @@ public class JavaFileVisitor extends ASTVisitor {
         .accept(this);
 
     this.addToPeekModule(new RIGHTPAREN());
-    this.addToPeekModule(new LEFTBRACKET());
+    this.addToPeekModule(new LEFTSWITCHBRACKET());
 
     final List<?> statements = node.statements();
     for (final Object statement : statements) {
       ((Statement) statement).accept(this);
     }
 
-    this.addToPeekModule(new RIGHTBRACKET());
+    this.addToPeekModule(new RIGHTSWITCHBRACKET());
 
     return false;
   }
@@ -1667,12 +1591,12 @@ public class JavaFileVisitor extends ASTVisitor {
         .accept(this);
 
     this.addToPeekModule(new RIGHTPAREN());
-    this.addToPeekModule(new LEFTBRACKET());
+    this.addToPeekModule(new LEFTSYNCHRONIZEDBRACKET());
 
     node.getBody()
         .accept(this);
 
-    this.addToPeekModule(new RIGHTBRACKET());
+    this.addToPeekModule(new RIGHTSYNCHRONIZEDBRACKET());
 
     return false;
   }
@@ -1730,12 +1654,12 @@ public class JavaFileVisitor extends ASTVisitor {
       this.addToPeekModule(new RIGHTPAREN());
     }
 
-    this.addToPeekModule(new LEFTBRACKET());
+    this.addToPeekModule(new LEFTTRYBRACKET());
 
     node.getBody()
         .accept(this);
 
-    this.addToPeekModule(new RIGHTBRACKET());
+    this.addToPeekModule(new RIGHTTRYBRACKET());
 
     final List<?> catchClauses = node.catchClauses();
     for (final Object catchClause : catchClauses) {
@@ -1818,7 +1742,7 @@ public class JavaFileVisitor extends ASTVisitor {
     }
 
     // "{"の処理
-    this.addToPeekModule(new LEFTBRACKET());
+    this.addToPeekModule(new LEFTCLASSBRACKET());
 
     // 中身の処理
     for (final Object o : node.bodyDeclarations()) {
@@ -1827,7 +1751,7 @@ public class JavaFileVisitor extends ASTVisitor {
     }
 
     // "}"の処理
-    this.addToPeekModule(new RIGHTBRACKET());
+    this.addToPeekModule(new RIGHTCLASSBRACKET());
 
     this.classNestLevel--;
 
@@ -1982,9 +1906,9 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final Statement body = node.getBody();
     if (null != body) {
-      this.addToPeekModule(new LEFTBRACKET());
+      this.addToPeekModule(new LEFTWHILEBRACKET());
       body.accept(this);
-      this.addToPeekModule(new RIGHTBRACKET());
+      this.addToPeekModule(new RIGHTWHILEBRACKET());
     }
 
     return false;
