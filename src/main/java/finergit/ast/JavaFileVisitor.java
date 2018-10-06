@@ -183,7 +183,7 @@ public class JavaFileVisitor extends ASTVisitor {
     if (null != expressions && !expressions.isEmpty()) {
       ((Expression) expressions.get(0)).accept(this);
       for (int index = 1; index < expressions.size(); index++) {
-        this.addToPeekModule(new COMMA());
+        this.addToPeekModule(new ARRAYINITIALIZERCOMMA());
         ((Expression) expressions.get(index)).accept(this);
       }
     }
@@ -339,7 +339,7 @@ public class JavaFileVisitor extends ASTVisitor {
     if (null != arguments && !arguments.isEmpty()) {
       ((Expression) arguments.get(0)).accept(this);
       for (int index = 1; index < arguments.size(); index++) {
-        this.addToPeekModule(new COMMA());
+        this.addToPeekModule(new CLASSINSTANCECREATIONCOMMA());
         ((Expression) arguments.get(index)).accept(this);
       }
     }
@@ -389,7 +389,7 @@ public class JavaFileVisitor extends ASTVisitor {
     if (null != arguments && !arguments.isEmpty()) {
       ((Expression) arguments.get(0)).accept(this);
       for (int index = 1; index < arguments.size(); index++) {
-        this.addToPeekModule(new COMMA());
+        this.addToPeekModule(new CONSTRUCTORINVOCATIONCOMMA());
         ((Expression) arguments.get(index)).accept(this);
       }
     }
@@ -440,7 +440,7 @@ public class JavaFileVisitor extends ASTVisitor {
     if (null != annotations && !annotations.isEmpty()) {
       ((Annotation) annotations.get(0)).accept(this);
       for (int index = 1; index < annotations.size(); index++) {
-        this.addToPeekModule(new COMMA());
+        this.addToPeekModule(new DIMENSIONCOMMA());
         ((Annotation) annotations.get(index)).accept(this);
       }
     }
@@ -532,7 +532,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
       ((Expression) arguments.get(0)).accept(this);
       for (int index = 1; index < arguments.size(); index++) {
-        this.addToPeekModule(new COMMA());
+        this.addToPeekModule(new ENUMCOMMA());
         ((Expression) arguments.get(index)).accept(this);
       }
 
@@ -671,7 +671,7 @@ public class JavaFileVisitor extends ASTVisitor {
     if (null != initializers && !initializers.isEmpty()) {
       ((Expression) initializers.get(0)).accept(this);
       for (int index = 1; index < initializers.size(); index++) {
-        this.addToPeekModule(new COMMA());
+        this.addToPeekModule(new FORINITIALIZERCOMMA());
         ((Expression) initializers.get(index)).accept(this);
       }
     }
@@ -691,7 +691,7 @@ public class JavaFileVisitor extends ASTVisitor {
     if (null != updaters && !updaters.isEmpty()) {
       ((Expression) updaters.get(0)).accept(this);
       for (int index = 1; index < updaters.size(); index++) {
-        this.addToPeekModule(new COMMA());
+        this.addToPeekModule(new FORUPDATERCOMMA());
         ((Expression) updaters.get(index)).accept(this);
       }
     }
@@ -861,7 +861,7 @@ public class JavaFileVisitor extends ASTVisitor {
     if (null != parameters && !parameters.isEmpty()) {
       ((VariableDeclaration) parameters.get(0)).accept(this);
       for (int index = 1; index < parameters.size(); index++) {
-        this.addToPeekModule(new COMMA());
+        this.addToPeekModule(new LAMBDAEXPRESSIONCOMMA());
         ((VariableDeclaration) parameters.get(index)).accept(this);
       }
     }
@@ -976,7 +976,7 @@ public class JavaFileVisitor extends ASTVisitor {
     if (null != parameters && !parameters.isEmpty()) {
       ((SingleVariableDeclaration) parameters.get(0)).accept(this);
       for (int index = 1; index < parameters.size(); index++) {
-        this.addToPeekModule(new COMMA());
+        this.addToPeekModule(new METHODDECLARAIONPARAMETERCOMMA());
         ((SingleVariableDeclaration) parameters.get(index)).accept(this);
       }
     }
@@ -991,7 +991,7 @@ public class JavaFileVisitor extends ASTVisitor {
       this.contexts.push(TYPENAME.class);
       ((Type) exceptions.get(0)).accept(this);
       for (int index = 1; index < exceptions.size(); index++) {
-        this.addToPeekModule(new COMMA());
+        this.addToPeekModule(new METHODDECLARATIONTHROWSCOMMA());
         ((Type) exceptions.get(index)).accept(this);
       }
       final Class<?> context = this.contexts.pop();
@@ -1106,7 +1106,7 @@ public class JavaFileVisitor extends ASTVisitor {
     if (null != arguments && !arguments.isEmpty()) {
       ((Expression) arguments.get(0)).accept(this);
       for (int index = 1; index < arguments.size(); index++) {
-        this.addToPeekModule(new COMMA());
+        this.addToPeekModule(new METHODINVOCATIONCOMMA());
         ((Expression) arguments.get(index)).accept(this);
       }
     }
@@ -1173,7 +1173,7 @@ public class JavaFileVisitor extends ASTVisitor {
       nodes.get(0)
           .accept(this);
       for (int index = 1; index < nodes.size(); index++) {
-        this.addToPeekModule(new COMMA());
+        this.addToPeekModule(new ANNOTATIONCOMMA());
         nodes.get(index)
             .accept(this);
       }
@@ -1229,7 +1229,7 @@ public class JavaFileVisitor extends ASTVisitor {
     if (null != typeArguments && !typeArguments.isEmpty()) {
       ((Type) typeArguments.get(0)).accept(this);
       for (int index = 1; index < typeArguments.size(); index++) {
-        this.addToPeekModule(new COMMA());
+        this.addToPeekModule(new PARAMETERIZEDTYPECOMMA());
         ((Type) typeArguments.get(index)).accept(this);
       }
     }
@@ -1460,7 +1460,7 @@ public class JavaFileVisitor extends ASTVisitor {
     if (null != arguments && !arguments.isEmpty()) {
       ((Expression) arguments.get(0)).accept(this);
       for (int index = 1; index < arguments.size(); index++) {
-        this.addToPeekModule(new COMMA());
+        this.addToPeekModule(new SUPERCONSTRUCTORINVOCATIONCOMMA());
         ((Expression) arguments.get(index)).accept(this);
       }
     }
@@ -1512,7 +1512,7 @@ public class JavaFileVisitor extends ASTVisitor {
     if (null != arguments && !arguments.isEmpty()) {
       ((Expression) arguments.get(0)).accept(this);
       for (int index = 1; index < arguments.size(); index++) {
-        this.addToPeekModule(new COMMA());
+        this.addToPeekModule(new METHODINVOCATIONCOMMA());
         ((Expression) arguments.get(index)).accept(this);
       }
     }
@@ -1733,7 +1733,7 @@ public class JavaFileVisitor extends ASTVisitor {
       ((Type) interfaces.get(0)).accept(this);
 
       for (int index = 1; index < interfaces.size(); index++) {
-        this.addToPeekModule(new COMMA());
+        this.addToPeekModule(new TYPEDECLARATIONCOMMA());
         ((Type) interfaces.get(index)).accept(this);
       }
 
@@ -1761,7 +1761,6 @@ public class JavaFileVisitor extends ASTVisitor {
       this.addToPeekModule(
           new FinerJavaClassToken("ClassToken[" + finerJavaClass.name + "]", finerJavaClass));
     }
-
 
     return false;
   }
@@ -1844,7 +1843,7 @@ public class JavaFileVisitor extends ASTVisitor {
     final List<?> fragments = node.fragments();
     ((VariableDeclarationFragment) fragments.get(0)).accept(this);
     for (int index = 1; index < fragments.size(); index++) {
-      this.addToPeekModule(new COMMA());
+      this.addToPeekModule(new VARIABLEDECLARATIONCOMMA());
       ((VariableDeclarationFragment) fragments.get(index)).accept(this);
     }
 
@@ -1866,7 +1865,7 @@ public class JavaFileVisitor extends ASTVisitor {
     final List<?> fragments = node.fragments();
     ((VariableDeclarationFragment) fragments.get(0)).accept(this);
     for (int index = 1; index < fragments.size(); index++) {
-      this.addToPeekModule(new COMMA());
+      this.addToPeekModule(new VARIABLEDECLARATIONCOMMA());
       ((VariableDeclarationFragment) fragments.get(index)).accept(this);
     }
 
