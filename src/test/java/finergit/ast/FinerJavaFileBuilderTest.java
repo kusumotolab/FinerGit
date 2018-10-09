@@ -155,4 +155,39 @@ public class FinerJavaFileBuilderTest {
       }
     }
   }
+
+
+  @Test
+  public void getFinerJavaModulesSuccessTest07() throws Exception {
+    final Path targetPath =
+        Paths.get("src/test/resources/finergit/ast/token/PreAndPostOperator.java");
+    final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
+
+    for (final FinerJavaModule module : modules) {
+
+      final List<String> tokens = module.getTokens()
+          .stream()
+          .map(t -> t.value)
+          .collect(Collectors.toList());
+      switch (module.name) {
+        case "PreAndPostOperator":
+          break;
+        case "void_preOperatorMethod()":
+          assertThat(tokens).containsExactly("void", "preOperatorMethod", "(", ")", "{", "int", "i",
+              "=", "0", ";", "++", "i", ";", "System", ".", "out", ".", "println", "(", "i", ")",
+              ";", "}");
+          break;
+        case "void_postOperatorMethod()":
+          assertThat(tokens).containsExactly("void", "postOperatorMethod", "(", ")", "{", "int",
+              "i", "=", "0", ";", "i", "++", ";", "System", ".", "out", ".", "println", "(", "i",
+              ")", ";", "}");
+          break;
+        default:
+          System.err.println(module.name);
+          assertThat(true).isEqualTo(false);
+      }
+    }
+  }
 }
