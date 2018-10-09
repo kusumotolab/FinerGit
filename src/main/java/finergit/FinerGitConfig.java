@@ -33,6 +33,7 @@ public class FinerGitConfig {
     this.isAccessModifierIncluded = true;
     this.isReturnTypeIncluded = true;
     this.isTokenTypeIncluded = false;
+    this.isMethodTokenIncluded = true;
     this.isCheckCommit = false;
     this.maxFileNameLength = 255;
     this.hashLength = 7;
