@@ -1259,7 +1259,8 @@ public class JavaFileVisitor extends ASTVisitor {
         .accept(this);
 
     final PostfixExpression.Operator operator = node.getOperator();
-    OperatorFactory.create(operator.toString());
+    final JavaToken operatorToken = OperatorFactory.create(operator.toString());
+    this.addToPeekModule(operatorToken);
 
     return false;
   }
@@ -1268,7 +1269,8 @@ public class JavaFileVisitor extends ASTVisitor {
   public boolean visit(final PrefixExpression node) {
 
     final PrefixExpression.Operator operator = node.getOperator();
-    OperatorFactory.create(operator.toString());
+    final JavaToken operatorToken = OperatorFactory.create(operator.toString());
+    this.addToPeekModule(operatorToken);
 
     node.getOperand()
         .accept(this);
