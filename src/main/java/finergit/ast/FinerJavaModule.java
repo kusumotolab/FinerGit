@@ -51,7 +51,7 @@ public abstract class FinerJavaModule {
         .filter(t -> LEFTMETHODBRACKET.class != t.getClass())
         .filter(t -> RIGHTMETHODBRACKET.class != t.getClass())
         .filter(t -> METHODDECLARATIONSEMICOLON.class != t.getClass())
-        .map(t -> t.getValueAndAttributeString())
+        .map(t -> t.toLine(this.config.isTokenTypeIncluded()))
         .collect(Collectors.toList());
   }
 
