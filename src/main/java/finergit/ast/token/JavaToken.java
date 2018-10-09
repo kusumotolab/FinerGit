@@ -12,12 +12,14 @@ public abstract class JavaToken {
     this.index = 0;
   }
 
-  final public String getValueAndAttributeString() {
+  final public String toLine(final boolean tokenTypeIncluded) {
     final StringBuilder text = new StringBuilder();
     text.append(this.value);
-    text.append("\t");
-    text.append(this.getClass()
-        .getSimpleName());
+    if (tokenTypeIncluded) {
+      text.append("\t");
+      text.append(this.getClass()
+          .getSimpleName());
+    }
     return text.toString();
   }
 }
