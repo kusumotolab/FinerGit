@@ -18,6 +18,7 @@ public class FinerGitConfig {
   private boolean isAccessModifierIncluded;
   private boolean isReturnTypeIncluded;
   private boolean isTokenTypeIncluded;
+  private boolean isMethodTokenIncluded;
   private boolean isCheckCommit;
   private int maxFileNameLength;
   private int hashLength;
@@ -32,6 +33,7 @@ public class FinerGitConfig {
     this.isAccessModifierIncluded = true;
     this.isReturnTypeIncluded = true;
     this.isTokenTypeIncluded = false;
+    this.isMethodTokenIncluded = true;
     this.isCheckCommit = false;
     this.maxFileNameLength = 255;
     this.hashLength = 7;
@@ -200,6 +202,29 @@ public class FinerGitConfig {
       }
       default: {
         System.err.println("\"--token-type-included\" option can take only true or false");
+        System.exit(0);
+      }
+    }
+  }
+
+  public boolean isMethodTokenIncluded() {
+    return this.isMethodTokenIncluded;
+  }
+
+  @Option(name = "--method-token-included", metaVar = "<true|false>)",
+      usage = "include method tokens")
+  public void setMethodTokenIncluded(final String flag) {
+    switch (flag.toLowerCase()) {
+      case "true": {
+        this.isMethodTokenIncluded = true;
+        break;
+      }
+      case "false": {
+        this.isMethodTokenIncluded = false;
+        break;
+      }
+      default: {
+        System.err.println("\"--method-token-included\" option can take only true or false");
         System.exit(0);
       }
     }

@@ -45,13 +45,15 @@ public abstract class FinerJavaModule {
   }
 
   public List<String> getLines() {
+    final boolean isMethodTokenIncluded = this.config.isMethodTokenIncluded();
+    final boolean isTokenTypeIncluded = this.config.isTokenTypeIncluded();
     return this.tokens.stream()
-        .filter(t -> LEFTMETHODPAREN.class != t.getClass())
-        .filter(t -> RIGHTMETHODPAREN.class != t.getClass())
-        .filter(t -> LEFTMETHODBRACKET.class != t.getClass())
-        .filter(t -> RIGHTMETHODBRACKET.class != t.getClass())
-        .filter(t -> METHODDECLARATIONSEMICOLON.class != t.getClass())
-        .map(t -> t.toLine(this.config.isTokenTypeIncluded()))
+        .filter(t -> isMethodTokenIncluded || LEFTMETHODPAREN.class != t.getClass())
+        .filter(t -> isMethodTokenIncluded || RIGHTMETHODPAREN.class != t.getClass())
+        .filter(t -> isMethodTokenIncluded || LEFTMETHODBRACKET.class != t.getClass())
+        .filter(t -> isMethodTokenIncluded || RIGHTMETHODBRACKET.class != t.getClass())
+        .filter(t -> isMethodTokenIncluded || METHODDECLARATIONSEMICOLON.class != t.getClass())
+        .map(t -> t.toLine(isTokenTypeIncluded))
         .collect(Collectors.toList());
   }
 
