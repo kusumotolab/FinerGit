@@ -263,7 +263,7 @@ public class JavaFileVisitor extends ASTVisitor {
     } else if (ForStatement.class == parent.getClass()) {
       this.addToPeekModule(left ? new LEFTFORBRACKET() : new RIGHTFORBRACKET());
     } else if (EnhancedForStatement.class == parent.getClass()) {
-      this.addToPeekModule(left ? new LEFTFORBRACKET() : new RIGHTFORBRACKET());
+      this.addToPeekModule(left ? new LEFTENHANCEDFORBRACKET() : new RIGHTENHANCEDFORBRACKET());
     } else if (IfStatement.class == parent.getClass()) {
       this.addToPeekModule(left ? new LEFTIFBRACKET() : new RIGHTIFBRACKET());
     } else if (LambdaExpression.class == parent.getClass()) {
