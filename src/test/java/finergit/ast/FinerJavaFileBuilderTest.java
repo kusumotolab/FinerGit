@@ -268,6 +268,7 @@ public class FinerJavaFileBuilderTest {
               "void", "ifMethod", "(", ")", "{", //
               "if", "(", "true", ")", "{", //
               "}", "else", "{", //
+              "}", //
               "}");
           break;
         case "void_lambdaMethod()":
