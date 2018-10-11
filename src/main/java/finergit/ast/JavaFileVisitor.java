@@ -73,14 +73,10 @@ public class JavaFileVisitor extends ASTVisitor {
     final Class<?> context = this.contexts.pop();
     assert CLASSNAME.class == context : "error happened at JavaFileVisitor#visit(AnnotationTypeDeclaration)";
 
-    this.addToPeekModule(new LEFTCLASSBRACKET());
-
     final List<?> bodies = node.bodyDeclarations();
     for (final Object body : bodies) {
       ((BodyDeclaration) body).accept(this);
     }
-
-    this.addToPeekModule(new RIGHTCLASSBRACKET());
 
     this.classNestLevel--;
 
@@ -128,14 +124,14 @@ public class JavaFileVisitor extends ASTVisitor {
 
     this.classNestLevel++;
 
-    this.addToPeekModule(new LEFTCLASSBRACKET());
+    this.addToPeekModule(new LEFTANONYMOUSCLASSBRACKET());
 
     final List<?> bodies = node.bodyDeclarations();
     for (final Object body : bodies) {
       ((BodyDeclaration) body).accept(this);
     }
 
-    this.addToPeekModule(new RIGHTCLASSBRACKET());
+    this.addToPeekModule(new RIGHTANONYMOUSCLASSBRACKET());
 
     this.classNestLevel--;
 
@@ -236,12 +232,59 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final Block node) {
 
+    final ASTNode parent = node.getParent();
+    this.addBracket(parent, true);
+
     final List<?> statements = node.statements();
     for (final Object statement : statements) {
       ((Statement) statement).accept(this);
     }
 
+    this.addBracket(parent, false);
+
     return false;
+  }
+
+  /**
+   * ブラケット"{"もしくは"}"を追加するためのメソッド．第一引数はコンテキスト情報（親ノード情報）．第二引数は"{"か"}"の選択のためのboolean型．
+   * 
+   * @param parent
+   * @param left
+   */
+  private void addBracket(final ASTNode parent, final boolean left) {
+    if (TypeDeclaration.class == parent.getClass()) {
+      this.addToPeekModule(left ? new LEFTCLASSBRACKET() : new RIGHTCLASSBRACKET());
+    } else if (MethodDeclaration.class == parent.getClass()) {
+      this.addToPeekModule(left ? new LEFTMETHODBRACKET() : new RIGHTMETHODBRACKET());
+    } else if (Initializer.class == parent.getClass()) {
+      this.addToPeekModule(left ? new LEFTINITIALIZERBRACKET() : new RIGHTINITIALIZERBRACKET());
+    } else if (DoStatement.class == parent.getClass()) {
+      this.addToPeekModule(left ? new LEFTDOBRACKET() : new RIGHTDOBRACKET());
+    } else if (ForStatement.class == parent.getClass()) {
+      this.addToPeekModule(left ? new LEFTFORBRACKET() : new RIGHTFORBRACKET());
+    } else if (EnhancedForStatement.class == parent.getClass()) {
+      this.addToPeekModule(left ? new LEFTENHANCEDFORBRACKET() : new RIGHTENHANCEDFORBRACKET());
+    } else if (IfStatement.class == parent.getClass()) {
+      this.addToPeekModule(left ? new LEFTIFBRACKET() : new RIGHTIFBRACKET());
+    } else if (LambdaExpression.class == parent.getClass()) {
+      this.addToPeekModule(left ? new LEFTLAMBDABRACKET() : new RIGHTLAMBDABRACKET());
+    } else if (Block.class == parent.getClass()) {
+      this.addToPeekModule(left ? new LEFTSIMPLEBLOCKBRACKET() : new RIGHTSIMPLEBLOCKBRACKET());
+    } else if (SynchronizedStatement.class == parent.getClass()) {
+      this.addToPeekModule(left ? new LEFTSYNCHRONIZEDBRACKET() : new RIGHTSYNCHRONIZEDBRACKET());
+    } else if (SwitchStatement.class == parent.getClass()) {
+      // switch文のときにはここには来ないはず
+      log.error("unexpected state at switch statement.");
+    } else if (TryStatement.class == parent.getClass()) {
+      this.addToPeekModule(left ? new LEFTTRYBRACKET() : new RIGHTTRYBRACKET());
+    } else if (CatchClause.class == parent.getClass()) {
+      this.addToPeekModule(left ? new LEFTCATCHCLAUSEBRACKET() : new RIGHTCATCHCLAUSEBRACKET());
+    } else if (WhileStatement.class == parent.getClass()) {
+      this.addToPeekModule(left ? new LEFTWHILEBRACKET() : new RIGHTWHILEBRACKET());
+    } else {
+      System.err.println("unexpected parent type: " + parent.getClass()
+          .getName());
+    }
   }
 
   @Override
@@ -300,12 +343,9 @@ public class JavaFileVisitor extends ASTVisitor {
         .accept(this);
 
     this.addToPeekModule(new RIGHTCATCHCLAUSEPAREN());
-    this.addToPeekModule(new LEFTCATCHCLAUSEBRACKET());
 
     node.getBody()
         .accept(this);
-
-    this.addToPeekModule(new RIGHTCATCHCLAUSEBRACKET());
 
     return false;
   }
@@ -454,12 +494,10 @@ public class JavaFileVisitor extends ASTVisitor {
   public boolean visit(final DoStatement node) {
 
     this.addToPeekModule(new DO());
-    this.addToPeekModule(new LEFTDOBRACKET());
 
     node.getBody()
         .accept(this);
 
-    this.addToPeekModule(new RIGHTDOBRACKET());
     this.addToPeekModule(new WHILE());
     this.addToPeekModule(new LEFTDOPAREN());
 
@@ -493,12 +531,9 @@ public class JavaFileVisitor extends ASTVisitor {
         .accept(this);
 
     this.addToPeekModule(new RIGHTENHANCEDFORPAREN());
-    this.addToPeekModule(new LEFTENHANCEDFORBRACKET());
 
     node.getBody()
         .accept(this);
-
-    this.addToPeekModule(new RIGHTENHANCEDFORBRACKET());
 
     return false;
   }
@@ -569,13 +604,9 @@ public class JavaFileVisitor extends ASTVisitor {
     final Class<?> context = this.contexts.pop();
     assert CLASSNAME.class == context : "error happend at JavaFileVisitor#visit(EnumDeclaration)";
 
-    this.addToPeekModule(new LEFTENUMBRACKET());
-
     for (final Object enumConstant : node.enumConstants()) {
       ((EnumConstantDeclaration) enumConstant).accept(this);
     }
-
-    this.addToPeekModule(new RIGHTENUMBRACKET());
 
     return false;
   }
@@ -700,9 +731,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final Statement body = node.getBody();
     if (null != body) {
-      this.addToPeekModule(new LEFTFORBRACKET());
       body.accept(this);
-      this.addToPeekModule(new RIGHTFORBRACKET());
     }
 
     return false;
@@ -789,12 +818,8 @@ public class JavaFileVisitor extends ASTVisitor {
       this.addToPeekModule(modifierToken);
     }
 
-    this.addToPeekModule(new LEFTINITIALIZERBRACKET());
-
     node.getBody()
         .accept(this);
-
-    this.addToPeekModule(new RIGHTINITIALIZERBRACKET());
 
     return false;
   }
@@ -871,13 +896,9 @@ public class JavaFileVisitor extends ASTVisitor {
     }
 
     this.addToPeekModule(new RIGHTARROW());
-    // TODO "{"と"}"が必要かどうかの場合分けが必要のはず
-    this.addToPeekModule(new LEFTLAMBDAEXPRESSIONBRACKET());
 
     node.getBody()
         .accept(this);
-
-    this.addToPeekModule(new RIGHTLAMBDAEXPRESSIONBRACKET());
 
     return false;
   }
@@ -1068,9 +1089,7 @@ public class JavaFileVisitor extends ASTVisitor {
     // メソッドの中身の処理
     final Block body = node.getBody();
     if (null != body) {
-      this.addToPeekModule(new LEFTMETHODBRACKET());
       body.accept(this);
-      this.addToPeekModule(new RIGHTMETHODBRACKET());
     } else {
       this.addToPeekModule(new METHODDECLARATIONSEMICOLON());
     }
@@ -1593,12 +1612,9 @@ public class JavaFileVisitor extends ASTVisitor {
         .accept(this);
 
     this.addToPeekModule(new RIGHTSYNCHRONIZEDPAREN());
-    this.addToPeekModule(new LEFTSYNCHRONIZEDBRACKET());
 
     node.getBody()
         .accept(this);
-
-    this.addToPeekModule(new RIGHTSYNCHRONIZEDBRACKET());
 
     return false;
   }
@@ -1656,12 +1672,8 @@ public class JavaFileVisitor extends ASTVisitor {
       this.addToPeekModule(new RIGHTTRYPAREN());
     }
 
-    this.addToPeekModule(new LEFTTRYBRACKET());
-
     node.getBody()
         .accept(this);
-
-    this.addToPeekModule(new RIGHTTRYBRACKET());
 
     final List<?> catchClauses = node.catchClauses();
     for (final Object catchClause : catchClauses) {
@@ -1743,17 +1755,11 @@ public class JavaFileVisitor extends ASTVisitor {
       assert TYPENAME.class == implementsContext : "error happened at visit(TypeDeclaration)";
     }
 
-    // "{"の処理
-    this.addToPeekModule(new LEFTCLASSBRACKET());
-
     // 中身の処理
     for (final Object o : node.bodyDeclarations()) {
       final BodyDeclaration bodyDeclaration = (BodyDeclaration) o;
       bodyDeclaration.accept(this);
     }
-
-    // "}"の処理
-    this.addToPeekModule(new RIGHTCLASSBRACKET());
 
     this.classNestLevel--;
 
@@ -1907,9 +1913,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final Statement body = node.getBody();
     if (null != body) {
-      this.addToPeekModule(new LEFTWHILEBRACKET());
       body.accept(this);
-      this.addToPeekModule(new RIGHTWHILEBRACKET());
     }
 
     return false;
