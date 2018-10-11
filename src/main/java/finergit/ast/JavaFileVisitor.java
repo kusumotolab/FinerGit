@@ -245,6 +245,12 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
+  /**
+   * ブラケット"{"もしくは"}"を追加するためのメソッド．第一引数はコンテキスト情報（親ノード情報）．第二引数は"{"か"}"の選択のためのboolean型．
+   * 
+   * @param parent
+   * @param left
+   */
   private void addBracket(final ASTNode parent, final boolean left) {
     if (TypeDeclaration.class == parent.getClass()) {
       this.addToPeekModule(left ? new LEFTCLASSBRACKET() : new RIGHTCLASSBRACKET());
