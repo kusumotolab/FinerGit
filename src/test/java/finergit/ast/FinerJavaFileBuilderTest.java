@@ -293,7 +293,7 @@ public class FinerJavaFileBuilderTest {
               "}", //
               "}");
           break;
-        case "void_switchMethod()":
+        case "void_switchMethod(int)":
           assertThat(tokens).containsExactly(//
               "void", "switchMethod", "(", "int", "value", ")", "{", //
               "switch", "(", "value", ")", "{", //
@@ -308,7 +308,7 @@ public class FinerJavaFileBuilderTest {
           assertThat(tokens).containsExactly(//
               "void", "tryMethod", "(", ")", "{", //
               "try", "{", //
-              "}", "catch", "(", "Exception", ")", "{", //
+              "}", "catch", "(", "Exception", "e", ")", "{", //
               "}", "finally", "{", //
               "}", //
               "}");
@@ -319,6 +319,23 @@ public class FinerJavaFileBuilderTest {
               "while", "(", "true", ")", "{", //
               "}", //
               "}");
+          break;
+        case "void_anonymousInnerClassMethod()":
+          assertThat(tokens).containsExactly(//
+              "void", "anonymousInnerClassMethod", "(", ")", "{", //
+              "new", "Nothing", "(", ")", "{", //
+              "@Override", //
+              "public", "void", "doNothing", "(", ")", "{", //
+              "}", //
+              "}", ";", //
+              "}");
+          break;
+        case "Nothing":
+          break;
+        case "void_doNothing()":
+          assertThat(tokens).containsExactly(//
+              "void", "doNothing", "(", ")", ";" //
+          );
           break;
         default:
           System.err.println(module.name);

@@ -76,8 +76,28 @@ public class Bracket {
     }
   }
 
+  void anonymousInnerClassMethod() {
+    new Nothing() {
+
+      @Override
+      public void doNothing() {
+
+      }
+    };
+  }
+
   enum Enum {
     A {},
     B {};
   }
+
+  static {
+
+  }
+}
+
+
+interface Nothing {
+
+  void doNothing();
 }
