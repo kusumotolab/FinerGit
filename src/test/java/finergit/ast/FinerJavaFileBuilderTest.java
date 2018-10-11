@@ -223,4 +223,106 @@ public class FinerJavaFileBuilderTest {
       }
     }
   }
+
+  @Test
+  public void getFinerJavaModulesSuccessTest09() throws Exception {
+    final Path targetPath = Paths.get("src/test/resources/finergit/ast/token/Bracket.java");
+    final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
+
+    for (final FinerJavaModule module : modules) {
+
+      final List<String> tokens = module.getTokens()
+          .stream()
+          .map(t -> t.value)
+          .collect(Collectors.toList());
+      switch (module.name) {
+        case "Bracket":
+          break;
+        case "void_doMethod()":
+          assertThat(tokens).containsExactly(//
+              "void", "doMethod", "(", ")", "{", //
+              "do", "{", //
+              "}", "while", "(", "true", ")", ";", //
+              "}");
+          break;
+        case "void_forMethod()":
+          assertThat(tokens).containsExactly(//
+              "void", "forMethod", "(", ")", "{", //
+              "for", "(", ";", "true", ";", ")", "{", //
+              "}", //
+              "}");
+          break;
+        case "void_foreachMethod()":
+          assertThat(tokens).containsExactly(//
+              "void", "foreachMethod", "(", ")", "{", //
+              "for", "(", "Object", "o", ":", "Collections", ".", "emptyList", "(", ")", ")", "{", //
+              "o", ".", "toString", "(", ")", ";", //
+              "}", //
+              "}");
+          break;
+        case "void_ifMethod()":
+          assertThat(tokens).containsExactly(//
+              "@SuppressWarnings(\"unused\")", //
+              "void", "ifMethod", "(", ")", "{", //
+              "if", "(", "true", ")", "{", //
+              "}", "else", "{", //
+              "}");
+          break;
+        case "void_lambdaMethod()":
+          assertThat(tokens).containsExactly(//
+              "void", "lambdaMethod", "(", ")", "{", //
+              "Collections", ".", "emptyList", "(", ")", //
+              ".", "forEach", "(", "o", "->", "{", //
+              "}", ")", ";", //
+              "}");
+          break;
+        case "void_simpleBlockMethod()":
+          assertThat(tokens).containsExactly(//
+              "void", "simpleBlockMethod", "(", ")", "{", //
+              "{", //
+              "}", //
+              "}");
+          break;
+        case "void_synchronizedMethod()":
+          assertThat(tokens).containsExactly(//
+              "void", "synchronizedMethod", "(", ")", "{", //
+              "synchronized", "(", "this", ")", "{", //
+              "}", //
+              "}");
+          break;
+        case "void_switchMethod()":
+          assertThat(tokens).containsExactly(//
+              "void", "switchMethod", "(", "int", "value", ")", "{", //
+              "switch", "(", "value", ")", "{", //
+              "case", "0", ":", //
+              "break", ";", //
+              "default", ":", //
+              "break", ";", //
+              "}", //
+              "}");
+          break;
+        case "void_tryMethod()":
+          assertThat(tokens).containsExactly(//
+              "void", "tryMethod", "(", ")", "{", //
+              "try", "{", //
+              "}", "catch", "(", "Exception", ")", "{", //
+              "}", "finally", "{", //
+              "}", //
+              "}");
+          break;
+        case "void_whileMethod()":
+          assertThat(tokens).containsExactly(//
+              "void", "whileMethod", "(", ")", "{", //
+              "while", "(", "true", ")", "{", //
+              "}", //
+              "}");
+          break;
+        default:
+          System.err.println(module.name);
+          assertThat(true).isEqualTo(false);
+      }
+    }
+  }
 }
