@@ -75,4 +75,9 @@ public class Bracket {
 
     }
   }
+
+  enum Enum {
+    A {},
+    B {};
+  }
 }
