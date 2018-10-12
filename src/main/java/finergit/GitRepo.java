@@ -40,7 +40,6 @@ import finergit.util.RevCommitUtil;
 public class GitRepo {
 
   private static final Logger log = LoggerFactory.getLogger(GitRepo.class);
-  private static final int BONUS_FOR_METHOD_NAME_MATCHING = 20;
 
   public final Path path;
   private FileRepository repository;
@@ -322,7 +321,7 @@ public class GitRepo {
   }
 
   public String getPathBeforeRename(final String path, final RevCommit commit,
-      final MinimumRenameScore minimumRenameScore) {
+      final MinimumRenameScore minimumRenameScore, final int methodNameBonus) {
 
     log.trace("enter getPathBeforeName(String=\"{}\", RevCommit=\"{}\", MinimumRenameScore=\"{}\")",
         path, RevCommitUtil.getAbbreviatedID(commit), minimumRenameScore.getValue());
@@ -343,7 +342,8 @@ public class GitRepo {
       treeWalk.addTree(parentCommit.getTree());
       treeWalk.addTree(commit.getTree());
 
-      final RenameDetector renameDetector = this.initializeRenameDetector(minimumRenameScore);
+      final RenameDetector renameDetector =
+          this.initializeRenameDetector(minimumRenameScore, methodNameBonus);
 
       // 拡張子が.mjavaのときはメソッドファイルのみが検索対象
       if (path.endsWith(".mjava")) {
@@ -361,7 +361,7 @@ public class GitRepo {
       else {
         renameDetector.addAll(DiffEntry.scan(treeWalk));
       }
-      
+
       final List<DiffEntry> files = renameDetector.compute();
       String oldPath = null;
       int similarityScore = -1;
@@ -392,7 +392,7 @@ public class GitRepo {
       }
 
       // メソッドファイルでない場合，メソッドファイルであってもメソッド名が一致していない場合は元々のしきい値以上で追跡する
-      if ((renameDetector.getRenameScore() + BONUS_FOR_METHOD_NAME_MATCHING) <= similarityScore) {
+      if ((renameDetector.getRenameScore() + methodNameBonus) <= similarityScore) {
         log.debug("new method name didn't equal to its old name");
         return oldPath;
       }
@@ -414,14 +414,15 @@ public class GitRepo {
    * @param score
    * @return
    */
-  private RenameDetector initializeRenameDetector(final MinimumRenameScore score) {
+  private RenameDetector initializeRenameDetector(final MinimumRenameScore score,
+      final int methodNameBonus) {
     final RenameDetector renameDetector = new RenameDetector(this.repository);
     if (!score.isRepositoryDefault()) {
       renameDetector.setRenameScore(score.getValue());
     }
     final int renameScore = renameDetector.getRenameScore();
-    renameDetector.setRenameScore(renameScore < BONUS_FOR_METHOD_NAME_MATCHING ? 0
-        : renameScore - BONUS_FOR_METHOD_NAME_MATCHING);
+    renameDetector
+        .setRenameScore(renameScore < methodNameBonus ? 0 : renameScore - methodNameBonus);
     return renameDetector;
   }
 
