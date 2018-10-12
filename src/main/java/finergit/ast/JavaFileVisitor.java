@@ -73,11 +73,15 @@ public class JavaFileVisitor extends ASTVisitor {
     final Class<?> context = this.contexts.pop();
     assert CLASSNAME.class == context : "error happened at JavaFileVisitor#visit(AnnotationTypeDeclaration)";
 
+    this.addToPeekModule(new LEFTANNOTATIONBRACKET());
+
     // ボディの処理
     for (final Object o : node.bodyDeclarations()) {
       final BodyDeclaration body = (BodyDeclaration) o;
       body.accept(this);
     }
+
+    this.addToPeekModule(new RIGHTANNOTATIONBRACKET());
 
     this.classNestLevel--;
 
@@ -254,7 +258,11 @@ public class JavaFileVisitor extends ASTVisitor {
    */
   private void addBracket(final ASTNode parent, final boolean left) {
     if (TypeDeclaration.class == parent.getClass()) {
-      this.addToPeekModule(left ? new LEFTCLASSBRACKET() : new RIGHTCLASSBRACKET());
+      // class宣言のときにはここには来ないはず
+      log.error("unexpected state at type declaration.");
+    } else if (AnonymousClassDeclaration.class == parent.getClass()) {
+      // 匿名class宣言のときにはここには来ないはず
+      log.error("unexpected state at anonymous type declaration.");
     } else if (MethodDeclaration.class == parent.getClass()) {
       this.addToPeekModule(left ? new LEFTMETHODBRACKET() : new RIGHTMETHODBRACKET());
     } else if (Initializer.class == parent.getClass()) {
@@ -1746,11 +1754,15 @@ public class JavaFileVisitor extends ASTVisitor {
       assert TYPENAME.class == implementsContext : "error happened at visit(TypeDeclaration)";
     }
 
+    this.addToPeekModule(new LEFTCLASSBRACKET());
+
     // 中身の処理
     for (final Object o : node.bodyDeclarations()) {
       final BodyDeclaration bodyDeclaration = (BodyDeclaration) o;
       bodyDeclaration.accept(this);
     }
+
+    this.addToPeekModule(new RIGHTCLASSBRACKET());
 
     this.classNestLevel--;
 
