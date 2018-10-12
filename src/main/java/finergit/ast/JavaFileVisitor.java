@@ -73,9 +73,10 @@ public class JavaFileVisitor extends ASTVisitor {
     final Class<?> context = this.contexts.pop();
     assert CLASSNAME.class == context : "error happened at JavaFileVisitor#visit(AnnotationTypeDeclaration)";
 
-    final List<?> bodies = node.bodyDeclarations();
-    for (final Object body : bodies) {
-      ((BodyDeclaration) body).accept(this);
+    // ボディの処理
+    for (final Object o : node.bodyDeclarations()) {
+      final BodyDeclaration body = (BodyDeclaration) o;
+      body.accept(this);
     }
 
     this.classNestLevel--;
@@ -126,9 +127,9 @@ public class JavaFileVisitor extends ASTVisitor {
 
     this.addToPeekModule(new LEFTANONYMOUSCLASSBRACKET());
 
-    final List<?> bodies = node.bodyDeclarations();
-    for (final Object body : bodies) {
-      ((BodyDeclaration) body).accept(this);
+    for (final Object o : node.bodyDeclarations()) {
+      final BodyDeclaration body = (BodyDeclaration) o;
+      body.accept(this);
     }
 
     this.addToPeekModule(new RIGHTANONYMOUSCLASSBRACKET());
@@ -235,9 +236,9 @@ public class JavaFileVisitor extends ASTVisitor {
     final ASTNode parent = node.getParent();
     this.addBracket(parent, true);
 
-    final List<?> statements = node.statements();
-    for (final Object statement : statements) {
-      ((Statement) statement).accept(this);
+    for (final Object o : node.statements()) {
+      final Statement statement = (Statement) o;
+      statement.accept(this);
     }
 
     this.addBracket(parent, false);
@@ -682,8 +683,9 @@ public class JavaFileVisitor extends ASTVisitor {
     node.getType()
         .accept(this);
 
-    for (final Object fragment : node.fragments()) {
-      ((VariableDeclarationFragment) fragment).accept(this);
+    for (final Object o : node.fragments()) {
+      final VariableDeclarationFragment fragment = (VariableDeclarationFragment) o;
+      fragment.accept(this);
     }
 
     this.addToPeekModule(new FIELDDECLARATIONSEMICOLON());
@@ -925,8 +927,9 @@ public class JavaFileVisitor extends ASTVisitor {
 
   @Override
   public boolean visit(final MemberValuePair node) {
-    this.addToPeekModule(new VARIABLENAME(node.getName()
-        .getIdentifier()));
+    final String variableName = node.getName()
+        .getIdentifier();
+    this.addToPeekModule(new VARIABLENAME(variableName));
     this.addToPeekModule(new ASSIGN());
 
     node.getValue()
@@ -1166,8 +1169,9 @@ public class JavaFileVisitor extends ASTVisitor {
 
     this.addToPeekModule(new DOT());
 
-    for (final Object annotation : node.annotations()) {
-      ((Annotation) annotation).accept(this);
+    for (final Object o : node.annotations()) {
+      final Annotation annotation = (Annotation) o;
+      annotation.accept(this);
     }
 
     this.contexts.push(INVOKEDMETHODNAME.class);
@@ -1336,8 +1340,9 @@ public class JavaFileVisitor extends ASTVisitor {
 
     this.addToPeekModule(new DOT());
 
-    for (final Object annotation : node.annotations()) {
-      ((Annotation) annotation).accept(this);
+    for (final Object o : node.annotations()) {
+      final Annotation annotation = (Annotation) o;
+      annotation.accept(this);
     }
 
     this.contexts.push(TYPENAME.class);
@@ -1592,9 +1597,9 @@ public class JavaFileVisitor extends ASTVisitor {
     this.addToPeekModule(new RIGHTSWITCHPAREN());
     this.addToPeekModule(new LEFTSWITCHBRACKET());
 
-    final List<?> statements = node.statements();
-    for (final Object statement : statements) {
-      ((Statement) statement).accept(this);
+    for (final Object o : node.statements()) {
+      final Statement statement = (Statement) o;
+      statement.accept(this);
     }
 
     this.addToPeekModule(new RIGHTSWITCHBRACKET());
@@ -1676,8 +1681,9 @@ public class JavaFileVisitor extends ASTVisitor {
         .accept(this);
 
     final List<?> catchClauses = node.catchClauses();
-    for (final Object catchClause : catchClauses) {
-      ((CatchClause) catchClause).accept(this);
+    for (final Object o : catchClauses) {
+      final CatchClause catchClause = (CatchClause) o;
+      catchClause.accept(this);
     }
 
     final Block finallyBlock = node.getFinally();
