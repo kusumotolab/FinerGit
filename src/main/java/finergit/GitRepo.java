@@ -321,10 +321,10 @@ public class GitRepo {
   }
 
   public String getPathBeforeRename(final String path, final RevCommit commit,
-      final MinimumRenameScore minimumRenameScore, final int methodNameBonus) {
+      final SemanticVersioningConfig config) {
 
-    log.trace("enter getPathBeforeName(String=\"{}\", RevCommit=\"{}\", MinimumRenameScore=\"{}\")",
-        path, RevCommitUtil.getAbbreviatedID(commit), minimumRenameScore.getValue());
+    log.trace("enter getPathBeforeName(String=\"{}\", RevCommit=\"{}\", MinimumRenameScore)", path,
+        RevCommitUtil.getAbbreviatedID(commit));
 
     if (null == commit) {
       log.debug("return because the target commit doesn't exist");
@@ -342,8 +342,7 @@ public class GitRepo {
       treeWalk.addTree(parentCommit.getTree());
       treeWalk.addTree(commit.getTree());
 
-      final RenameDetector renameDetector =
-          this.initializeRenameDetector(minimumRenameScore, methodNameBonus);
+      final RenameDetector renameDetector = this.initializeRenameDetector(config);
 
       // 拡張子が.mjavaのときはメソッドファイルのみが検索対象
       if (path.endsWith(".mjava")) {
@@ -381,19 +380,38 @@ public class GitRepo {
         return null;
       }
 
+      final int methodNameBonus = config.getMethodNameValue();
+      final int methodSignatureBonus = config.getMethodSignatureValue();
+      final int maxBonus = Math.max(methodNameBonus, methodSignatureBonus);
+      final int realMinimumRenameScore = renameDetector.getRenameScore();
+      final int minimumRenameScoreForMethodNameSameness =
+          realMinimumRenameScore + (maxBonus - methodNameBonus);
+      final int minimumRenameScoreForMethodSignatureNameSameness =
+          realMinimumRenameScore + (maxBonus - methodSignatureBonus);
+
       // メソッドファイルの場合はメソッド名の一致を調べる．一致してる場合は下げたしきい値以上であれば追跡する．
       if (path.endsWith(".mjava")) {
+
+        final String methodSignatureBeforeRename = this.extractMethodSignature(oldPath);
+        final String methodSignatureAfterRename = this.extractMethodSignature(path);
+        if (methodSignatureBeforeRename.equals(methodSignatureAfterRename)
+            && minimumRenameScoreForMethodSignatureNameSameness <= similarityScore) {
+          log.debug("new method signature equals to its old signature");
+          return oldPath;
+        }
+
         final String methodNameBeforeRename = this.extractMethodName(oldPath);
         final String methodNameAfterRename = this.extractMethodName(path);
-        if (methodNameBeforeRename.equals(methodNameAfterRename)) {
+        if (methodNameBeforeRename.equals(methodNameAfterRename)
+            && minimumRenameScoreForMethodNameSameness <= similarityScore) {
           log.debug("new method name equals to its old name");
           return oldPath;
         }
       }
 
       // メソッドファイルでない場合，メソッドファイルであってもメソッド名が一致していない場合は元々のしきい値以上で追跡する
-      if ((renameDetector.getRenameScore() + methodNameBonus) <= similarityScore) {
-        log.debug("new method name didn't equal to its old name");
+      if ((realMinimumRenameScore + maxBonus) <= similarityScore) {
+        log.debug("new method equals to neither its old signature nor its old name");
         return oldPath;
       }
 
@@ -408,21 +426,26 @@ public class GitRepo {
   }
 
   /**
-   * 与えられた名前変更の下限値を用いて，RenameDetectorオブジェクトを初期化． 実際は与えられた下限値からBONUS_FOR_METHOD_NAME_MATCHINGの値を引いて，
-   * それを下限値として用いる． メソッド名が同一のときは，ファイルコンテンツの一致度が低くても追跡するための処理．
+   * 与えられた名前変更の下限値を用いて，RenameDetectorオブジェクトを初期化．
+   * 実際は与えられた下限値からメソッド名のボーナス値，もしくはメソッドシグネチャのボーナス値を引いて，それを下限値として用いる．
+   * メソッド名が同一もしくはメソッドシグネチャが同一のときは，ファイルコンテンツの一致度が低くても追跡するための処理．
    * 
-   * @param score
+   * @param config
    * @return
    */
-  private RenameDetector initializeRenameDetector(final MinimumRenameScore score,
-      final int methodNameBonus) {
+  private RenameDetector initializeRenameDetector(final SemanticVersioningConfig config) {
     final RenameDetector renameDetector = new RenameDetector(this.repository);
-    if (!score.isRepositoryDefault()) {
-      renameDetector.setRenameScore(score.getValue());
+    final MinimumRenameScore minimumRenameScore = config.minimumRenameScore;
+    final int methodNameBonus = config.getMethodNameValue();
+    final int methodSignatureBonus = config.getMethodSignatureValue();
+
+    if (!minimumRenameScore.isRepositoryDefault()) {
+      renameDetector.setRenameScore(minimumRenameScore.getValue());
     }
+
+    final int maxBonus = Math.max(methodNameBonus, methodSignatureBonus);
     final int renameScore = renameDetector.getRenameScore();
-    renameDetector
-        .setRenameScore(renameScore < methodNameBonus ? 0 : renameScore - methodNameBonus);
+    renameDetector.setRenameScore(renameScore < maxBonus ? 0 : renameScore - maxBonus);
     return renameDetector;
   }
 
@@ -434,7 +457,7 @@ public class GitRepo {
    */
   private String extractMethodName(final String path) {
 
-    // '$'が'('が含まれていない場合は与えられたpathをそのまま返す
+    // '$'や'('が含まれていない場合は与えられたpathをそのまま返す
     if (path.indexOf('$') < 0 || path.indexOf('(') < 0) {
       return path;
     }
@@ -452,5 +475,17 @@ public class GitRepo {
     } else { // どちらか，もしくは両方が含まれているとき
       return modifierReturnName.substring(lastUnderbarIndex + 1);
     }
+  }
+
+  private String extractMethodSignature(final String path) {
+
+    // '$'や'('が含まれていない場合は与えられたpathをそのまま返す
+    if (path.indexOf('$') < 0 || path.indexOf('(') < 0) {
+      return path;
+    }
+
+    // メソッド名の前の文字列を切り離す
+    final String methodSignature = path.substring(path.indexOf('$') + 1);
+    return methodSignature;
   }
 }
