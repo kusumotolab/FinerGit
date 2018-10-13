@@ -69,7 +69,7 @@ public class FileTracker {
 
       // 名前変更があるかないかを判定し，ある場合は繰り返し処理
     } while ((currentPath = this.repository.getPathBeforeRename(currentPath, startCommit,
-        this.config.minimumRenameScore)) != null);
+        this.config.minimumRenameScore, this.config.getMethodNameValue())) != null);
 
     return commitPathMap;
   }
