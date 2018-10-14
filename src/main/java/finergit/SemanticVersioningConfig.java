@@ -124,6 +124,13 @@ public class SemanticVersioningConfig implements Cloneable {
     return this.methodNameBonus;
   }
 
+  @Option(name = "--method-signature-bonus",
+      usage = "specify a bonus value for method signature sameness")
+  private int methodSignatureBonus;
+
+  public int getMethodSignatureValue() {
+    return this.methodSignatureBonus;
+  }
 
   @Argument
   private List<String> otherArguments;
@@ -142,7 +149,8 @@ public class SemanticVersioningConfig implements Cloneable {
     this.all = false;
     this.help = false;
     this.minimumRenameScore = new MinimumRenameScore();
-    this.methodNameBonus = 20;
+    this.methodNameBonus = 15;
+    this.methodSignatureBonus = 30;
     this.startCommitId = null;
     this.endCommitId = null;
     this.birthCommit = false;
@@ -218,6 +226,7 @@ public class SemanticVersioningConfig implements Cloneable {
       clone.minimumRenameScore.setValue(this.minimumRenameScore.getValue());
     }
     clone.methodNameBonus = this.methodNameBonus;
+    clone.methodSignatureBonus = this.methodSignatureBonus;
     clone.startCommitId = this.startCommitId;
     clone.endCommitId = this.endCommitId;
     clone.birthCommit = this.birthCommit;
