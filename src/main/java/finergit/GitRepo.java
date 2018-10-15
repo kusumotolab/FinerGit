@@ -1,5 +1,7 @@
 package finergit;
 
+import static org.eclipse.jgit.diff.DiffEntry.ChangeType.COPY;
+import static org.eclipse.jgit.diff.DiffEntry.ChangeType.RENAME;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -365,9 +367,9 @@ public class GitRepo {
       String oldPath = null;
       int similarityScore = -1;
       for (final DiffEntry file : files) {
-        if ((file.getChangeType() == DiffEntry.ChangeType.RENAME
-            || file.getChangeType() == DiffEntry.ChangeType.COPY) && file.getNewPath()
-                .contains(path)) {
+        final String newPath = file.getNewPath();
+        if ((file.getChangeType() == RENAME || file.getChangeType() == COPY)
+            && newPath.contains(path)) {
           oldPath = file.getOldPath();
           similarityScore = file.getScore();
           log.debug("an old path was found \"{}\", it's similarity score is {}", oldPath,
