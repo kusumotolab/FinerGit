@@ -363,20 +363,46 @@ public class GitRepo {
         renameDetector.addAll(DiffEntry.scan(treeWalk));
       }
 
+      final String signature = this.extractMethodSignature(path);
+      final String methodName = this.extractMethodName(path);
       final List<DiffEntry> files = renameDetector.compute();
       String oldPath = null;
       int similarityScore = -1;
+      int numberOfSameSignature = 0;
+      int numberOfSameMethodName = 0;
       for (final DiffEntry file : files) {
-        final String newPath = file.getNewPath();
-        if ((file.getChangeType() == RENAME || file.getChangeType() == COPY)
-            && newPath.contains(path)) {
-          oldPath = file.getOldPath();
-          similarityScore = file.getScore();
-          log.debug("an old path was found \"{}\", it's similarity score is {}", oldPath,
-              similarityScore);
-          break;
+
+        // 変更の種類がRENAMEでもCOPYでもない場合は，対象外
+        if ((file.getChangeType() != RENAME) && (file.getChangeType() != COPY)) {
+          continue;
         }
+
+        // 引数で与えられたファイルと同様のシグネチャやメソッド名を持つメソッドが何個このコミットで
+        // RENAMEもしくはCOPYされているかをカウントする．
+        // この情報は，シグネチャもしくはメソッド名が同じ場合の追跡の条件判定に用いる．
+        final String newPath = file.getNewPath();
+        final String newSignature = this.extractMethodSignature(newPath);
+        final String newMethodName = this.extractMethodName(newPath);
+        if (signature.equals(newSignature)) {
+          numberOfSameSignature++;
+        }
+        if (methodName.equals(newMethodName)) {
+          numberOfSameMethodName++;
+        }
+
+        // 変更後のファイルパスが与えられたパスと等しくない場合は，対象外
+        if (!path.equals(file.getNewPath())) {
+          continue;
+        }
+
+        oldPath = file.getOldPath();
+        similarityScore = file.getScore();
+        log.debug("an old path was found \"{}\", it's similarity score is {}", oldPath,
+            similarityScore);
+        break;
       }
+
+      // 古いファイルパスが見つかっていない場合は，ここで処理を終了
       if (null == oldPath) {
         log.debug("old path was not found");
         return null;
@@ -396,7 +422,8 @@ public class GitRepo {
 
         final String methodSignatureBeforeRename = this.extractMethodSignature(oldPath);
         final String methodSignatureAfterRename = this.extractMethodSignature(path);
-        if (methodSignatureBeforeRename.equals(methodSignatureAfterRename)
+        if ((1 == numberOfSameSignature) // 同じシグネチャの他のメソッドがRENAMEかCOPYにされている場合は，特別扱いは無し
+            && methodSignatureBeforeRename.equals(methodSignatureAfterRename)
             && minimumRenameScoreForMethodSignatureNameSameness <= similarityScore) {
           log.debug("new method signature equals to its old signature");
           return oldPath;
@@ -404,7 +431,8 @@ public class GitRepo {
 
         final String methodNameBeforeRename = this.extractMethodName(oldPath);
         final String methodNameAfterRename = this.extractMethodName(path);
-        if (methodNameBeforeRename.equals(methodNameAfterRename)
+        if ((1 == numberOfSameMethodName) && // 同じメソッド名の他のメソッドがRENAMEかCOPYされている場合は，特別扱いは無し
+            methodNameBeforeRename.equals(methodNameAfterRename)
             && minimumRenameScoreForMethodNameSameness <= similarityScore) {
           log.debug("new method name equals to its old name");
           return oldPath;
