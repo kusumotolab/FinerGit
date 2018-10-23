@@ -315,10 +315,10 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final SimpleName label = node.getLabel();
     if (null != label) {
-      this.contexts.push(STRINGLITERAL.class);
+      this.contexts.push(LABELNAME.class);
       label.accept(this);
       final Class<?> context = this.contexts.pop();
-      assert STRINGLITERAL.class == context : "error happend at visit(BreakStatement)";
+      assert LABELNAME.class == context : "error happend at visit(BreakStatement)";
     }
 
     this.addToPeekModule(new BREAKSTATEMENTSEMICOLON());
@@ -454,10 +454,10 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final SimpleName label = node.getLabel();
     if (null != label) {
-      this.contexts.push(STRINGLITERAL.class);
+      this.contexts.push(LABELNAME.class);
       label.accept(this);
       final Class<?> context = this.contexts.pop();
-      assert STRINGLITERAL.class == context : "error happend at visit(ContinueStatement)";
+      assert LABELNAME.class == context : "error happend at visit(ContinueStatement)";
     }
 
     this.addToPeekModule(new CONTINUESTATEMENTSEMICOLON());
