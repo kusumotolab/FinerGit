@@ -290,6 +290,9 @@ public class JavaFileVisitor extends ASTVisitor {
       this.addToPeekModule(left ? new LEFTCATCHCLAUSEBRACKET() : new RIGHTCATCHCLAUSEBRACKET());
     } else if (WhileStatement.class == parent.getClass()) {
       this.addToPeekModule(left ? new LEFTWHILEBRACKET() : new RIGHTWHILEBRACKET());
+    }else if(LabeledStatement.class == parent.getClass()){
+      // ラベル文のときには，ここにくるのはラベル文の文の部分がシンプルブロックのはず
+      this.addToPeekModule(left ? new LEFTSIMPLEBLOCKBRACKET() : new RIGHTSIMPLEBLOCKBRACKET());
     } else {
       System.err.println("unexpected parent type: " + parent.getClass()
           .getName());
