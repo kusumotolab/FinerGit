@@ -282,8 +282,8 @@ public class JavaFileVisitor extends ASTVisitor {
     } else if (SynchronizedStatement.class == parent.getClass()) {
       this.addToPeekModule(left ? new LEFTSYNCHRONIZEDBRACKET() : new RIGHTSYNCHRONIZEDBRACKET());
     } else if (SwitchStatement.class == parent.getClass()) {
-      // switch文のときにはここには来ないはず
-      log.error("unexpected state at switch statement.");
+      // switch文のときには，ここにくるのはswitch文内部のシンプルブロックのはず
+      this.addToPeekModule(left ? new LEFTSIMPLEBLOCKBRACKET() : new RIGHTSIMPLEBLOCKBRACKET());
     } else if (TryStatement.class == parent.getClass()) {
       this.addToPeekModule(left ? new LEFTTRYBRACKET() : new RIGHTTRYBRACKET());
     } else if (CatchClause.class == parent.getClass()) {
