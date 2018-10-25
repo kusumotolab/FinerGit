@@ -11,7 +11,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.assertj.core.util.Arrays;
 import org.eclipse.jgit.api.DiffCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -346,16 +345,17 @@ public class GitRepo {
 
       final RenameDetector renameDetector = this.initializeRenameDetector(config);
 
+
       // 拡張子が.mjavaのときはメソッドファイルのみが検索対象
       if (path.endsWith(".mjava")) {
-        final TreeFilter methodFileFilter = PathSuffixFilter.create(".mjava");
-        renameDetector.addAll(DiffEntry.scan(treeWalk, false, Arrays.array(methodFileFilter)));
+        final TreeFilter[] methodFileFilter = {PathSuffixFilter.create(".mjava")};
+        renameDetector.addAll(DiffEntry.scan(treeWalk, false, methodFileFilter));
       }
 
       // 拡張子が.cjavaのときはクラスファイルのみが検索対象
       else if (path.endsWith(".cjava")) {
-        final TreeFilter classFileFilter = PathSuffixFilter.create(".cjava");
-        renameDetector.addAll(DiffEntry.scan(treeWalk, false, Arrays.array(classFileFilter)));
+        final TreeFilter[] classFileFilter = {PathSuffixFilter.create(".cjava")};
+        renameDetector.addAll(DiffEntry.scan(treeWalk, false, classFileFilter));
       }
 
       // 拡張子が.mjavaでも.cjavaでもない場合は，検索対象は限定しない
