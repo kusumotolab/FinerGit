@@ -1,5 +1,5 @@
 # FinerGit 
-[日本語の説明はこちら](#Japanese)
+[日本語の説明はこちら](#user-content-finergit-日本語)
 
 FinerGit is a tool that tracks Java methods by using the Git mechanism.
 FinerGit takes a git repository as its input and generates another Git repository.
@@ -101,9 +101,7 @@ We rarely test FinerGit on Windows environment.
 -----
 -----
 
-<a id="Japanese"></a>
-<a name="#Japanese"></a>
-# FinerGit （日本語）
+# <a name="Japanese"></a>FinerGit （日本語）
 FinerGit は Git のメカニズムを用いて Java メソッドに対して行われた変更を調査するためのツールです．
 FinerGit の入力は Java ソースコードを含む Git リポジトリです．
 FinerGit の出力は，以下の2つの特徴をもった Git リポジトリです．
