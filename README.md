@@ -101,7 +101,8 @@ We rarely test FinerGit on Windows environment.
 -----
 -----
 
-<a name="Japanese"></a>
+<a id="Japanese"></a>
+<a name="#Japanese"></a>
 # FinerGit （日本語）
 FinerGit は Git のメカニズムを用いて Java メソッドに対して行われた変更を調査するためのツールです．
 FinerGit の入力は Java ソースコードを含む Git リポジトリです．
@@ -189,7 +190,7 @@ git sv Hoge$fuga().mjava
 
 ## 最後に
 
-FinerGit は主に，Mac + Java10 + Eclipse を用いて開発されています．git-subcommand/FinerGit.jar も Java10 でビルドされています．Windows 上ではほぼテストを行っていません．
+FinerGit は主に，Mac + JDK1.8 + Eclipse を用いて開発されています．git-subcommand/FinerGit.jar も JDK1.8 でビルドされています．Windows 上ではほぼテストを行っていません．
 
 
 
