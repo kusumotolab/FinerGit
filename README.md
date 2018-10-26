@@ -1,3 +1,107 @@
+# FinerGit 
+[日本語の説明はこちら](#Japanese)
+
+FinerGit is a tool that tracks Java methods by using the Git mechanism.
+FinerGit takes a git repository as its input and generates another Git repository.
+Git repositories that FinerGit generates have the followings.
+- Every method in source files gets extracted as a single file.
+- Every line of extracted files includes only a single token.
+
+The first feature realizes that Java methods are able to be tracked with Git mechanism.
+The second feature improves the trackability of Java methods.
+
+
+## Preparation
+
+1. Access to [FinerGit page in GitHub] (https://github.com/kusumotolab/FinerGit), and clone FinerGit to your PC.
+2. copy 4 files in git-subcommand (FinerGit.jar, git-fg, git-msv, and git-sv) to a directory, which is included in your $PATH.
+
+execute your terminal and type 
+```sh
+git fg
+```
+If you get help message, installing FinerGit was succeeded.
+
+
+## Convert a Git repository to a FinerGit repository
+
+You can convert with the following command.
+```sh
+git fg --src repoA --des repoB
+```
+Herein, `repoA` is an existing Git repository, and `repoB` is a new FinerGit repository.
+You must specify non-existing path for `repoB`.
+
+You can see other options with the following command.
+```sh
+git fg
+```
+
+## See change histories of Java methods in FinerGit repositories
+
+In FinerGit repositories, there are files whose extensions are `.cjava` or `.mjaa`.
+
+- Extension `.cjava` means that its file represents a Java class. But all methods included in the class get extracted as different files.
+- Extension `.mjava` means that its file represents a Java method. Names of method files follow the format of `ClassName$MethodSignature.mjava`.
+
+If you want to see the change history of `Foo$bar().mjava`, type the following command.
+```sh
+git log Hoge$fuga().mjava
+```
+You will get all commits where method `bar()` was changed.
+
+``--follow`` option is useful because it enables Git to track files even if their names got changed.
+```sh
+git log --follow Hoge$fuga().mjava
+```
+
+## Obtain semantic versions of Java methods
+
+In a single phrase, [semantic versioning](https://semver.org/lang/en/) is a mechanical versioning way with the following rules.
+
+- A software version is represented with three numbers, `a.b.c`.
+- if software got a change that does not preserve backward compatibility (in short, incompatible change), `a` is incremented. `b` and `c` get back to 0.
+- If software got a change that preserves backward compatibility (in short, compatible change), `b` is incremented. `a` is not changed and `c` gets back to 0.
+- If software got a bug-fix change, `c` is incremented. `a` and `b` are not changed.
+
+**FinerGit has the functionality that automatically calculates semantic versioning for Java methods.**
+In FinerGit, incompatible, compatible, and bug-fix changes are defined as follows.
+- If either of name, parameters, return type, or modifiers of a method is changed, the change is regarded as incompatible.
+- If only the body of a method is changed, the change is regard as compatible.
+- Compatible changes in commits whose messages include any terms assuming bug fix such as "bug" or "fix" are regarded as bug-fix changes.
+
+Semantic versioning for Java methods helps you to understand how many times a given method's signature has been changed or how many times bug-fix changes occurred after the last functionality addition.
+FinerGit has a command, `git-sv`, for calculating semantic version for a given file
+
+For example, the following command calculates a semantic version for Java method `fuga()`.
+```sh
+git sv Hoge$fuga().mjava
+```
+
+Of course, there are several options for `git-sv` command.
+You can see all options by executing `git sv` without file name.
+
+
+## Calculate semantic versions for multiple files efficiently
+
+Calculating a semantic version is not a lightweight processing, it occasionally takes several seconds.
+`git-sv` command internally invokes Java VM, so that the overhead to launch Java VM in many times is non-negligible.
+Thus, FinerGit has another command `git-msv`, which is calculating semantic versions for multiple files.
+By using `git-msv` instead of `git-sv`, you can get rid of overhead of launching Java VM in many times.
+`git-msv` requires a file including a list of files to calculate semantic versions.
+We recommend using **absolute paths** to specify files instead of relative ones.
+
+
+## A the end
+
+FinerGit is still under development. We mainly use MacOS + JDK1.8 + Eclipse to develop FinerGit.
+git-subcommand/FinerGit.jar is built with JDk1.8.
+We rarely test FinerGit on Windows environment.
+
+-----
+-----
+
+<a name="Japanese"></a>
 # FinerGit （日本語）
 FinerGit は Git のメカニズムを用いて Java メソッドに対して行われた変更を調査するためのツールです．
 FinerGit の入力は Java ソースコードを含む Git リポジトリです．
