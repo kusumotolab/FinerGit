@@ -171,23 +171,24 @@ public class FinerRepo {
     return success;
   }
 
-  public RevCommit doCommitCommand(final PersonIdent personIdent, final String originalCommitID,
-      final String originalCommitMessage) {
-    log.trace("enter doCommitCommand(PersonIdent=\"{}\", String=\"{}\", String=\"{}\")",
-        personIdent.toExternalString(), originalCommitID, originalCommitMessage);
+  public RevCommit doCommitCommand(final PersonIdent authorIdent, final PersonIdent committerIdent,
+      final String originalCommitID, final String originalCommitMessage) {
+    log.trace("enter doCommitCommand(AuthorIdent=\"{}\", CommitterIdent=\"{}\", String=\"{}\", String=\"{}\")",
+        authorIdent.toExternalString(), committerIdent.toExternalString(), originalCommitID, originalCommitMessage);
 
     this.commitStopWatch.start();
     final CommitCommand commitCommand = this.git.commit();
     final String message = "<OriginalCommitID:" + originalCommitID + "> " + originalCommitMessage;
     RevCommit commit = null;
     try {
-      commit = commitCommand.setAuthor(personIdent)
+      commit = commitCommand.setAuthor(authorIdent)
+          .setCommitter(committerIdent)
           .setMessage(message)
           .call();
     } catch (final Exception e) {
       log.error(
-          "git-commit command failed, personIdent<{}>, originalCommitID<{}>, originalCommitMessage<{}>",
-          personIdent.toExternalString(), originalCommitID, originalCommitMessage);
+          "git-commit command failed, authorIdent<{}>, committerIdent<{}>, originalCommitID<{}>, originalCommitMessage<{}>",
+          authorIdent.toExternalString(), committerIdent.toExternalString(), originalCommitID, originalCommitMessage);
       log.error(e.getMessage());
     } finally {
       this.commitStopWatch.suspend();

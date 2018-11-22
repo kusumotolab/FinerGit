@@ -167,9 +167,10 @@ public class FinerRepoBuilder {
 
       // git-commitコマンドの実行
       final PersonIdent authorIdent = targetCommit.getAuthorIdent();
+      final PersonIdent committerIdent = targetCommit.getCommitterIdent();
       final String id = RevCommitUtil.getAbbreviatedID(targetCommit);
       final String message = targetCommit.getFullMessage();
-      newCommit = this.desRepo.doCommitCommand(authorIdent, id, message);
+      newCommit = this.desRepo.doCommitCommand(authorIdent, committerIdent, id, message);
     }
 
     // 親が1つのとき（normal commit）の処理
@@ -324,13 +325,14 @@ public class FinerRepoBuilder {
 
     // git-commitコマンドの実行
     final PersonIdent authorIdent = targetCommit.getAuthorIdent();
+    final PersonIdent committerIdent = targetCommit.getCommitterIdent();
     final String id = RevCommitUtil.getAbbreviatedID(targetCommit);
     final String message = targetCommit.getFullMessage();
 
     log.trace("exit buildCommit(RevCommit=\"{}\", Set<String>=\"{}\"",
         RevCommitUtil.getAbbreviatedID(targetCommit), filesInPreviousCommit.size());
 
-    return this.desRepo.doCommitCommand(authorIdent, id, message);
+    return this.desRepo.doCommitCommand(authorIdent, committerIdent, id, message);
   }
 
   // 第一引数のブランチに対して git-checkout する．
