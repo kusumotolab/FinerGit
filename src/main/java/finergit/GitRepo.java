@@ -52,6 +52,10 @@ public class GitRepo {
     this.repository = null;
   }
 
+  public FileRepository getRepository() {
+    return repository;
+  }
+  
   public boolean initialize() {
     log.trace("enter initialize()");
 
