@@ -35,6 +35,7 @@ public class FinerRepo {
   private static final Logger log = LoggerFactory.getLogger(FinerRepo.class);
 
   private Git git;
+  private Repository repository;
   public final Path path;
   private final Timer addStopWatch;
   private final Timer checkoutStopWatch;
@@ -71,7 +72,7 @@ public class FinerRepo {
       return false;
     }
 
-    final Repository repository = this.git.getRepository();
+    repository = this.git.getRepository();
     final StoredConfig config = repository.getConfig();
     config.setInt("merge", null, "renamelimit", 999999);
 
@@ -84,6 +85,10 @@ public class FinerRepo {
     }
 
     return true;
+  }
+
+  public Repository getRepository() {
+    return repository;
   }
 
   public boolean doCheckoutCommand(final String branchName, final boolean create,
