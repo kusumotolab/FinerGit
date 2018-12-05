@@ -15,7 +15,7 @@ public class RefEntry {
 
     public static final RefEntry EMPTY = new RefEntry(null, null, null);
 
-    public RefEntry(final String name, final ObjectId id, final String target) {
+    private RefEntry(final String name, final ObjectId id, final String target) {
         this.name = name;
         this.id = id;
         this.target = target;

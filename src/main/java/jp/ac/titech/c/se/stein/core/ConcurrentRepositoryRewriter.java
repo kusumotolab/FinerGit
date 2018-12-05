@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import jp.ac.titech.c.se.stein.core.Try.ThrowableFunction;
 
-public class ConcurrentRepositoryRewriter extends RepositoryRewriter {
+public class ConcurrentRepositoryRewriter extends RepositoryRewriter implements Configurable {
     private static final Logger log = LoggerFactory.getLogger(ConcurrentRepositoryRewriter.class);
 
     protected boolean concurrent = false;
@@ -27,6 +27,21 @@ public class ConcurrentRepositoryRewriter extends RepositoryRewriter {
         log.debug("Set concurrent: {}", concurrent);
         this.concurrent = concurrent;
         this.entryMapping = concurrent ? new ConcurrentHashMap<>() : new HashMap<>();
+        log.debug("Concurrent mode: {}", concurrent);
+    }
+
+    @Override
+    public void addOptions(final Config conf) {
+        super.addOptions(conf);
+        conf.addOption("c", "concurrent", false, "rewrite trees concurrently");
+    }
+
+    @Override
+    public void configure(final Config conf) {
+        super.configure(conf);
+        if (conf.hasOption("concurrent")) {
+            setConcurrent(true);
+        }
     }
 
     /**
