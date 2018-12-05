@@ -1,4 +1,4 @@
-package finergit.rewrite;
+package jp.ac.titech.c.se.stein.core;
 
 import java.util.ArrayList;
 import java.util.Collections;

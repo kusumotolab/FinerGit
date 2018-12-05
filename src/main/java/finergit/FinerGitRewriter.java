@@ -10,12 +10,12 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import finergit.ast.FinerJavaFileBuilder;
 import finergit.ast.FinerJavaModule;
-import finergit.rewrite.ConcurrentRepositoryRewriter;
-import finergit.rewrite.EntrySet;
-import finergit.rewrite.EntrySet.Entry;
-import finergit.rewrite.EntrySet.EntryList;
-import finergit.rewrite.RefEntry;
 import finergit.util.RevCommitUtil;
+import jp.ac.titech.c.se.stein.core.ConcurrentRepositoryRewriter;
+import jp.ac.titech.c.se.stein.core.EntrySet;
+import jp.ac.titech.c.se.stein.core.RefEntry;
+import jp.ac.titech.c.se.stein.core.EntrySet.Entry;
+import jp.ac.titech.c.se.stein.core.EntrySet.EntryList;
 
 public class FinerGitRewriter extends ConcurrentRepositoryRewriter {
 

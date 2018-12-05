@@ -1,4 +1,4 @@
-package finergit.rewrite;
+package jp.ac.titech.c.se.stein.core;
 
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;

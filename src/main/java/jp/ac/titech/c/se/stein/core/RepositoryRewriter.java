@@ -1,4 +1,4 @@
-package finergit.rewrite;
+package jp.ac.titech.c.se.stein.core;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -22,8 +22,8 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import finergit.rewrite.EntrySet.Entry;
-import finergit.rewrite.Try.ThrowableFunction;
+import jp.ac.titech.c.se.stein.core.EntrySet.Entry;
+import jp.ac.titech.c.se.stein.core.Try.ThrowableFunction;
 
 public class RepositoryRewriter extends RepositoryAccess {
     private static final Logger log = LoggerFactory.getLogger(RepositoryRewriter.class);
