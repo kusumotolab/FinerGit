@@ -120,9 +120,10 @@ public class SemanticVersion {
    * @return
    */
   public SemanticVersion generateNextMajorVersion(final RevCommit commit, final Path path) {
+    /*
     if (RevCommitUtil.isMergeCommit(commit)) {
       return this;
-    }
+    }*/
     return new SemanticVersion(this.major + 1, 0, 0, commit, path, this);
   }
 
@@ -134,9 +135,10 @@ public class SemanticVersion {
    * @return
    */
   public SemanticVersion generateNextMinorVersion(final RevCommit commit, final Path path) {
+    /*
     if (RevCommitUtil.isMergeCommit(commit)) {
       return this;
-    }
+    }*/
     return new SemanticVersion(this.major, this.minor + 1, 0, commit, path, this);
   }
 
@@ -148,9 +150,10 @@ public class SemanticVersion {
    * @return
    */
   public SemanticVersion generateNextPatchVersion(final RevCommit commit, final Path path) {
+    /*
     if (RevCommitUtil.isMergeCommit(commit)) {
       return this;
-    }
+    }*/
     return new SemanticVersion(this.major, this.minor, this.patch + 1, commit, path, this);
   }
 
