@@ -40,6 +40,12 @@ public class TreeRewriteFinerRepoBuilder {
       rewriter.initialize(repo.getRepository());
       rewriter.rewrite();
 
+      // clean up working copy
+      final boolean resetSucceeded = repo.resetHard();
+      log.debug("git reset --hard: {}", resetSucceeded ? "succeeded" : "failed");
+      final boolean cleanSucceeded = repo.clean();
+      log.debug("git clean -fd: {}", cleanSucceeded ? "succeeded" : "failed");
+
     } catch (final Exception e) {
       e.printStackTrace();
     }
