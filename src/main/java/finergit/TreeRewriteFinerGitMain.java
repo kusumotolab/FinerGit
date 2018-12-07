@@ -56,9 +56,9 @@ public class TreeRewriteFinerGitMain {
     windowCacheConfig.install();
   }
 
-  public FinerRepo exec() {
+  public void exec() {
     log.trace("enter exec()");
     final TreeRewriteFinerRepoBuilder builder = new TreeRewriteFinerRepoBuilder(this.config);
-    return builder.exec();
+    builder.exec();
   }
 }

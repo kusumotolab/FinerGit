@@ -4,18 +4,20 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
+
 import finergit.ast.FinerJavaFileBuilder;
 import finergit.ast.FinerJavaModule;
 import finergit.util.RevCommitUtil;
 import jp.ac.titech.c.se.stein.core.ConcurrentRepositoryRewriter;
 import jp.ac.titech.c.se.stein.core.EntrySet;
-import jp.ac.titech.c.se.stein.core.RefEntry;
 import jp.ac.titech.c.se.stein.core.EntrySet.Entry;
 import jp.ac.titech.c.se.stein.core.EntrySet.EntryList;
+import jp.ac.titech.c.se.stein.core.RefEntry;
 
 public class FinerGitRewriter extends ConcurrentRepositoryRewriter {
 
@@ -25,14 +27,13 @@ public class FinerGitRewriter extends ConcurrentRepositoryRewriter {
 
   private final ObjectId head;
 
-  public FinerGitRewriter(final FinerGitConfig config, final Repository src, final Repository dst,
-      final ObjectId head) {
+  public FinerGitRewriter(final FinerGitConfig config, final Repository repo, final ObjectId head) {
     this.config = config;
     this.builder = new FinerJavaFileBuilder(config);
     this.head = head;
     setConcurrent(true);
     setPathSensitive(true);
-    initialize(src, dst);
+    initialize(repo);
   }
 
   @Override
@@ -62,7 +63,7 @@ public class FinerGitRewriter extends ConcurrentRepositoryRewriter {
     // Treats non-java files
     if (!entry.name.endsWith(".java")) {
       if (config.isOtherFilesIncluded()) {
-        return new Entry(entry.mode, entry.name, writeBlob(readBlob(entry.id)), entry.pathContext);
+        return super.rewriteEntry(entry);
       } else {
         return Entry.EMPTY;
       }
