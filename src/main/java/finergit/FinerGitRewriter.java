@@ -40,11 +40,7 @@ public class FinerGitRewriter extends ConcurrentRepositoryRewriter {
 
     // Treats non-java files
     if (!entry.name.endsWith(".java")) {
-      if (config.isOtherFilesIncluded()) {
-        return super.rewriteEntry(entry);
-      } else {
-        return Entry.EMPTY;
-      }
+      return config.isOtherFilesIncluded() ? super.rewriteEntry(entry) : Entry.EMPTY;
     }
 
     // Convert to finer modules
