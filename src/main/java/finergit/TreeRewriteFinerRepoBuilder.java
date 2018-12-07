@@ -7,7 +7,6 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 
-import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,15 +36,8 @@ public class TreeRewriteFinerRepoBuilder {
       repo = new GitRepo(this.config.getDesPath());
       repo.initialize();
 
-      // retrieve HEAD information
-      final String headCommitId = this.config.getHeadCommitId();
-      final RevCommit headCommit = null != headCommitId ? repo.getCommit(headCommitId) : repo.getHeadCommit();
-      if (null == headCommit) {
-        log.error("\"{}\" is an invalid commit ID for option \"--head\"", headCommitId);
-        System.exit(0);
-      }
-
-      final FinerGitRewriter rewriter = new FinerGitRewriter(config, repo.getRepository(), headCommit);
+      final FinerGitRewriter rewriter = new FinerGitRewriter(config);
+      rewriter.initialize(repo.getRepository());
       rewriter.rewrite();
 
     } catch (final Exception e) {
