@@ -52,7 +52,7 @@ public class TreeRewriteFinerRepoBuilder {
    * Copy a directory recursively.
    */
   protected void copyDirectory(final Path source, final Path target) throws IOException {
-    log.debug("Duplicate repository: {} to {}", source, target);
+    log.debug("Copy directory: {} to {}", source, target);
     Files.walkFileTree(source, new SimpleFileVisitor<Path>() {
       @Override
       public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs) throws IOException {
