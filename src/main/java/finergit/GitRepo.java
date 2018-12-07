@@ -403,7 +403,7 @@ public class GitRepo {
         similarityScore = file.getScore();
         log.debug("an old path was found \"{}\", it's similarity score is {}", oldPath,
             similarityScore);
-        break;
+        //break; // このbreak文があると，numberOfSameMethodSignatureとMethodNameの数が正確にカウントできない
       }
 
       // 古いファイルパスが見つかっていない場合は，ここで処理を終了
