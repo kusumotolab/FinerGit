@@ -2,6 +2,7 @@ package finergit;
 
 import static org.eclipse.jgit.diff.DiffEntry.ChangeType.COPY;
 import static org.eclipse.jgit.diff.DiffEntry.ChangeType.RENAME;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,8 +12,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.eclipse.jgit.api.CleanCommand;
 import org.eclipse.jgit.api.DiffCommand;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.ResetCommand;
+import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.RenameDetector;
@@ -36,6 +41,7 @@ import org.eclipse.jgit.treewalk.filter.PathSuffixFilter;
 import org.eclipse.jgit.treewalk.filter.TreeFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import finergit.util.RevCommitUtil;
 
 public class GitRepo {
@@ -55,7 +61,7 @@ public class GitRepo {
   public FileRepository getRepository() {
     return repository;
   }
-  
+
   public boolean initialize() {
     log.trace("enter initialize()");
 
@@ -69,7 +75,7 @@ public class GitRepo {
       this.repository = new FileRepository(configPath.toFile());
     } catch (final IOException e) {
       log.error("repository \"" + configPath.toString()
-          + "\" appears to already exist but cannot be accessed");
+      + "\" appears to already exist but cannot be accessed");
       log.error(e.getMessage());
       return false;
     }
@@ -90,7 +96,7 @@ public class GitRepo {
 
   /**
    * 引数で与えられたコミットIDを持つRevCommitを返す．引数で与えられたコミットがない場合にはnullを返す．
-   * 
+   *
    * @param commit
    * @return
    */
@@ -274,7 +280,7 @@ public class GitRepo {
       log.error(e.getMessage());
     } catch (final IOException e) {
       log.error("cannot access to repository \"" + this.repository.getWorkTree()
-          .toString());
+      .toString());
     }
     return null;
   }
@@ -289,7 +295,7 @@ public class GitRepo {
     try (final RevWalk revWalk = new RevWalk(this.repository)) {
       final RevCommit commit = revWalk.parseCommit(commitId);
       return commit;
-    } catch (IOException e) {
+    } catch (final IOException e) {
       log.error("cannot parse commit \"{}\"", RevCommitUtil.getAbbreviatedID(commitId));
       log.error(e.getMessage());
       return null;
@@ -377,7 +383,7 @@ public class GitRepo {
       for (final DiffEntry file : files) {
 
         // 変更の種類がRENAMEでもCOPYでもない場合は，対象外
-        if ((file.getChangeType() != RENAME) && (file.getChangeType() != COPY)) {
+        if (file.getChangeType() != RENAME && file.getChangeType() != COPY) {
           continue;
         }
 
@@ -417,16 +423,16 @@ public class GitRepo {
       final int maxBonus = Math.max(methodNameBonus, methodSignatureBonus);
       final int realMinimumRenameScore = renameDetector.getRenameScore();
       final int minimumRenameScoreForMethodNameSameness =
-          realMinimumRenameScore + (maxBonus - methodNameBonus);
+          realMinimumRenameScore + maxBonus - methodNameBonus;
       final int minimumRenameScoreForMethodSignatureNameSameness =
-          realMinimumRenameScore + (maxBonus - methodSignatureBonus);
+          realMinimumRenameScore + maxBonus - methodSignatureBonus;
 
       // メソッドファイルの場合はメソッド名の一致を調べる．一致してる場合は下げたしきい値以上であれば追跡する．
       if (path.endsWith(".mjava")) {
 
         final String methodSignatureBeforeRename = this.extractMethodSignature(oldPath);
         final String methodSignatureAfterRename = this.extractMethodSignature(path);
-        if ((1 == numberOfSameSignature) // 同じシグネチャの他のメソッドがRENAMEかCOPYにされている場合は，特別扱いは無し
+        if (1 == numberOfSameSignature // 同じシグネチャの他のメソッドがRENAMEかCOPYにされている場合は，特別扱いは無し
             && methodSignatureBeforeRename.equals(methodSignatureAfterRename)
             && minimumRenameScoreForMethodSignatureNameSameness <= similarityScore) {
           log.debug("new method signature equals to its old signature");
@@ -435,7 +441,7 @@ public class GitRepo {
 
         final String methodNameBeforeRename = this.extractMethodName(oldPath);
         final String methodNameAfterRename = this.extractMethodName(path);
-        if ((1 == numberOfSameMethodName) && // 同じメソッド名の他のメソッドがRENAMEかCOPYされている場合は，特別扱いは無し
+        if (1 == numberOfSameMethodName && // 同じメソッド名の他のメソッドがRENAMEかCOPYされている場合は，特別扱いは無し
             methodNameBeforeRename.equals(methodNameAfterRename)
             && minimumRenameScoreForMethodNameSameness <= similarityScore) {
           log.debug("new method name equals to its old name");
@@ -444,7 +450,7 @@ public class GitRepo {
       }
 
       // メソッドファイルでない場合，メソッドファイルであってもメソッド名が一致していない場合は元々のしきい値以上で追跡する
-      if ((realMinimumRenameScore + maxBonus) <= similarityScore) {
+      if (realMinimumRenameScore + maxBonus <= similarityScore) {
         log.debug("new method equals to neither its old signature nor its old name");
         return oldPath;
       }
@@ -460,10 +466,43 @@ public class GitRepo {
   }
 
   /**
+   * `git reset --hard (HEAD)` を適用する．
+   */
+  public boolean resetHard() {
+    log.trace("enter resetHard()");
+    try (final Git git = new Git(this.repository)) {
+      final ResetCommand cmd = git.reset();
+      cmd.setMode(ResetType.HARD);
+      cmd.call();
+      return true;
+    } catch (final GitAPIException e) {
+      e.printStackTrace();
+      return false;
+    }
+  }
+
+  /**
+   * `git clean -fd` を適用する．
+   */
+  public boolean clean() {
+    log.trace("enter clean()");
+    try (final Git git = new Git(this.repository)) {
+      final CleanCommand cmd = git.clean();
+      cmd.setForce(true);
+      cmd.setCleanDirectories(true);
+      cmd.call();
+      return true;
+    } catch (final GitAPIException e) {
+      e.printStackTrace();
+      return false;
+    }
+  }
+
+  /**
    * 与えられた名前変更の下限値を用いて，RenameDetectorオブジェクトを初期化．
    * 実際は与えられた下限値からメソッド名のボーナス値，もしくはメソッドシグネチャのボーナス値を引いて，それを下限値として用いる．
    * メソッド名が同一もしくはメソッドシグネチャが同一のときは，ファイルコンテンツの一致度が低くても追跡するための処理．
-   * 
+   *
    * @param config
    * @return
    */
@@ -485,7 +524,7 @@ public class GitRepo {
 
   /**
    * 与えられた文字列（リポジトリルートからの相対パス）に含まれるメソッド名を抽出する．
-   * 
+   *
    * @param path
    * @return
    */

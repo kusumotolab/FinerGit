@@ -5,6 +5,7 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import ch.qos.logback.classic.Level;
 import finergit.util.Timer;
 
@@ -14,7 +15,7 @@ public class FinerGitMain {
 
   /**
    * Gitリポジトリから細粒度リポジトリを作成するためのメインメソッド
-   * 
+   *
    * @param args
    */
   public static void main(final String[] args) {
@@ -36,18 +37,10 @@ public class FinerGitMain {
     timer.start();
 
     final FinerGitMain finerGitMain = new FinerGitMain(config);
-    final FinerRepo finerRepo = finerGitMain.exec();
-
+    finerGitMain.exec();
 
     timer.stop();
     log.info("elapsed time: {}", timer.toString());
-    log.info("  git-add:      {}", finerRepo.getAddCommandExecutionTime());
-    log.info("  git-checkout: {}", finerRepo.getCheckoutCommandExcecutionTime());
-    log.info("  git-commit:   {}", finerRepo.getCommitCommandExecutionTime());
-    log.info("  git-merge:    {}", finerRepo.getMergeCommandExecutionTime());
-    log.info("  git-rm:       {}", finerRepo.getRmCommandExecutionTime());
-    log.info("  git-status:   {}", finerRepo.getStatusCommandExcutionTime());
-    log.info("  git-listfile: {}", finerRepo.getListFilesExcutionTime());
   }
 
   private final FinerGitConfig config;
@@ -64,11 +57,11 @@ public class FinerGitMain {
     windowCacheConfig.install();
   }
 
-  public FinerRepo exec() {
+  public void exec() {
     log.trace("enter exec()");
     // final FinerRepoBuilder builder = new FinerRepoBuilder(this.config);
     // return builder.exec();
     final TreeRewriteFinerRepoBuilder builder = new TreeRewriteFinerRepoBuilder(this.config);
-    return builder.exec();
+    builder.exec();
   }
 }

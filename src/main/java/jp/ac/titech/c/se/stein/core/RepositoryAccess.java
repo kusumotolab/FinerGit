@@ -1,4 +1,4 @@
-package finergit.rewrite;
+package jp.ac.titech.c.se.stein.core;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -7,13 +7,16 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.eclipse.jgit.lib.AnyObjectId;
+import org.eclipse.jgit.lib.CommitBuilder;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectInserter;
+import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.RefRename;
 import org.eclipse.jgit.lib.RefUpdate;
 import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.lib.TagBuilder;
 import org.eclipse.jgit.lib.TreeFormatter;
 import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
@@ -21,10 +24,10 @@ import org.eclipse.jgit.treewalk.TreeWalk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import finergit.rewrite.EntrySet.Entry;
-import finergit.rewrite.Try.ThrowableFunction;
+import jp.ac.titech.c.se.stein.core.EntrySet.Entry;
+import jp.ac.titech.c.se.stein.core.Try.ThrowableFunction;
 
-public class RepositoryAccess {
+public class RepositoryAccess implements Configurable {
     private static final Logger log = LoggerFactory.getLogger(RepositoryAccess.class);
 
     protected Repository repo;
@@ -33,7 +36,26 @@ public class RepositoryAccess {
 
     protected boolean overwrite = true;
 
+    protected boolean dryRunning = false;
+
     public RepositoryAccess() {
+    }
+
+    public void setDryRunning(final boolean dryRunning) {
+        this.dryRunning = dryRunning;
+        log.debug("Dry running mode: {}", dryRunning);
+    }
+
+    @Override
+    public void addOptions(final Config conf) {
+        conf.addOption("n", "dry-run", false, "don't actually write anything");
+    }
+
+    @Override
+    public void configure(final Config conf) {
+        if (conf.hasOption("dry-run")) {
+            setDryRunning(true);
+        }
     }
 
     public void initialize(final Repository repo) {
@@ -43,7 +65,7 @@ public class RepositoryAccess {
     public void initialize(final Repository readRepo, final Repository writeRepo) {
         this.repo = readRepo;
         this.writeRepo = writeRepo;
-        this.overwrite = repo == writeRepo;
+        this.overwrite = readRepo == writeRepo;
     }
 
     /**
@@ -79,7 +101,7 @@ public class RepositoryAccess {
         for (final Entry e : sortEntries(entries)) {
             f.append(e.name, e.mode, e.id);
         }
-        return tryInsert((ins) -> ins.insert(f));
+        return tryInsert((ins) -> dryRunning ? ins.idFor(f) : ins.insert(f));
     }
 
     /**
@@ -108,23 +130,50 @@ public class RepositoryAccess {
      * Writes data to a blob object.
      */
     public ObjectId writeBlob(final byte[] data) {
-        return tryInsert((ins) -> ins.insert(Constants.OBJ_BLOB, data));
+        return tryInsert((ins) -> dryRunning ? ins.idFor(Constants.OBJ_BLOB, data) : ins.insert(Constants.OBJ_BLOB, data));
+    }
+
+    /**
+     * Writes a commit object.
+     */
+    protected ObjectId writeCommit(final ObjectId[] parentIds, final ObjectId treeId, final PersonIdent author, final PersonIdent committer, final String message) {
+        final CommitBuilder builder = new CommitBuilder();
+        builder.setParentIds(parentIds);
+        builder.setTreeId(treeId);
+        builder.setAuthor(author);
+        builder.setCommitter(committer);
+        builder.setMessage(message);
+        return tryInsert((ins) -> dryRunning ? ins.idFor(Constants.OBJ_COMMIT, builder.build()) : ins.insert(builder));
+    }
+
+    /**
+     * Writes a tag object.
+     */
+    protected ObjectId writeTag(final ObjectId objectId, final String tag, final PersonIdent tagger, final String message) {
+        final TagBuilder builder = new TagBuilder();
+        builder.setObjectId(objectId, Constants.OBJ_COMMIT);
+        builder.setTag(tag);
+        builder.setTagger(tagger);
+        builder.setMessage(message);
+        return tryInsert((ins) -> dryRunning ? ins.idFor(Constants.OBJ_TAG, builder.build()) : ins.insert(builder));
     }
 
     /**
      * Applies ref update.
      */
     protected void applyRefUpdate(final RefEntry entry) {
-        Try.io(() -> {
-            final RefUpdate cmd = writeRepo.getRefDatabase().newUpdate(entry.name, false);
-            cmd.setForceUpdate(true);
-            if (entry.isSymbolic()) {
-                cmd.link(entry.target);
-            } else {
-                cmd.setNewObjectId(entry.id);
-                cmd.update();
-            }
-        });
+        if (!dryRunning) {
+            Try.io(() -> {
+                final RefUpdate cmd = writeRepo.getRefDatabase().newUpdate(entry.name, false);
+                cmd.setForceUpdate(true);
+                if (entry.isSymbolic()) {
+                    cmd.link(entry.target);
+                } else {
+                    cmd.setNewObjectId(entry.id);
+                    cmd.update();
+                }
+            });
+        }
     }
 
     /**
@@ -157,21 +206,25 @@ public class RepositoryAccess {
      * Applies ref delete.
      */
     protected void applyRefDelete(final RefEntry entry) {
-        Try.io(() -> {
-            final RefUpdate cmd = writeRepo.getRefDatabase().newUpdate(entry.name, false);
-            cmd.setForceUpdate(true);
-            cmd.delete();
-        });
+        if (!dryRunning) {
+            Try.io(() -> {
+                final RefUpdate cmd = writeRepo.getRefDatabase().newUpdate(entry.name, false);
+                cmd.setForceUpdate(true);
+                cmd.delete();
+            });
+        }
     }
 
     /**
      * Applies ref rename.
      */
     protected void applyRefRename(final String name, final String newName) {
-        Try.io(() -> {
-            final RefRename cmd = writeRepo.getRefDatabase().newRename(name, newName);
-            cmd.rename();
-        });
+        if (!dryRunning) {
+            Try.io(() -> {
+                final RefRename cmd = writeRepo.getRefDatabase().newRename(name, newName);
+                cmd.rename();
+            });
+        }
     }
 
     /**

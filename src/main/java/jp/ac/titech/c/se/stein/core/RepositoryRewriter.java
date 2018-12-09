@@ -1,4 +1,4 @@
-package finergit.rewrite;
+package jp.ac.titech.c.se.stein.core;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -7,14 +7,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.jgit.lib.CommitBuilder;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.FileMode;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectInserter;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.lib.TagBuilder;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevSort;
 import org.eclipse.jgit.revwalk.RevTag;
@@ -22,8 +20,8 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import finergit.rewrite.EntrySet.Entry;
-import finergit.rewrite.Try.ThrowableFunction;
+import jp.ac.titech.c.se.stein.core.EntrySet.Entry;
+import jp.ac.titech.c.se.stein.core.Try.ThrowableFunction;
 
 public class RepositoryRewriter extends RepositoryAccess {
     private static final Logger log = LoggerFactory.getLogger(RepositoryRewriter.class);
@@ -130,13 +128,12 @@ public class RepositoryRewriter extends RepositoryAccess {
      * @return the object ID of the rewritten commit
      */
     protected ObjectId rewriteCommit(final RevCommit commit) {
-        final CommitBuilder builder = new CommitBuilder();
-        builder.setParentIds(rewriteParents(commit.getParents()));
-        builder.setTreeId(rewriteRootTree(commit.getTree().getId()));
-        builder.setAuthor(rewriteAuthor(commit.getAuthorIdent(), commit));
-        builder.setCommitter(rewriteCommitter(commit.getCommitterIdent(), commit));
-        builder.setMessage(rewriteCommitMessage(commit.getFullMessage(), commit));
-        final ObjectId newId = tryInsert((i) -> i.insert(builder));
+        final ObjectId[] parentIds = rewriteParents(commit.getParents());
+        final ObjectId treeId = rewriteRootTree(commit.getTree().getId());
+        final PersonIdent author = rewriteAuthor(commit.getAuthorIdent(), commit);
+        final PersonIdent committer = rewriteCommitter(commit.getCommitterIdent(), commit);
+        final String message = rewriteCommitMessage(commit.getFullMessage(), commit);
+        final ObjectId newId = writeCommit(parentIds, treeId, author, committer, message);
 
         final ObjectId oldId = commit.getId();
         commitMapping.put(oldId, newId);
@@ -209,7 +206,11 @@ public class RepositoryRewriter extends RepositoryAccess {
      * Rewrites a blob object.
      */
     protected ObjectId rewriteBlob(final ObjectId blobId, final Entry entry) {
-        return blobId;
+        if (overwrite) {
+            return blobId;
+        } else {
+            return writeBlob(readBlob(blobId));
+        }
     }
 
     /**
@@ -293,10 +294,29 @@ public class RepositoryRewriter extends RepositoryAccess {
     protected void updateRef(final Ref ref) {
         final RefEntry oldEntry = new RefEntry(ref);
         final RefEntry newEntry = getRefEntry(oldEntry, ref);
-        if (overwrite && !oldEntry.equals(newEntry)) {
-            applyRefDelete(oldEntry);
+        if (newEntry == RefEntry.EMPTY) {
+            // delete
+            if (overwrite) {
+                log.debug("Delete ref: {}", oldEntry);
+                applyRefDelete(oldEntry);
+            }
+            return;
         }
-        if (newEntry != RefEntry.EMPTY) {
+
+        if (!oldEntry.name.equals(newEntry.name)) {
+            // rename
+            if (overwrite) {
+                log.debug("Rename ref: {} -> {}", oldEntry.name, newEntry.name);
+                applyRefRename(oldEntry.name, newEntry.name);
+            }
+        }
+
+        final boolean linkEquals = oldEntry.target == null ? newEntry.target == null : oldEntry.target.equals(newEntry.target);
+        final boolean idEquals = oldEntry.id == null ? newEntry.id == null : oldEntry.id.name().equals(newEntry.id.name());
+
+        if (!overwrite || !linkEquals || !idEquals) {
+            // update
+            log.debug("Update ref: [{}] -> [{}]", oldEntry, newEntry);
             applyRefUpdate(newEntry);
         }
     }
@@ -345,13 +365,10 @@ public class RepositoryRewriter extends RepositoryAccess {
         }
         log.debug("Rewrite tag target: {} -> {}", tag.getObject().name(), newObjectId.name());
 
-        final TagBuilder builder = new TagBuilder();
-        builder.setObjectId(newObjectId, Constants.OBJ_COMMIT);
-        builder.setTag(rewriteTagName(tag.getTagName(), ref));
-        builder.setTagger(rewriteTagger(tag.getTaggerIdent(), tag, ref));
-        builder.setMessage(rewriteTagMessage(tag.getFullMessage(), tag, ref));
-
-        final ObjectId newId = tryInsert((i) -> i.insert(builder));
+        final String tagName = tag.getTagName();
+        final PersonIdent tagger = rewriteTagger(tag.getTaggerIdent(), tag, ref);
+        final String message = rewriteTagMessage(tag.getFullMessage(), tag, ref);
+        final ObjectId newId = writeTag(newObjectId, tagName, tagger, message);
         log.debug("Rewrite tag: {} -> {}", tagId.name(), newId.name());
         return newId;
     }

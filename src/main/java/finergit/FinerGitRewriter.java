@@ -1,21 +1,18 @@
 package finergit;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
-import org.eclipse.jgit.lib.Constants;
+
 import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
+
 import finergit.ast.FinerJavaFileBuilder;
 import finergit.ast.FinerJavaModule;
-import finergit.rewrite.ConcurrentRepositoryRewriter;
-import finergit.rewrite.EntrySet;
-import finergit.rewrite.EntrySet.Entry;
-import finergit.rewrite.EntrySet.EntryList;
-import finergit.rewrite.RefEntry;
 import finergit.util.RevCommitUtil;
+import jp.ac.titech.c.se.stein.core.ConcurrentRepositoryRewriter;
+import jp.ac.titech.c.se.stein.core.EntrySet;
+import jp.ac.titech.c.se.stein.core.EntrySet.Entry;
+import jp.ac.titech.c.se.stein.core.EntrySet.EntryList;
 
 public class FinerGitRewriter extends ConcurrentRepositoryRewriter {
 
@@ -23,29 +20,11 @@ public class FinerGitRewriter extends ConcurrentRepositoryRewriter {
 
   private final FinerJavaFileBuilder builder;
 
-  private final ObjectId head;
-
-  public FinerGitRewriter(final FinerGitConfig config, final Repository src, final Repository dst,
-      final ObjectId head) {
+  public FinerGitRewriter(final FinerGitConfig config) {
     this.config = config;
     this.builder = new FinerJavaFileBuilder(config);
-    this.head = head;
     setConcurrent(true);
     setPathSensitive(true);
-    initialize(src, dst);
-  }
-
-  @Override
-  protected Collection<ObjectId> collectStarts() {
-    return Collections.singletonList(head);
-  }
-
-  public static final String MASTER = Constants.R_HEADS + "master";
-
-  @Override
-  protected void updateRefs() {
-    applyRefUpdate(new RefEntry(MASTER, rewriteReferredCommit(head, null)));
-    applyRefUpdate(new RefEntry(Constants.HEAD, MASTER));
   }
 
   @Override
@@ -61,11 +40,7 @@ public class FinerGitRewriter extends ConcurrentRepositoryRewriter {
 
     // Treats non-java files
     if (!entry.name.endsWith(".java")) {
-      if (config.isOtherFilesIncluded()) {
-        return new Entry(entry.mode, entry.name, writeBlob(readBlob(entry.id)), entry.pathContext);
-      } else {
-        return Entry.EMPTY;
-      }
+      return config.isOtherFilesIncluded() ? super.rewriteEntry(entry) : Entry.EMPTY;
     }
 
     // Convert to finer modules
