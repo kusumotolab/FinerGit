@@ -2,7 +2,6 @@ package finergit;
 
 import static org.eclipse.jgit.diff.DiffEntry.ChangeType.COPY;
 import static org.eclipse.jgit.diff.DiffEntry.ChangeType.RENAME;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -12,7 +11,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.eclipse.jgit.api.CleanCommand;
 import org.eclipse.jgit.api.DiffCommand;
 import org.eclipse.jgit.api.Git;
@@ -32,6 +30,7 @@ import org.eclipse.jgit.lib.FileMode;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.ObjectReader;
+import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
@@ -41,7 +40,6 @@ import org.eclipse.jgit.treewalk.filter.PathSuffixFilter;
 import org.eclipse.jgit.treewalk.filter.TreeFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import finergit.util.RevCommitUtil;
 
 public class GitRepo {
@@ -75,12 +73,26 @@ public class GitRepo {
       this.repository = new FileRepository(configPath.toFile());
     } catch (final IOException e) {
       log.error("repository \"" + configPath.toString()
-      + "\" appears to already exist but cannot be accessed");
+          + "\" appears to already exist but cannot be accessed");
       log.error(e.getMessage());
       return false;
     }
 
     return true;
+  }
+
+  public void setIgnoreCase(final boolean ignore) {
+    log.trace("enter setIgnoreCase(boolean={})", ignore);
+
+    final StoredConfig config = repository.getConfig();
+    config.setBoolean("core", null, "ignorecase", ignore);
+
+    try {
+      config.save();
+    } catch (final IOException e) {
+      log.error("failed to change the git repository configuration");
+      log.error(e.getMessage());
+    }
   }
 
 
@@ -280,7 +292,7 @@ public class GitRepo {
       log.error(e.getMessage());
     } catch (final IOException e) {
       log.error("cannot access to repository \"" + this.repository.getWorkTree()
-      .toString());
+          .toString());
     }
     return null;
   }
@@ -409,7 +421,7 @@ public class GitRepo {
         similarityScore = file.getScore();
         log.debug("an old path was found \"{}\", it's similarity score is {}", oldPath,
             similarityScore);
-        //break; // このbreak文があると，numberOfSameMethodSignatureとMethodNameの数が正確にカウントできない
+        // break; // このbreak文があると，numberOfSameMethodSignatureとMethodNameの数が正確にカウントできない
       }
 
       // 古いファイルパスが見つかっていない場合は，ここで処理を終了

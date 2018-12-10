@@ -35,6 +35,7 @@ public class TreeRewriteFinerRepoBuilder {
       copyDirectory(this.config.getSrcPath(), this.config.getDesPath());
       repo = new GitRepo(this.config.getDesPath());
       repo.initialize();
+      repo.setIgnoreCase(false);
 
       final FinerGitRewriter rewriter = new FinerGitRewriter(config);
       rewriter.initialize(repo.getRepository());
