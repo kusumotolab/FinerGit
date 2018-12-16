@@ -343,4 +343,18 @@ public class FinerJavaFileBuilderTest {
       }
     }
   }
+
+  @Test
+  public void getFinerJavaModulesSuccessTest10() throws Exception {
+    final Path targetPath = Paths.get("src/test/resources/finergit/ast/Enum.java");
+    final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
+
+    final Set<String> moduleNames = modules.stream()
+        .map(m -> m.getFileName())
+        .collect(Collectors.toSet());
+    assertThat(moduleNames).containsExactlyInAnyOrder("Enum.cjava",
+        "Enum$public_String_toString().mjava");
+  }
 }
