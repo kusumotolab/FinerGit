@@ -19,6 +19,7 @@ repositories {
     // Use jcenter for resolving your dependencies.
     // You can declare any Maven/Ivy/file repository here.
     jcenter()
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
@@ -60,5 +61,8 @@ dependencies {
     
     // https://mvnrepository.com/artifact/com.github.stefanbirkner/system-rules
     testCompile group: 'com.github.stefanbirkner', name: 'system-rules', version: '1.18.0'
+    
+    // https://github.com/sh5i/git-stein/
+    compile 'com.github.sh5i:git-stein:0.1.0'
 }
 
