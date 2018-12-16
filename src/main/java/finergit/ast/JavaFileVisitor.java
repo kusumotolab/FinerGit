@@ -633,6 +633,15 @@ public class JavaFileVisitor extends ASTVisitor {
 
     this.addToPeekModule(new RIGHTCLASSBRACKET());
 
+    this.classNestLevel--;
+
+    // インナークラスでない場合は，モジュールスタックからクラスモジュールをポップし，外側のモジュールにクラスを表すトークンを追加する
+    if (0 == this.classNestLevel) {
+      final FinerJavaClass finerJavaClass = (FinerJavaClass) this.moduleStack.pop();
+      this.addToPeekModule(
+          new FinerJavaClassToken("ClassToken[" + finerJavaClass.name + "]", finerJavaClass));
+    }
+    
     return false;
   }
 
