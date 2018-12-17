@@ -69,7 +69,7 @@ public abstract class FinerJavaModule {
     String name = this.getBaseName() + this.getExtension();
     final int maxFileNameLength = this.config.getMaxFileNameLength();
     if (maxFileNameLength < name.length()) {
-      log.warn("\"{}\" is shrinked to {} characters due to too long name", name, maxFileNameLength);
+      log.info("\"{}\" is shrinked to {} characters due to too long name", name, maxFileNameLength);
       name = this.shrink(name);
     }
     return name;
