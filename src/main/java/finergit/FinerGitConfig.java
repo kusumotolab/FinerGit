@@ -20,6 +20,7 @@ public class FinerGitConfig {
   private boolean isTokenTypeIncluded;
   private boolean isMethodTokenIncluded;
   private boolean isCheckCommit;
+  private boolean isConcurrent;
   private int maxFileNameLength;
   private int hashLength;
 
@@ -35,6 +36,7 @@ public class FinerGitConfig {
     this.isTokenTypeIncluded = false;
     this.isMethodTokenIncluded = true;
     this.isCheckCommit = false;
+    this.isConcurrent = true;
     this.maxFileNameLength = 255;
     this.hashLength = 7;
   }
@@ -248,6 +250,28 @@ public class FinerGitConfig {
       }
       default: {
         System.err.println("\"--check-commit\" option can take only true or false");
+        System.exit(0);
+      }
+    }
+  }
+
+  public boolean isConcurrent() {
+    return this.isConcurrent;
+  }
+
+  @Option(name = "--concurrent", metaVar = "<true|false>)", usage = "rewrite trees concurrently")
+  public void setConcurrent(final String flag) {
+    switch (flag.toLowerCase()) {
+      case "true": {
+        this.isConcurrent = true;
+        break;
+      }
+      case "false": {
+        this.isConcurrent = false;
+        break;
+      }
+      default: {
+        System.err.println("\"--concurrent\" option can take only true or false");
         System.exit(0);
       }
     }
