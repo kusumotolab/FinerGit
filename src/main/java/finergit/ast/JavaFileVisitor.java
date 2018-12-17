@@ -290,7 +290,7 @@ public class JavaFileVisitor extends ASTVisitor {
       this.addToPeekModule(left ? new LEFTCATCHCLAUSEBRACKET() : new RIGHTCATCHCLAUSEBRACKET());
     } else if (WhileStatement.class == parent.getClass()) {
       this.addToPeekModule(left ? new LEFTWHILEBRACKET() : new RIGHTWHILEBRACKET());
-    }else if(LabeledStatement.class == parent.getClass()){
+    } else if (LabeledStatement.class == parent.getClass()) {
       // ラベル文のときには，ここにくるのはラベル文の文の部分がシンプルブロックのはず
       this.addToPeekModule(left ? new LEFTSIMPLEBLOCKBRACKET() : new RIGHTSIMPLEBLOCKBRACKET());
     } else {
@@ -590,6 +590,18 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final EnumDeclaration node) {
 
+    // インナークラスでない場合は，新しいクラスモジュールを作り，モジュールスタックにpush
+    if (0 == this.classNestLevel) {
+      final FinerJavaModule outerModule = this.moduleStack.peek();
+      final String className = node.getName()
+          .getIdentifier();
+      final FinerJavaClass classModule = new FinerJavaClass(className, outerModule, this.config);
+      this.moduleStack.push(classModule);
+      this.moduleList.add(classModule);
+    }
+
+    this.classNestLevel++;
+
     // Javadoc コメントの処理
     final Javadoc javadoc = node.getJavadoc();
     if (null != javadoc) {
@@ -603,14 +615,31 @@ public class JavaFileVisitor extends ASTVisitor {
       this.addToPeekModule(modifierToken);
     }
 
+    // "class"の処理
+    this.addToPeekModule(new ENUM());
+
     this.contexts.push(CLASSNAME.class);
     node.getName()
         .accept(this);
     final Class<?> context = this.contexts.pop();
     assert CLASSNAME.class == context : "error happend at JavaFileVisitor#visit(EnumDeclaration)";
 
-    for (final Object enumConstant : node.enumConstants()) {
-      ((EnumConstantDeclaration) enumConstant).accept(this);
+    this.addToPeekModule(new LEFTCLASSBRACKET());
+
+    for (final Object o : node.bodyDeclarations()) {
+      final BodyDeclaration body = (BodyDeclaration) o;
+      body.accept(this);
+    }
+
+    this.addToPeekModule(new RIGHTCLASSBRACKET());
+
+    this.classNestLevel--;
+
+    // インナークラスでない場合は，モジュールスタックからクラスモジュールをポップし，外側のモジュールにクラスを表すトークンを追加する
+    if (0 == this.classNestLevel) {
+      final FinerJavaClass finerJavaClass = (FinerJavaClass) this.moduleStack.pop();
+      this.addToPeekModule(
+          new FinerJavaClassToken("ClassToken[" + finerJavaClass.name + "]", finerJavaClass));
     }
 
     return false;
@@ -1052,8 +1081,12 @@ public class JavaFileVisitor extends ASTVisitor {
     final List<String> types = new ArrayList<>();
     for (final Object parameter : node.parameters()) {
       final SingleVariableDeclaration svd = (SingleVariableDeclaration) parameter;
-      final String type = svd.getType()
-          .toString()
+      final StringBuilder typeText = new StringBuilder();
+      typeText.append(svd.getType());
+      if (svd.isVarargs()) {
+        typeText.append("...");
+      }
+      final String type = typeText.toString()
           .replace(' ', '-') // avoiding space existences
           .replace('?', '#') // for window's file system
           .replace('<', '[') // for window's file system
@@ -1455,6 +1488,11 @@ public class JavaFileVisitor extends ASTVisitor {
     // 型の処理
     node.getType()
         .accept(this);
+
+    // 可変長引数なら"..."を追加
+    if (node.isVarargs()) {
+      this.addToPeekModule(new VariableArity());
+    }
 
     {// 変数名の処理
       this.contexts.push(VARIABLENAME.class);
