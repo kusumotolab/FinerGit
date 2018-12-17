@@ -1004,6 +1004,19 @@ public class JavaFileVisitor extends ASTVisitor {
       this.addToPeekModule(modifierToken);
     }
 
+    // Method Type Erasure の処理
+    @SuppressWarnings("rawtypes")
+    final List typeParameters = node.typeParameters();
+    if (null != typeParameters && !typeParameters.isEmpty()) {
+      this.addToPeekModule(new LESS());
+      ((TypeParameter) typeParameters.get(0)).accept(this);
+      for (int index = 1; index < typeParameters.size(); index++) {
+        this.addToPeekModule(new METHODDECLARAIONPARAMETERCOMMA());
+        ((TypeParameter) typeParameters.get(index)).accept(this);
+      }
+      this.addToPeekModule(new GREAT());
+    }
+
     // 返り値の処理（ダミーメソッドに追加）
     final Type returnType = node.getReturnType2();
     if (null != returnType) { // コンストラクタのときは returnType が null
@@ -1061,6 +1074,23 @@ public class JavaFileVisitor extends ASTVisitor {
         methodFileName.append("protected_");
       } else if (Modifier.isPrivate(modifiers)) {
         methodFileName.append("private_");
+      }
+    }
+    if (this.config.isMethodTypeErasureIncluded()) { // Erasure を名前に入れる場合
+      if (null != typeParameters && !typeParameters.isEmpty()) {
+        methodFileName.append("[");
+        final List<String> erasures = new ArrayList<>();
+        for (final Object o : node.typeParameters()) {
+          final TypeParameter typeParameter = (TypeParameter) o;
+          final String type = typeParameter.toString()
+              .replace(' ', '-') // avoiding space existences
+              .replace('?', '#') // for window's file system
+              .replace('<', '[') // for window's file system
+              .replace('>', ']'); // for window's file system
+          erasures.add(type);
+        }
+        methodFileName.append(String.join(",", erasures));
+        methodFileName.append("]_");
       }
     }
     if (this.config.isReturnTypeIncluded()) { // 返り値の型を名前に入れる場合
@@ -1425,6 +1455,10 @@ public class JavaFileVisitor extends ASTVisitor {
 
     else if (TYPENAME.class == context) {
       this.addToPeekModule(new TYPENAME(identifier));
+    }
+
+    else if (TYPEPARAMETERNAME.class == context) {
+      this.addToPeekModule(new TYPEPARAMETERNAME(identifier));
     }
 
     else if (DECLAREDMETHODNAME.class == context) {
@@ -1854,8 +1888,25 @@ public class JavaFileVisitor extends ASTVisitor {
   // TODO テストできていない
   @Override
   public boolean visit(final TypeParameter node) {
-    log.error("JavaFileVisitor#visit(TypeParameter) is not implemented yet.");
-    return super.visit(node);
+
+    this.contexts.push(TYPEPARAMETERNAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> context = this.contexts.pop();
+    assert TYPEPARAMETERNAME.class == context : "error happened at visit(TypeParameter)";
+
+    @SuppressWarnings("rawtypes")
+    List typeBounds = node.typeBounds();
+    if (null != typeBounds && !typeBounds.isEmpty()) {
+      this.addToPeekModule(new EXTENDS());
+      ((Type) typeBounds.get(0)).accept(this);
+      for (int index = 1; index < typeBounds.size(); index++) {
+        this.addToPeekModule(new AND());
+        ((Type) typeBounds.get(index)).accept(this);
+      }
+    }
+
+    return false;
   }
 
   @Override

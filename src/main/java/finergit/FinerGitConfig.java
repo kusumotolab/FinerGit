@@ -16,6 +16,7 @@ public class FinerGitConfig {
   private boolean isOtherFilesIncluded;
   private boolean isTokenized;
   private boolean isAccessModifierIncluded;
+  private boolean isMethodTypeErasureIncluded;
   private boolean isReturnTypeIncluded;
   private boolean isTokenTypeIncluded;
   private boolean isMethodTokenIncluded;
@@ -32,6 +33,7 @@ public class FinerGitConfig {
     this.isOtherFilesIncluded = false;
     this.isTokenized = true;
     this.isAccessModifierIncluded = true;
+    this.isMethodTypeErasureIncluded = true;
     this.isReturnTypeIncluded = true;
     this.isTokenTypeIncluded = false;
     this.isMethodTokenIncluded = true;
@@ -159,6 +161,29 @@ public class FinerGitConfig {
       }
       default: {
         System.err.println("\"--access-modifier-included\" option can take only true or false");
+        System.exit(0);
+      }
+    }
+  }
+
+  public boolean isMethodTypeErasureIncluded() {
+    return this.isMethodTypeErasureIncluded;
+  }
+
+  @Option(name = "--method-type-erasure-included", metaVar = "<true|false>)",
+      usage = "include method type erasure in Java method files")
+  public void setMethodTypeErasureIncluded(final String flag) {
+    switch (flag.toLowerCase()) {
+      case "true": {
+        this.isMethodTypeErasureIncluded = true;
+        break;
+      }
+      case "false": {
+        this.isMethodTypeErasureIncluded = false;
+        break;
+      }
+      default: {
+        System.err.println("\"--method-type-erasure-included\" option can take only true or false");
         System.exit(0);
       }
     }
