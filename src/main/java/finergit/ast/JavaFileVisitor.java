@@ -641,7 +641,7 @@ public class JavaFileVisitor extends ASTVisitor {
       this.addToPeekModule(
           new FinerJavaClassToken("ClassToken[" + finerJavaClass.name + "]", finerJavaClass));
     }
-    
+
     return false;
   }
 
@@ -1081,8 +1081,12 @@ public class JavaFileVisitor extends ASTVisitor {
     final List<String> types = new ArrayList<>();
     for (final Object parameter : node.parameters()) {
       final SingleVariableDeclaration svd = (SingleVariableDeclaration) parameter;
-      final String type = svd.getType()
-          .toString()
+      final StringBuilder typeText = new StringBuilder();
+      typeText.append(svd.getType());
+      if (svd.isVarargs()) {
+        typeText.append("...");
+      }
+      final String type = typeText.toString()
           .replace(' ', '-') // avoiding space existences
           .replace('?', '#') // for window's file system
           .replace('<', '[') // for window's file system
@@ -1484,6 +1488,11 @@ public class JavaFileVisitor extends ASTVisitor {
     // 型の処理
     node.getType()
         .accept(this);
+
+    // 可変長引数なら"..."を追加
+    if (node.isVarargs()) {
+      this.addToPeekModule(new VariableArity());
+    }
 
     {// 変数名の処理
       this.contexts.push(VARIABLENAME.class);
