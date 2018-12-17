@@ -24,7 +24,7 @@ public class FinerGitRewriter extends ConcurrentRepositoryRewriter {
   public FinerGitRewriter(final FinerGitConfig config) {
     this.config = config;
     this.builder = new FinerJavaFileBuilder(config);
-    setConcurrent(config.isConcurrent());
+    setConcurrent(config.isParallel());
     setPathSensitive(true);
   }
 
