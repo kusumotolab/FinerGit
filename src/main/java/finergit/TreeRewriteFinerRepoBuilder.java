@@ -6,7 +6,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,9 +43,10 @@ public class TreeRewriteFinerRepoBuilder {
       // clean up working copy
       final boolean resetSucceeded = repo.resetHard();
       log.debug("git reset --hard: {}", resetSucceeded ? "succeeded" : "failed");
-      final boolean cleanSucceeded = repo.clean();
-      log.debug("git clean -fd: {}", cleanSucceeded ? "succeeded" : "failed");
-
+      if (resetSucceeded) {
+        final boolean cleanSucceeded = repo.clean();
+        log.debug("git clean -fd: {}", cleanSucceeded ? "succeeded" : "failed");
+      }
     } catch (final Exception e) {
       e.printStackTrace();
     }
