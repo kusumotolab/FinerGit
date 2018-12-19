@@ -4,7 +4,6 @@ import static org.eclipse.jgit.diff.DiffEntry.ChangeType.COPY;
 import static org.eclipse.jgit.diff.DiffEntry.ChangeType.RENAME;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -481,7 +480,7 @@ public class GitRepo {
   /**
    * `git reset --hard (HEAD)` を適用する．
    */
-  public boolean doResetHard() {
+  public boolean resetHard() {
     log.trace("enter resetHard()");
     try (final Git git = new Git(this.repository)) {
       final ResetCommand cmd = git.reset();
@@ -491,28 +490,6 @@ public class GitRepo {
     } catch (final GitAPIException e) {
       e.printStackTrace();
       return false;
-    }
-  }
-
-  /**
-   * `git reset --hard (HEAD)`を例外を回避しながら適用する．
-   */
-  public boolean resetHard() {
-    InvalidPathException prev = null;
-    for (;;) {
-      try {
-        return doResetHard();
-      } catch (final InvalidPathException e) {
-        log.warn("Trapped {}", e);
-        if (prev != null && e.getInput().equals(prev.getInput())
-            && e.getReason().equals(prev.getReason())) {
-          log.error("InvalidPathException repeatedly happened for {}; gave up", e.getInput());
-          return false;
-        } else {
-          prev = e;
-          log.debug("Retrying resetHard()...");
-        }
-      }
     }
   }
 
