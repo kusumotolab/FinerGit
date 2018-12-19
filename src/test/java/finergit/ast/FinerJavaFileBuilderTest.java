@@ -388,4 +388,21 @@ public class FinerJavaFileBuilderTest {
         "MethodTypeErasure$public_[R-extends-Set[T]]_T_get(R).mjava",
         "MethodTypeErasure$public_[R-extends-List[T]]_T_get(R).mjava");
   }
+
+  @Test
+  public void getFinerJavaModulesSuccessTest13() throws Exception {
+    final Path targetPath = Paths.get("src/test/resources/finergit/ast/ArrayDefinition.java");
+    final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
+
+    final List<String> moduleNames = modules.stream()
+        .map(m -> m.getFileName())
+        .collect(Collectors.toList());
+    assertThat(moduleNames).containsExactlyInAnyOrder("ArrayDefinition.cjava",
+        "ArrayDefinition$public_void_set(int).mjava",
+        "ArrayDefinition$public_void_set(int[]).mjava",
+        "ArrayDefinition$public_void_set(int[][]).mjava",
+        "ArrayDefinition$public_void_set(int[][][]).mjava");
+  }
 }

@@ -1113,6 +1113,9 @@ public class JavaFileVisitor extends ASTVisitor {
       final SingleVariableDeclaration svd = (SingleVariableDeclaration) parameter;
       final StringBuilder typeText = new StringBuilder();
       typeText.append(svd.getType());
+      for(int i = 0 ; i < svd.getExtraDimensions() ; i++) { // "int a[]"のような表記に対応するため
+        typeText.append("[]");
+      }
       if (svd.isVarargs()) {
         typeText.append("...");
       }
