@@ -2,7 +2,6 @@ package finergit;
 
 import static org.eclipse.jgit.diff.DiffEntry.ChangeType.COPY;
 import static org.eclipse.jgit.diff.DiffEntry.ChangeType.RENAME;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -75,7 +74,7 @@ public class GitRepo {
       this.repository = new FileRepository(configPath.toFile());
     } catch (final IOException e) {
       log.error("repository \"" + configPath.toString()
-      + "\" appears to already exist but cannot be accessed");
+          + "\" appears to already exist but cannot be accessed");
       log.error(e.getMessage());
       return false;
     }
@@ -294,7 +293,7 @@ public class GitRepo {
       log.error(e.getMessage());
     } catch (final IOException e) {
       log.error("cannot access to repository \"" + this.repository.getWorkTree()
-      .toString());
+          .toString());
     }
     return null;
   }
@@ -510,9 +509,6 @@ public class GitRepo {
           log.error("InvalidPathException repeatedly happened for {}; gave up", e.getInput());
           return false;
         } else {
-          // try file deleting
-          final boolean deleteSucceeded = new File(e.getInput()).delete();
-          log.warn("Try deleting {}: {}", e.getInput(), deleteSucceeded ? "succeeded" : "failed");
           prev = e;
           log.debug("Retrying resetHard()...");
         }
