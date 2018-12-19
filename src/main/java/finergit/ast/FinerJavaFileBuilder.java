@@ -3,9 +3,11 @@ package finergit.ast;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.jdt.core.compiler.IProblem;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CompilationUnit;
@@ -28,6 +30,13 @@ public class FinerJavaFileBuilder {
 
       @Override
       public void acceptAST(final String sourceFilePath, final CompilationUnit ast) {
+
+        // 与えられたASTに問題があるときは何もしない
+        final IProblem[] problems = ast.getProblems();
+        if (null == problems || 0 < problems.length) {
+          return;
+        }
+
         final String text = pathToTextMap.get(sourceFilePath);
         if (text != null) {
           final Path path = Paths.get(sourceFilePath);
@@ -53,6 +62,13 @@ public class FinerJavaFileBuilder {
     final ASTParser parser = createNewParser();
     parser.setSource(text.toCharArray());
     final CompilationUnit ast = (CompilationUnit) parser.createAST(null);
+
+    // 与えられたASTに問題があるときは何もしない
+    final IProblem[] problems = ast.getProblems();
+    if (null == problems || 0 < problems.length) {
+      return Collections.emptyList();
+    }
+
     final JavaFileVisitor visitor = new JavaFileVisitor(Paths.get(path), this.config);
     ast.accept(visitor);
     return visitor.getFinerJavaModules(false, true, true);
