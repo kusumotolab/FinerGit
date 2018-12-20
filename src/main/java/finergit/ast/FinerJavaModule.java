@@ -89,25 +89,17 @@ public abstract class FinerJavaModule {
     return shrinkedName.toString();
   }
 
-  /**
-   * ベースネーム（拡張子がないファイル名）を返す．
-   * 
-   * @return
-   */
-  public final String getBaseName() {
-    final StringBuilder builder = new StringBuilder();
-    if ((null != this.outerModule) && (FinerJavaFile.class != this.outerModule.getClass())) {
-      builder.append(this.outerModule.getBaseName());
-      builder.append("$");
-    }
-    builder.append(this.name);
-    return builder.toString();
-  }
-
   public final Path getPath() {
     return this.getDirectory()
         .resolve(this.getFileName());
   }
 
   public abstract String getExtension();
+
+  /**
+   * ベースネーム（拡張子がないファイル名）を返す．
+   * 
+   * @return
+   */
+  abstract public String getBaseName();
 }

@@ -21,4 +21,13 @@ public class FinerJavaMethod extends FinerJavaModule {
   public String getExtension() {
     return METHOD_FILE_EXTENSION;
   }
+
+  /**
+   * ベースネーム（拡張子がないファイル名）を返す．
+   * 
+   * @return
+   */
+  public String getBaseName() {
+    return this.outerModule.getBaseName() + "$" + this.name;
+  }
 }
