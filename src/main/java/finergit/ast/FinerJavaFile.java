@@ -33,4 +33,13 @@ public class FinerJavaFile extends FinerJavaModule {
   public String getExtension() {
     return ".fjava";
   }
+
+  /**
+   * ベースネーム（拡張子がないファイル名）を返す．
+   * 
+   * @return
+   */
+  public String getBaseName() {
+    return this.name;
+  }
 }
