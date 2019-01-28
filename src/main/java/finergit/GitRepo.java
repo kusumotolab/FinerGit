@@ -5,14 +5,9 @@ import static org.eclipse.jgit.diff.DiffEntry.ChangeType.RENAME;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.eclipse.jgit.api.CleanCommand;
-import org.eclipse.jgit.api.DiffCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
@@ -21,20 +16,14 @@ import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.RenameDetector;
 import org.eclipse.jgit.errors.AmbiguousObjectException;
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
-import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.errors.RevisionSyntaxException;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.AnyObjectId;
 import org.eclipse.jgit.lib.Constants;
-import org.eclipse.jgit.lib.FileMode;
 import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.ObjectLoader;
-import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathSuffixFilter;
 import org.eclipse.jgit.treewalk.filter.TreeFilter;
@@ -95,12 +84,6 @@ public class GitRepo {
     }
   }
 
-
-  public void dispose() {
-    log.trace("enter dispose()");
-    this.repository.close();
-  }
-
   public RevCommit getHeadCommit() {
     log.trace("enter getHeadCommit()");
     return this.getCommit(Constants.HEAD);
@@ -117,158 +100,6 @@ public class GitRepo {
     final ObjectId commitId = this.getObjectId(commit);
     final RevCommit revCommit = this.getRevCommit(commitId);
     return revCommit;
-  }
-
-  public List<RevCommit> getParentCommits(final RevCommit commit) {
-    log.trace("enter getParentCommits(RevCommit=\"{}\")", RevCommitUtil.getAbbreviatedID(commit));
-    final List<RevCommit> parents = new ArrayList<>();
-    for (final RevCommit parent : commit.getParents()) {
-      final RevCommit parentCommit = this.getRevCommit(parent);
-      parents.add(parentCommit);
-    }
-    return parents;
-  }
-
-  public Map<String, byte[]> getFiles(final RevCommit commit, final Collection<String> paths) {
-    log.trace("enter getFiles(RevCommit=\"{}\", Collection<String>=\"{}\")",
-        RevCommitUtil.getAbbreviatedID(commit), paths.size());
-
-    final Map<String, byte[]> files = new HashMap<>();
-    final ObjectReader reader = this.repository.newObjectReader();
-    final RevTree tree = commit.getTree();
-
-    for (final String path : paths) {
-      final byte[] data = loadFile(reader, path, tree, commit);
-      if (null != data) {
-        files.put(path, data);
-      }
-    }
-
-    return files;
-  }
-
-  private byte[] loadFile(final ObjectReader reader, final String path, final RevTree tree,
-      final RevCommit commit) {
-    log.trace("enter loadFile(ObjectReader, String=\"{}\", RevTree, RevCommit=\"\"", path,
-        RevCommitUtil.getAbbreviatedID(commit));
-
-    try {
-      final TreeWalk nodeWalk = TreeWalk.forPath(reader, path, tree);
-      if (null == nodeWalk) {
-        log.error("failed to access \"{}\", unusual characters may be included in the path", path);
-        return null;
-      }
-      final ObjectId fileID = nodeWalk.getObjectId(0);
-      final ObjectLoader fileLoader = reader.open(fileID);
-      final byte[] data = fileLoader.getBytes();
-      return data;
-    } catch (final MissingObjectException e) {
-      final String commitID = RevCommitUtil.getAbbreviatedID(commit);
-      log.error("missing object for \"" + path + "\" in commit<" + commitID + ">");
-      log.error(e.getMessage());
-      return null;
-    } catch (final IOException e) {
-      log.error("failed to access \"{}\"", path);
-      log.error(e.getMessage());
-      return null;
-    }
-  }
-
-  public Map<String, byte[]> getFiles(final RevCommit commit) {
-    log.trace("enter getFiles(RevCommit=\"{}\")", RevCommitUtil.getAbbreviatedID(commit));
-
-    final ObjectReader reader = this.repository.newObjectReader();
-    final CanonicalTreeParser parser = getCanonicalTreeParser(commit, reader);
-    final RevTree tree = commit.getTree();
-    final Map<String, byte[]> files = new HashMap<>();
-
-    collectFiles(reader, commit, tree, parser, files);
-
-    reader.close();
-    return files;
-  }
-
-  private void collectFiles(final ObjectReader reader, final RevCommit commit, final RevTree tree,
-      final CanonicalTreeParser parser, final Map<String, byte[]> files) {
-    log.trace(
-        "enter collectgetFiles(ObjectReader, RevCommit=\"{}\", RevTree, CanonicalTreeParser, Map<String, byte[]>)",
-        RevCommitUtil.getAbbreviatedID(commit));
-
-    for (CanonicalTreeParser currentParser = parser; !currentParser.eof(); currentParser =
-        currentParser.next()) {
-
-      final String path = currentParser.getEntryPathString();
-      final FileMode mode = currentParser.getEntryFileMode();
-
-      if (mode.equals(FileMode.REGULAR_FILE) || mode.equals(FileMode.EXECUTABLE_FILE)) {
-        final byte[] data = this.loadFile(reader, path, tree, commit);
-        if (null != data) {
-          files.put(path, data);
-        }
-      }
-
-      else if (mode.equals(FileMode.TREE)) {
-        try {
-          final CanonicalTreeParser subParser = currentParser.createSubtreeIterator(reader);
-          collectFiles(reader, commit, tree, subParser, files);
-        } catch (final IOException e) {
-          final String commitID = RevCommitUtil.getAbbreviatedID(commit);
-          log.error("failed to creat a parser for \"{}\" on commit \"{}\"", path, commitID);
-          log.error(e.getMessage());
-        }
-      }
-
-      else if (mode.equals(FileMode.GITLINK)) {
-        log.warn("submodule \"{}\" is out of conversion", path);
-      }
-
-      else {
-        log.warn("unknown type file \"{}\" is ignored", path);
-      }
-    }
-  }
-
-  public List<DiffEntry> getDiff(final RevCommit commit) {
-    log.trace("enter getDiff(RevCommit=\"{}\")", RevCommitUtil.getAbbreviatedID(commit));
-
-    final Git git = new Git(this.repository);
-    final RevCommit parentCommit = this.getRevCommit(commit.getParent(0));
-    if (null == parentCommit) {
-      git.close();
-      return Collections.emptyList();
-    }
-
-    final ObjectReader objectReader = this.repository.newObjectReader();
-
-    final CanonicalTreeParser oldParser = this.getCanonicalTreeParser(parentCommit, objectReader);
-    if (null == oldParser) {
-      objectReader.close();
-      git.close();
-      return Collections.emptyList();
-    }
-
-    final CanonicalTreeParser newParser = this.getCanonicalTreeParser(commit, objectReader);
-    if (null == newParser) {
-      objectReader.close();
-      git.close();
-      return Collections.emptyList();
-    }
-
-    final DiffCommand diffCommand = git.diff();
-    try {
-      final List<DiffEntry> diffEntries = diffCommand.setShowNameAndStatusOnly(true)
-          .setOldTree(oldParser)
-          .setNewTree(newParser)
-          .call();
-      return diffEntries;
-    } catch (final GitAPIException e) {
-      log.error("failed to execute git-diff");
-      git.close();
-      return Collections.emptyList();
-    } finally {
-      objectReader.close();
-      git.close();
-    }
   }
 
   private ObjectId getObjectId(final String name) {
@@ -309,22 +140,6 @@ public class GitRepo {
       return commit;
     } catch (final IOException e) {
       log.error("cannot parse commit \"{}\"", RevCommitUtil.getAbbreviatedID(commitId));
-      log.error(e.getMessage());
-      return null;
-    }
-  }
-
-  private CanonicalTreeParser getCanonicalTreeParser(final RevCommit commit,
-      final ObjectReader reader) {
-    log.trace("enter getCanonicalTreeParser(RevCommit=\"{}\")",
-        RevCommitUtil.getAbbreviatedID(commit));
-
-    final CanonicalTreeParser parser = new CanonicalTreeParser();
-    try {
-      parser.reset(reader, commit.getTree());
-      return parser;
-    } catch (final IOException e) {
-      log.error("cannot parse commit \"{}\"", RevCommitUtil.getAbbreviatedID(commit));
       log.error(e.getMessage());
       return null;
     }
