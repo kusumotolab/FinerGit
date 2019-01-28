@@ -61,7 +61,7 @@ public class FinerGitMain {
     log.trace("enter exec()");
     // final FinerRepoBuilder builder = new FinerRepoBuilder(this.config);
     // return builder.exec();
-    final TreeRewriteFinerRepoBuilder builder = new TreeRewriteFinerRepoBuilder(this.config);
+    final FinerRepoBuilder builder = new FinerRepoBuilder(this.config);
     builder.exec();
   }
 }
