@@ -94,6 +94,11 @@ public abstract class FinerJavaModule {
         .resolve(this.getFileName());
   }
 
+  /**
+   * 拡張子を返す．
+   * 
+   * @return
+   */
   public abstract String getExtension();
 
   /**

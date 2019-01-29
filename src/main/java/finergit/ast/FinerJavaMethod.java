@@ -5,7 +5,8 @@ import finergit.FinerGitConfig;
 
 public class FinerJavaMethod extends FinerJavaModule {
 
-  private static final String METHOD_FILE_EXTENSION = ".mjava";
+  private static final String METHOD_EXTENSION = ".mjava";
+  private static final String METHOD_DELIMITER = "#";
 
   public FinerJavaMethod(final String name, final FinerJavaModule outerModule,
       final FinerGitConfig config) {
@@ -19,7 +20,7 @@ public class FinerJavaMethod extends FinerJavaModule {
 
   @Override
   public String getExtension() {
-    return METHOD_FILE_EXTENSION;
+    return METHOD_EXTENSION;
   }
 
   /**
@@ -28,6 +29,6 @@ public class FinerJavaMethod extends FinerJavaModule {
    * @return
    */
   public String getBaseName() {
-    return this.outerModule.getBaseName() + "$" + this.name;
+    return this.outerModule.getBaseName() + METHOD_DELIMITER + this.name;
   }
 }
