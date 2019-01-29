@@ -92,7 +92,7 @@ By using `git-msv` instead of `git-sv`, you can get rid of overhead to launch Ja
 We recommend using **absolute paths** to specify files instead of relative ones.
 
 
-## A the end
+## At the end
 
 FinerGit is still under development. We mainly use MacOS + JDK1.8 + Eclipse in our FinerGit development.
 `git-subcommand/FinerGit.jar` is built with JDk1.8.
