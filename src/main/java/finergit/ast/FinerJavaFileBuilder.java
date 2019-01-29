@@ -75,7 +75,7 @@ public class FinerJavaFileBuilder {
   }
 
   private ASTParser createNewParser() {
-    ASTParser parser = ASTParser.newParser(AST.JLS10);
+    ASTParser parser = ASTParser.newParser(AST.JLS11);
 
     @SuppressWarnings("unchecked")
     final Map<String, String> options = DefaultCodeFormatterConstants.getEclipseDefaultSettings();

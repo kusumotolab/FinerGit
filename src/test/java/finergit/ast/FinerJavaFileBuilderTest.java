@@ -24,8 +24,8 @@ public class FinerJavaFileBuilderTest {
         .map(m -> m.getFileName())
         .collect(Collectors.toSet());
     assertThat(moduleNames).containsExactlyInAnyOrder("MethodAndConstructor.cjava",
-        "MethodAndConstructor$MethodAndConstructor().mjava",
-        "MethodAndConstructor$void_method01().mjava", "MethodAndConstructor$void_method02().mjava");
+        "MethodAndConstructor#MethodAndConstructor().mjava",
+        "MethodAndConstructor#void_method01().mjava", "MethodAndConstructor#void_method02().mjava");
   }
 
   @Test
@@ -72,7 +72,7 @@ public class FinerJavaFileBuilderTest {
         .map(m -> m.getFileName())
         .collect(Collectors.toSet());
     assertThat(moduleNames).containsExactlyInAnyOrder("NestedClass.cjava",
-        "NestedClass$void_method01().mjava", "NestedClass$void_method02().mjava");
+        "NestedClass#void_method01().mjava", "NestedClass#void_method02().mjava");
   }
 
   @Test
@@ -117,8 +117,8 @@ public class FinerJavaFileBuilderTest {
         .map(m -> m.getFileName())
         .collect(Collectors.toSet());
     assertThat(moduleNames).containsExactlyInAnyOrder("GetterAndSetter.cjava",
-        "GetterAndSetter$GetterAndSetter(String).mjava", "GetterAndSetter$String_getText().mjava",
-        "GetterAndSetter$void_setText(String).mjava");
+        "GetterAndSetter#GetterAndSetter(String).mjava", "GetterAndSetter#String_getText().mjava",
+        "GetterAndSetter#void_setText(String).mjava");
   }
 
   @Test
@@ -355,7 +355,7 @@ public class FinerJavaFileBuilderTest {
         .map(m -> m.getFileName())
         .collect(Collectors.toSet());
     assertThat(moduleNames).containsExactlyInAnyOrder("Enum.cjava",
-        "Enum$public_String_toString().mjava");
+        "Enum#public_String_toString().mjava");
   }
 
   @Test
@@ -370,8 +370,8 @@ public class FinerJavaFileBuilderTest {
         .map(m -> m.getFileName())
         .collect(Collectors.toList());
     assertThat(moduleNames).containsExactlyInAnyOrder("VariableLengthParameter.cjava",
-        "VariableLengthParameter$public_String_method01(String).mjava",
-        "VariableLengthParameter$public_String_method01(String...).mjava");
+        "VariableLengthParameter#public_String_method01(String).mjava",
+        "VariableLengthParameter#public_String_method01(String...).mjava");
   }
 
   @Test
@@ -385,8 +385,8 @@ public class FinerJavaFileBuilderTest {
         .map(m -> m.getFileName())
         .collect(Collectors.toList());
     assertThat(moduleNames).containsExactlyInAnyOrder("MethodTypeErasure.cjava",
-        "MethodTypeErasure$public_[R-extends-Set[T]]_T_get(R).mjava",
-        "MethodTypeErasure$public_[R-extends-List[T]]_T_get(R).mjava");
+        "MethodTypeErasure#public_[R-extends-Set[T]]_T_get(R).mjava",
+        "MethodTypeErasure#public_[R-extends-List[T]]_T_get(R).mjava");
   }
 
   @Test
@@ -400,10 +400,10 @@ public class FinerJavaFileBuilderTest {
         .map(m -> m.getFileName())
         .collect(Collectors.toList());
     assertThat(moduleNames).containsExactlyInAnyOrder("ArrayDefinition.cjava",
-        "ArrayDefinition$public_void_set(int).mjava",
-        "ArrayDefinition$public_void_set(int[]).mjava",
-        "ArrayDefinition$public_void_set(int[][]).mjava",
-        "ArrayDefinition$public_void_set(int[][][]).mjava");
+        "ArrayDefinition#public_void_set(int).mjava",
+        "ArrayDefinition#public_void_set(int[]).mjava",
+        "ArrayDefinition#public_void_set(int[][]).mjava",
+        "ArrayDefinition#public_void_set(int[][][]).mjava");
   }
 
   @Test
@@ -417,7 +417,7 @@ public class FinerJavaFileBuilderTest {
         .map(m -> m.getFileName())
         .collect(Collectors.toList());
     assertThat(moduleNames).containsExactlyInAnyOrder("ClassName.cjava",
-        "ClassName$public_void_set(String).mjava", "[ClassName]A.cjava",
-        "[ClassName]A$public_void_set(String).mjava");
+        "ClassName#public_void_set(String).mjava", "[ClassName]A.cjava",
+        "[ClassName]A#public_void_set(String).mjava");
   }
 }

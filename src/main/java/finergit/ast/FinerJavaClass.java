@@ -5,7 +5,8 @@ import finergit.FinerGitConfig;
 
 public class FinerJavaClass extends FinerJavaModule {
 
-  private static final String CLASS_FILE_EXTENSION = ".cjava";
+  private static final String CLASS_EXTENSION = ".cjava";
+  private static final String CLASS_DELIMITER = "$";
 
   public FinerJavaClass(final String name, final FinerJavaModule outerModule,
       final FinerGitConfig config) {
@@ -19,7 +20,7 @@ public class FinerJavaClass extends FinerJavaModule {
 
   @Override
   public String getExtension() {
-    return CLASS_FILE_EXTENSION;
+    return CLASS_EXTENSION;
   }
 
   /**
@@ -30,7 +31,7 @@ public class FinerJavaClass extends FinerJavaModule {
   public String getBaseName() {
 
     final StringBuilder builder = new StringBuilder();
-    
+
     // 外側のモジュールがファイル名の場合は，
     // ファイル名とこのクラス名が違う場合のみ，
     // ファイル名を含める
@@ -45,7 +46,7 @@ public class FinerJavaClass extends FinerJavaModule {
     // 内部クラスの場合は外側のクラス名を含める
     else if (FinerJavaClass.class == this.outerModule.getClass()) {
       builder.append(this.outerModule.getBaseName())
-          .append("$");
+          .append(CLASS_DELIMITER);
     }
 
     builder.append(this.name);

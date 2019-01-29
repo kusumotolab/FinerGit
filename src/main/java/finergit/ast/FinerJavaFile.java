@@ -7,6 +7,8 @@ import finergit.FinerGitConfig;
 
 public class FinerJavaFile extends FinerJavaModule {
 
+  private static final String FILE_EXTENSION = ".fjava";
+
   public final Path directory;
   private final List<FinerJavaModule> innerJavaModules;
 
@@ -31,7 +33,7 @@ public class FinerJavaFile extends FinerJavaModule {
 
   @Override
   public String getExtension() {
-    return ".fjava";
+    return FILE_EXTENSION;
   }
 
   /**

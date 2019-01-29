@@ -42,17 +42,17 @@ git fg
 In FinerGit repositories, there are files whose extensions are `.cjava` or `.mjava`.
 
 - Extension `.cjava` means that its file represents a Java class. But all methods included in the class get extracted as different files.
-- Extension `.mjava` means that its file represents a Java method. Names of method files follow the format of `ClassName$MethodSignature.mjava`.
+- Extension `.mjava` means that its file represents a Java method. Names of method files follow the format of `ClassName#MethodSignature.mjava`.
 
-If you want to see the change history of `Foo$bar().mjava`, type the following command.
+If you want to see the change history of `Foo#bar().mjava`, type the following command.
 ```sh
-git log Foo$bar().mjava
+git log Foo#bar().mjava
 ```
 You will get all commits where method `bar()` was changed.
 
 ``--follow`` option is useful because it enables Git to track files even if their names got changed.
 ```sh
-git log --follow Foo$bar().mjava
+git log --follow Foo#bar().mjava
 ```
 
 ## Obtain semantic versions of Java methods
@@ -75,7 +75,7 @@ FinerGit has a command, `git-sv`, for calculating semantic version for a given f
 
 For example, the following command calculates a semantic version for Java method `fuga()`.
 ```sh
-git sv Foo$bar().mjava
+git sv Foo#bar().mjava
 ```
 
 there are several options for `git-sv` command.
@@ -92,7 +92,7 @@ By using `git-msv` instead of `git-sv`, you can get rid of overhead to launch Ja
 We recommend using **absolute paths** to specify files instead of relative ones.
 
 
-## A the end
+## At the end
 
 FinerGit is still under development. We mainly use MacOS + JDK1.8 + Eclipse in our FinerGit development.
 `git-subcommand/FinerGit.jar` is built with JDk1.8.
@@ -145,15 +145,15 @@ git fg
 FinerGit リポジトリには拡張子が `.cjava` や `.mjava` なファイルが含まれています．
 
 - 拡張子が `.cjava` なファイルは，Java のクラスを表すファイルです．ただし，その中に定義されているメソッドは別ファイルとして抽出されています．
-- 拡張子が `.mjava` なファイルは，Java のメソッドを表すクラスです．なお，Java メソッドのファイル名は，`クラス名$メソッドシグネチャ.mjava` となっています．
+- 拡張子が `.mjava` なファイルは，Java のメソッドを表すクラスです．なお，Java メソッドのファイル名は，`クラス名#メソッドシグネチャ.mjava` となっています．
 
 例えば，
 ```sh
-git log Hoge$fuga().mjava
+git log Hoge#fuga().mjava
 ```
 というコマンドを入力すると，`fuga()` メソッドに変更を加えたコミットの一覧を得ることができます．
 ```sh
-git log --follow Hoge$fuga().mjava
+git log --follow Hoge#fuga().mjava
 ```
 というように，``--follow`` オプションを利用すれば，メソッド名やそれを含むクラス名が変わっていた場合でも追跡して，コミット一覧を表示します．
 
@@ -176,7 +176,7 @@ FinerGit では，Java メソッドのセマンティックバージョンの算
 
 例えば，
 ```sh
-git sv Hoge$fuga().mjava
+git sv Hoge#fuga().mjava
 ```
 と入力すれば，`fuga()` メソッドのセマンティックバージョンが出力されます．また，`git-sv` コマンドにはいくつかのオプションがあり，セマンティックバージョン以外にも，これまでの変更の総数等を表示することができます．`git-sv` と引数を何もつけずにコマンドを実行すると，利用可能なオプション一覧が表示されます．
 
