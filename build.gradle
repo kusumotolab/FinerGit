@@ -32,26 +32,24 @@ dependencies {
     // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
 	compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.8.1'
 
-    // https://mvnrepository.com/artifact/com.google.guava/guava
-    compile group: 'com.google.guava', name: 'guava', version: '26.0-jre'
+	// https://mvnrepository.com/artifact/com.google.guava/guava
+	compile group: 'com.google.guava', name: 'guava', version: '27.0.1-jre'
+
 
     // Use JUnit test framework
     testImplementation 'junit:junit:4.12'
     
     // https://mvnrepository.com/artifact/org.eclipse.jgit/org.eclipse.jgit
-	compile group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '5.2.0.201812061821-r'
+	compile group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '5.2.1.201812262042-r'
     
     // https://mvnrepository.com/artifact/commons-io/commons-io
     compile group: 'commons-io', name: 'commons-io', version: '2.6'
     
     // https://mvnrepository.com/artifact/org.eclipse.jdt/org.eclipse.jdt.core
-    compile group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.core', version: '3.14.0'
+	compile group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.core', version: '3.16.0'
     
     // https://mvnrepository.com/artifact/args4j/args4j
 	compile group: 'args4j', name: 'args4j', version: '2.33'
-	
-	// https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
-    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.8'
 	
     // https://mvnrepository.com/artifact/commons-codec/commons-codec
     compile group: 'commons-codec', name: 'commons-codec', version: '1.11'
