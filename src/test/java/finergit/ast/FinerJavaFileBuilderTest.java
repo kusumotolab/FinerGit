@@ -117,8 +117,10 @@ public class FinerJavaFileBuilderTest {
         .map(m -> m.getFileName())
         .collect(Collectors.toSet());
     assertThat(moduleNames).containsExactlyInAnyOrder("GetterAndSetter.cjava",
-        "GetterAndSetter#GetterAndSetter(String).mjava", "GetterAndSetter#String_getText().mjava",
-        "GetterAndSetter#void_setText(String).mjava");
+        "GetterAndSetter#public_GetterAndSetter(String).mjava",
+        "GetterAndSetter#public_String_getText().mjava",
+        "GetterAndSetter#public_void_setText(String).mjava",
+        "GetterAndSetter#private_String_text.ajava");
   }
 
   @Test
@@ -137,17 +139,20 @@ public class FinerJavaFileBuilderTest {
       switch (module.name) {
         case "GetterAndSetter":
           break;
-        case "GetterAndSetter(String)":
-          assertThat(tokens).containsExactly("GetterAndSetter", "(", "String", "text", ")", "{",
-              "this", ".", "text", "=", "text", ";", "}");
+        case "public_GetterAndSetter(String)":
+          assertThat(tokens).containsExactly("public", "GetterAndSetter", "(", "String", "text",
+              ")", "{", "this", ".", "text", "=", "text", ";", "}");
           break;
-        case "String_getText()":
-          assertThat(tokens).containsExactly("String", "getText", "(", ")", "{", "return", "text",
-              ";", "}");
+        case "public_String_getText()":
+          assertThat(tokens).containsExactly("public", "String", "getText", "(", ")", "{", "return",
+              "text", ";", "}");
           break;
-        case "void_setText(String)":
-          assertThat(tokens).containsExactly("void", "setText", "(", "String", "text", ")", "{",
-              "this", ".", "text", "=", "text", ";", "}");
+        case "public_void_setText(String)":
+          assertThat(tokens).containsExactly("public", "void", "setText", "(", "String", "text",
+              ")", "{", "this", ".", "text", "=", "text", ";", "}");
+          break;
+        case "private_String_text":
+          assertThat(tokens).containsExactly("private", "String", "text", ";");
           break;
         default:
           System.err.println(module.name);
@@ -419,5 +424,67 @@ public class FinerJavaFileBuilderTest {
     assertThat(moduleNames).containsExactlyInAnyOrder("ClassName.cjava",
         "ClassName#public_void_set(String).mjava", "[ClassName]A.cjava",
         "[ClassName]A#public_void_set(String).mjava");
+  }
+
+  @Test
+  public void getFinerJavaModulesSuccessTest15() throws Exception {
+    final Path targetPath = Paths.get("src/test/resources/finergit/ast/token/Field.java");
+    final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
+
+    final List<String> moduleNames = modules.stream()
+        .map(m -> m.getFileName())
+        .collect(Collectors.toList());
+    assertThat(moduleNames).containsExactlyInAnyOrder("Field.cjava", "Field#private_int_a.ajava",
+        "Field#private_char_b.ajava", "Field#private_byte[]_c_d.ajava",
+        "Field#private_short[]_e_f.ajava", "Field#public_long_g.ajava",
+        "Field#void_method().mjava");
+  }
+
+  @Test
+  public void getFinerJavaModulesSuccessTest16() throws Exception {
+    final Path targetPath = Paths.get("src/test/resources/finergit/ast/token/Field.java");
+    final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
+
+    for (final FinerJavaModule module : modules) {
+
+      final List<String> tokens = module.getTokens()
+          .stream()
+          .map(t -> t.value)
+          .collect(Collectors.toList());
+      switch (module.name) {
+        case "Field":
+          break;
+        case "private_int_a":
+          assertThat(tokens).containsExactly(//
+              "private", "int", "a", ";");
+          break;
+        case "private_char_b":
+          assertThat(tokens).containsExactly(//
+              "private", "final", "char", "b", "=", "\'b\'", ";");//
+          break;
+        case "private_byte[]_c_d":
+          assertThat(tokens).containsExactly(//
+              "private", "byte", "[", "]", "c", ",", "d", ";");//
+          break;
+        case "private_short[]_e_f":
+          assertThat(tokens).containsExactly(//
+              "private", "short", "[", "]", "e", ",", "f", "=", //
+              "{", "1", ",", "2", "}", ";");//
+          break;
+        case "public_long_g":
+          assertThat(tokens).contains(//
+              "public", "final", "long", "g", "=", "100l", ";");//
+          break;
+        case "void_method()":
+          break;
+        default:
+          System.err.println(module.name);
+          assertThat(true).isEqualTo(false);
+      }
+    }
   }
 }
