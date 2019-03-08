@@ -762,7 +762,7 @@ public class JavaFileVisitor extends ASTVisitor {
       fieldFileName.append(((VariableDeclarationFragment) fragments.get(index)).getName());
     }
 
-    // 内部クラスのメソッドでない場合は，ダミーメソッドをスタックから取り除く
+    // 内部クラスのフィールドでない場合は，ダミーフィールドをスタックから取り除く
     if (1 == this.classNestLevel) {
       final FinerJavaModule dummyField = this.moduleStack.pop();
       final FinerJavaModule outerModule = this.moduleStack.peek();
@@ -770,7 +770,7 @@ public class JavaFileVisitor extends ASTVisitor {
           new FinerJavaField(fieldFileName.toString(), outerModule, this.config);
       this.moduleList.add(javaField);
 
-      // 一行一トークンの場合は，ダミーメソッド内のトークンを抽出し，methodModule に移行
+      // 一行一トークンの場合は，ダミーフィールド内のトークンを抽出し，methodModule に移行
       if (this.config.isTokenized()) {
         dummyField.getTokens()
             .forEach(javaField::addToken);
@@ -778,7 +778,7 @@ public class JavaFileVisitor extends ASTVisitor {
             new FinerJavaFieldToken("FieldToken[" + javaField.name + "]", javaField));
       }
 
-      // 一行一トークンでない場合は，メソッドの文字列表現からトークンを作り出し，それらをメソッドモジュールに追加し，処理を終了する
+      // 一行一トークンでない場合は，,フィールドの文字列表現からトークンを作り出し，それらをフィールドモジュールに追加し，処理を終了する
       else {
         Stream.of(node.toString()
             .split("(\\r\\n|\\r|\\n)"))
