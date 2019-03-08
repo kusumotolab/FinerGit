@@ -42,11 +42,12 @@ public class JavaFileVisitor extends ASTVisitor {
   }
 
   public List<FinerJavaModule> getFinerJavaModules(final boolean wantFile, final boolean wantClass,
-      final boolean wantMethod) {
+      final boolean wantMethod, final boolean wantAttribute) {
     return this.moduleList.stream()
         .filter(m -> (FinerJavaFile.class == m.getClass() && wantFile)
             || (FinerJavaClass.class == m.getClass() && wantClass)
-            || (FinerJavaMethod.class == m.getClass() && wantMethod))
+            || (FinerJavaMethod.class == m.getClass() && wantMethod)
+            || (FinerJavaField.class == m.getClass() && wantAttribute))
         .collect(Collectors.toList());
   }
 
@@ -700,6 +701,13 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final FieldDeclaration node) {
 
+    // 内部クラスのフィールドでない場合は，ダミーフィールドを生成し，モジュールスタックに追加
+    if (1 == this.classNestLevel) {
+      final FinerJavaModule outerModule = this.moduleStack.peek();
+      final FinerJavaField dummyField = new FinerJavaField("DummyField", outerModule, null);
+      this.moduleStack.push(dummyField);
+    }
+
     // Javadoc コメントの処理
     final Javadoc javadoc = node.getJavadoc();
     if (null != javadoc) {
@@ -713,15 +721,71 @@ public class JavaFileVisitor extends ASTVisitor {
       this.addToPeekModule(modifierToken);
     }
 
+    // 型の処理
     node.getType()
         .accept(this);
 
-    for (final Object o : node.fragments()) {
-      final VariableDeclarationFragment fragment = (VariableDeclarationFragment) o;
-      fragment.accept(this);
+    // フィールド名の処理
+    final List<?> fragments = node.fragments();
+    ((VariableDeclarationFragment) fragments.get(0)).accept(this);
+    for (int index = 1; index < fragments.size(); index++) {
+      this.addToPeekModule(new FIELDDECLARATIONCOMMA());
+      ((VariableDeclarationFragment) fragments.get(index)).accept(this);
     }
 
+    // フィールド宣言の最後にあるセミコロンの処理
     this.addToPeekModule(new FIELDDECLARATIONSEMICOLON());
+
+    // フィールドモジュールの名前を生成
+    final StringBuilder fieldFileName = new StringBuilder();
+    if (this.config.isAccessModifierIncluded()) { // アクセス修飾子を名前に入れる場合
+      final int modifiers = node.getModifiers();
+      if (Modifier.isPublic(modifiers)) {
+        fieldFileName.append("public_");
+      } else if (Modifier.isProtected(modifiers)) {
+        fieldFileName.append("protected_");
+      } else if (Modifier.isPrivate(modifiers)) {
+        fieldFileName.append("private_");
+      }
+    }
+    final String type = node.getType()
+        .toString()
+        .replace(' ', '-') // avoiding space existences
+        .replace('?', '#') // for window's file system
+        .replace('<', '[') // for window's file system
+        .replace('>', ']'); // for window's file system
+    fieldFileName.append(type);
+    fieldFileName.append("_");
+    fieldFileName.append(((VariableDeclarationFragment) fragments.get(0)).getName());
+    for (int index = 1; index < fragments.size(); index++) {
+      fieldFileName.append("_");
+      fieldFileName.append(((VariableDeclarationFragment) fragments.get(index)).getName());
+    }
+
+    // 内部クラスのフィールドでない場合は，ダミーフィールドをスタックから取り除く
+    if (1 == this.classNestLevel) {
+      final FinerJavaModule dummyField = this.moduleStack.pop();
+      final FinerJavaModule outerModule = this.moduleStack.peek();
+      final FinerJavaField javaField =
+          new FinerJavaField(fieldFileName.toString(), outerModule, this.config);
+      this.moduleList.add(javaField);
+
+      // 一行一トークンの場合は，ダミーフィールド内のトークンを抽出し，methodModule に移行
+      if (this.config.isTokenized()) {
+        dummyField.getTokens()
+            .forEach(javaField::addToken);
+        this.addToPeekModule(
+            new FinerJavaFieldToken("FieldToken[" + javaField.name + "]", javaField));
+      }
+
+      // 一行一トークンでない場合は，,フィールドの文字列表現からトークンを作り出し，それらをフィールドモジュールに追加し，処理を終了する
+      else {
+        Stream.of(node.toString()
+            .split("(\\r\\n|\\r|\\n)"))
+            .map(l -> new LineToken(l))
+            .forEach(javaField::addToken);
+      }
+    }
 
     return false;
   }
@@ -1113,7 +1177,7 @@ public class JavaFileVisitor extends ASTVisitor {
       final SingleVariableDeclaration svd = (SingleVariableDeclaration) parameter;
       final StringBuilder typeText = new StringBuilder();
       typeText.append(svd.getType());
-      for(int i = 0 ; i < svd.getExtraDimensions() ; i++) { // "int a[]"のような表記に対応するため
+      for (int i = 0; i < svd.getExtraDimensions(); i++) { // "int a[]"のような表記に対応するため
         typeText.append("[]");
       }
       if (svd.isVarargs()) {
