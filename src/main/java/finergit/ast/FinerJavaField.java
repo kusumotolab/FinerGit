@@ -5,7 +5,7 @@ import finergit.FinerGitConfig;
 
 public class FinerJavaField extends FinerJavaModule {
 
-  private static final String ATTRIBUTE_EXTENSION = ".ajava";
+  private static final String ATTRIBUTE_EXTENSION = ".fjava";
   private static final String ATTRIBUTE_DELIMITER = "#";
 
   public FinerJavaField(final String name, final FinerJavaModule outerModule,

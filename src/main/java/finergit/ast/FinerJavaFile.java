@@ -7,7 +7,7 @@ import finergit.FinerGitConfig;
 
 public class FinerJavaFile extends FinerJavaModule {
 
-  private static final String FILE_EXTENSION = ".fjava";
+  private static final String FILE_EXTENSION = ".pjava";
 
   public final Path directory;
   private final List<FinerJavaModule> innerJavaModules;
