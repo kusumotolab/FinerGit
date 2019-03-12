@@ -5,8 +5,8 @@ import finergit.FinerGitConfig;
 
 public class FinerJavaField extends FinerJavaModule {
 
-  private static final String ATTRIBUTE_EXTENSION = ".fjava";
-  private static final String ATTRIBUTE_DELIMITER = "#";
+  private static final String FIELD_EXTENSION = ".fjava";
+  private static final String FIELD_DELIMITER = "#";
 
   public FinerJavaField(final String name, final FinerJavaModule outerModule,
       final FinerGitConfig config) {
@@ -20,7 +20,7 @@ public class FinerJavaField extends FinerJavaModule {
 
   @Override
   public String getExtension() {
-    return ATTRIBUTE_EXTENSION;
+    return FIELD_EXTENSION;
   }
 
   /**
@@ -29,6 +29,6 @@ public class FinerJavaField extends FinerJavaModule {
    * @return
    */
   public String getBaseName() {
-    return this.outerModule.getBaseName() + ATTRIBUTE_DELIMITER + this.name;
+    return this.outerModule.getBaseName() + FIELD_DELIMITER + this.name;
   }
 }
