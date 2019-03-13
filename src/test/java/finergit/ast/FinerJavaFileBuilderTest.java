@@ -120,7 +120,7 @@ public class FinerJavaFileBuilderTest {
         "GetterAndSetter#public_GetterAndSetter(String).mjava",
         "GetterAndSetter#public_String_getText().mjava",
         "GetterAndSetter#public_void_setText(String).mjava",
-        "GetterAndSetter#private_String_text.ajava");
+        "GetterAndSetter#private_String_text.fjava");
   }
 
   @Test
@@ -436,9 +436,9 @@ public class FinerJavaFileBuilderTest {
     final List<String> moduleNames = modules.stream()
         .map(m -> m.getFileName())
         .collect(Collectors.toList());
-    assertThat(moduleNames).containsExactlyInAnyOrder("Field.cjava", "Field#private_int_a.ajava",
-        "Field#private_char_b.ajava", "Field#private_byte[]_c_d.ajava",
-        "Field#private_short[]_e_f.ajava", "Field#public_long_g.ajava",
+    assertThat(moduleNames).containsExactlyInAnyOrder("Field.cjava", "Field#private_int_a.fjava",
+        "Field#private_char_b.fjava", "Field#private_byte[]_c_d.fjava",
+        "Field#private_short[]_e_f.fjava", "Field#public_long_g.fjava",
         "Field#void_method().mjava");
   }
 
