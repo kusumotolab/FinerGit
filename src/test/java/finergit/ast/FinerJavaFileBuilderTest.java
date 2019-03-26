@@ -487,4 +487,18 @@ public class FinerJavaFileBuilderTest {
       }
     }
   }
+
+  @Test
+  public void getFinerJavaModulesSuccessTest17() throws Exception {
+    final Path targetPath = Paths.get("src/test/resources/finergit/ast/EscapeRout.java");
+    final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
+
+    final List<String> moduleNames = modules.stream()
+        .map(m -> m.getFileName())
+        .collect(Collectors.toList());
+    assertThat(moduleNames).containsExactlyInAnyOrder("EscapeRout.cjava",
+        "EscapeRout#public_void_main(String[]).mjava");
+  }
 }

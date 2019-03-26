@@ -1608,7 +1608,8 @@ public class JavaFileVisitor extends ASTVisitor {
 
   @Override
   public boolean visit(final StringLiteral node) {
-    this.addToPeekModule(new STRINGLITERAL(node.getLiteralValue()));
+    final String literal = node.getEscapedValue();
+    this.addToPeekModule(new STRINGLITERAL(literal));
     return false;
   }
 
