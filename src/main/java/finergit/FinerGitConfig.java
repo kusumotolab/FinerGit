@@ -22,6 +22,10 @@ public class FinerGitConfig {
   private boolean isMethodTokenIncluded;
   private boolean isCheckCommit;
   private boolean isParallel;
+  private boolean isFileFileGenerated;
+  private boolean isClassFileGenerated;
+  private boolean isMethodFileGenerated;
+  private boolean isFieldFileGenerated;
   private int maxFileNameLength;
   private int hashLength;
 
@@ -39,9 +43,15 @@ public class FinerGitConfig {
     this.isMethodTokenIncluded = true;
     this.isCheckCommit = false;
     this.isParallel = true;
+    this.isFileFileGenerated = false;
+    this.isClassFileGenerated = false;
+    this.isMethodFileGenerated = true;
+    this.isFieldFileGenerated = false;
     this.maxFileNameLength = 255;
     this.hashLength = 7;
   }
+
+  // ===== "-s" =====
 
   public Path getSrcPath() {
     return this.srcPath;
@@ -54,6 +64,8 @@ public class FinerGitConfig {
         .toAbsolutePath();
   }
 
+  // ===== "-d =====
+
   public Path getDesPath() {
     return this.desPath;
   }
@@ -65,6 +77,7 @@ public class FinerGitConfig {
         .toAbsolutePath();
   }
 
+  // ===== "--head" =====
   public String getHeadCommitId() {
     return this.headCommitId;
   }
@@ -73,6 +86,8 @@ public class FinerGitConfig {
   public void setHeadCommit(final String headCommitId) {
     this.headCommitId = headCommitId;
   }
+
+  // ===== "-o" =====
 
   public boolean isOriginalJavaIncluded() {
     return this.isOriginalJavaIncluded;
@@ -97,6 +112,8 @@ public class FinerGitConfig {
     }
   }
 
+  // ===== "-p" =====
+
   public boolean isOtherFilesIncluded() {
     return this.isOtherFilesIncluded;
   }
@@ -119,6 +136,8 @@ public class FinerGitConfig {
       }
     }
   }
+
+  // ===== "-t" =====
 
   public boolean isTokenized() {
     return this.isTokenized;
@@ -143,6 +162,8 @@ public class FinerGitConfig {
     }
   }
 
+  // ===== "--access--modifier-included" =====
+
   public boolean isAccessModifierIncluded() {
     return this.isAccessModifierIncluded;
   }
@@ -166,6 +187,7 @@ public class FinerGitConfig {
     }
   }
 
+  // ===== "--method-type-erasure-included" =====
   public boolean isMethodTypeErasureIncluded() {
     return this.isMethodTypeErasureIncluded;
   }
@@ -189,6 +211,7 @@ public class FinerGitConfig {
     }
   }
 
+  // ===== "--return-type-included" =====
   public boolean isReturnTypeIncluded() {
     return this.isReturnTypeIncluded;
   }
@@ -212,6 +235,7 @@ public class FinerGitConfig {
     }
   }
 
+  // ===== "--token-type-included =====
   public boolean isTokenTypeIncluded() {
     return this.isTokenTypeIncluded;
   }
@@ -234,6 +258,7 @@ public class FinerGitConfig {
     }
   }
 
+  // ===== "--method-token-included" =====
   public boolean isMethodTokenIncluded() {
     return this.isMethodTokenIncluded;
   }
@@ -256,6 +281,8 @@ public class FinerGitConfig {
       }
     }
   }
+
+  // ===== "--check-commit" =====
 
   public boolean isCheckCommit() {
     return this.isCheckCommit;
@@ -280,6 +307,8 @@ public class FinerGitConfig {
     }
   }
 
+  // ===== "--parallel" =====
+
   public boolean isParallel() {
     return this.isParallel;
   }
@@ -302,6 +331,8 @@ public class FinerGitConfig {
     }
   }
 
+  // ===== "--max-file-name-length" =====
+
   public int getMaxFileNameLength() {
     return this.maxFileNameLength;
   }
@@ -316,6 +347,8 @@ public class FinerGitConfig {
     this.maxFileNameLength = maxFileNameLength;
   }
 
+  // ===== "--hash-length" =====
+
   public int getHashLength() {
     return this.hashLength;
   }
@@ -329,6 +362,107 @@ public class FinerGitConfig {
     this.hashLength = hashLength;
   }
 
+  // ===== "--file-file-generated" =====
+
+  public boolean isFileFileGenerated() {
+    return this.isFileFileGenerated;
+  }
+
+  @Option(name = "--file-file-generated", metaVar = "<true|false>)",
+      usage = "generate files for outer tokens")
+  public void setFileFileGenerated(final String flag) {
+    switch (flag.toLowerCase()) {
+      case "true": {
+        this.isFileFileGenerated = true;
+        break;
+      }
+      case "false": {
+        this.isFileFileGenerated = false;
+        break;
+      }
+      default: {
+        System.err.println("\"--file-file-generated\" option can take only true or false");
+        System.exit(0);
+      }
+    }
+  }
+
+  // ===== "--class-file-generated" =====
+
+  public boolean isClassFileGenerated() {
+    return this.isClassFileGenerated;
+  }
+
+  @Option(name = "--class-file-generated", metaVar = "<true|false>)",
+      usage = "generate files for classes")
+  public void setClassFileGenerated(final String flag) {
+    switch (flag.toLowerCase()) {
+      case "true": {
+        this.isClassFileGenerated = true;
+        break;
+      }
+      case "false": {
+        this.isClassFileGenerated = false;
+        break;
+      }
+      default: {
+        System.err.println("\"--class-file-generated\" option can take only true or false");
+        System.exit(0);
+      }
+    }
+  }
+
+  // ===== "--method-file-generated" =====
+
+  public boolean isMethodFileGenerated() {
+    return this.isMethodFileGenerated;
+  }
+
+  @Option(name = "--method-file-generated", metaVar = "<true|false>)",
+      usage = "generate files for methods")
+  public void setMethodFileGenerated(final String flag) {
+    switch (flag.toLowerCase()) {
+      case "true": {
+        this.isMethodFileGenerated = true;
+        break;
+      }
+      case "false": {
+        this.isMethodFileGenerated = false;
+        break;
+      }
+      default: {
+        System.err.println("\"--method-file-generated\" option can take only true or false");
+        System.exit(0);
+      }
+    }
+  }
+
+  // ===== "--field-file-generated" =====
+
+  public boolean isFieldFileGenerated() {
+    return this.isFieldFileGenerated;
+  }
+
+  @Option(name = "--field-file-generated", metaVar = "<true|false>)",
+      usage = "generate files for methods")
+  public void setFieldFileGenerated(final String flag) {
+    switch (flag.toLowerCase()) {
+      case "true": {
+        this.isFieldFileGenerated = true;
+        break;
+      }
+      case "false": {
+        this.isFieldFileGenerated = false;
+        break;
+      }
+      default: {
+        System.err.println("\"--field-file-generated\" option can take only true or false");
+        System.exit(0);
+      }
+    }
+  }
+
+  // ===== "-l" =====
   @Option(name = "-l", aliases = "--log-level", metaVar = "<level>",
       usage = "log level (trace, debug, info, warn, error)")
   public void setLogLevel(final String logLevel) {
