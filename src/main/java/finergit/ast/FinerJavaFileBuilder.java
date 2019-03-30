@@ -43,9 +43,7 @@ public class FinerJavaFileBuilder {
           final JavaFileVisitor visitor =
               new JavaFileVisitor(path, FinerJavaFileBuilder.this.config);
           ast.accept(visitor);
-          final List<FinerJavaModule> modules =
-              // visitor.getFinerJavaModules(false, false, true, false);
-              visitor.getFinerJavaModules(false, true, true, true);
+          final List<FinerJavaModule> modules = visitor.getFinerJavaModules();
           finerJavaModules.addAll(modules);
         }
       }
@@ -73,8 +71,7 @@ public class FinerJavaFileBuilder {
 
     final JavaFileVisitor visitor = new JavaFileVisitor(Paths.get(path), this.config);
     ast.accept(visitor);
-    // return visitor.getFinerJavaModules(false, false, true, false);
-    return visitor.getFinerJavaModules(false, true, true, true);
+    return visitor.getFinerJavaModules();
   }
 
   private ASTParser createNewParser() {
