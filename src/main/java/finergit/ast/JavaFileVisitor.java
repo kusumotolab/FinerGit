@@ -43,7 +43,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
   public List<FinerJavaModule> getFinerJavaModules() {
     return this.moduleList.stream()
-        .filter(m -> (FinerJavaFile.class == m.getClass() && config.isOuterFileGenerated())
+        .filter(m -> (FinerJavaFile.class == m.getClass() && config.isPeripheralFileGenerated())
             || (FinerJavaClass.class == m.getClass() && config.isClassFileGenerated())
             || (FinerJavaMethod.class == m.getClass() && config.isMethodFileGenerated())
             || (FinerJavaField.class == m.getClass() && config.isFieldFileGenerated()))

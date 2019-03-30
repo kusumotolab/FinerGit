@@ -18,7 +18,7 @@ public class FinerJavaFileBuilderTest {
         Paths.get("src/test/resources/finergit/ast/token/MethodAndConstructor.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
     final FinerGitConfig config = new FinerGitConfig();
-    config.setOuterFileGenerated("false");
+    config.setPeripheralFileGenerated("false");
     config.setClassFileGenerated("true");
     config.setMethodFileGenerated("true");
     config.setFieldFileGenerated("true");
@@ -71,7 +71,7 @@ public class FinerJavaFileBuilderTest {
     final Path targetPath = Paths.get("src/test/resources/finergit/ast/token/NestedClass.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
     final FinerGitConfig config = new FinerGitConfig();
-    config.setOuterFileGenerated("false");
+    config.setPeripheralFileGenerated("false");
     config.setClassFileGenerated("true");
     config.setMethodFileGenerated("true");
     config.setFieldFileGenerated("true");
@@ -121,7 +121,7 @@ public class FinerJavaFileBuilderTest {
     final Path targetPath = Paths.get("src/test/resources/finergit/ast/token/GetterAndSetter.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
     final FinerGitConfig config = new FinerGitConfig();
-    config.setOuterFileGenerated("false");
+    config.setPeripheralFileGenerated("false");
     config.setClassFileGenerated("true");
     config.setMethodFileGenerated("true");
     config.setFieldFileGenerated("true");
@@ -369,7 +369,7 @@ public class FinerJavaFileBuilderTest {
     final Path targetPath = Paths.get("src/test/resources/finergit/ast/Enum.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
     final FinerGitConfig config = new FinerGitConfig();
-    config.setOuterFileGenerated("false");
+    config.setPeripheralFileGenerated("false");
     config.setClassFileGenerated("true");
     config.setMethodFileGenerated("true");
     config.setFieldFileGenerated("true");
@@ -389,7 +389,7 @@ public class FinerJavaFileBuilderTest {
         Paths.get("src/test/resources/finergit/ast/VariableLengthParameter.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
     final FinerGitConfig config = new FinerGitConfig();
-    config.setOuterFileGenerated("false");
+    config.setPeripheralFileGenerated("false");
     config.setClassFileGenerated("true");
     config.setMethodFileGenerated("true");
     config.setFieldFileGenerated("true");
@@ -409,7 +409,7 @@ public class FinerJavaFileBuilderTest {
     final Path targetPath = Paths.get("src/test/resources/finergit/ast/MethodTypeErasure.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
     final FinerGitConfig config = new FinerGitConfig();
-    config.setOuterFileGenerated("false");
+    config.setPeripheralFileGenerated("false");
     config.setClassFileGenerated("true");
     config.setMethodFileGenerated("true");
     config.setFieldFileGenerated("true");
@@ -429,7 +429,7 @@ public class FinerJavaFileBuilderTest {
     final Path targetPath = Paths.get("src/test/resources/finergit/ast/ArrayDefinition.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
     final FinerGitConfig config = new FinerGitConfig();
-    config.setOuterFileGenerated("false");
+    config.setPeripheralFileGenerated("false");
     config.setClassFileGenerated("true");
     config.setMethodFileGenerated("true");
     config.setFieldFileGenerated("true");
@@ -451,7 +451,7 @@ public class FinerJavaFileBuilderTest {
     final Path targetPath = Paths.get("src/test/resources/finergit/ast/ClassName.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
     final FinerGitConfig config = new FinerGitConfig();
-    config.setOuterFileGenerated("false");
+    config.setPeripheralFileGenerated("false");
     config.setClassFileGenerated("true");
     config.setMethodFileGenerated("true");
     config.setFieldFileGenerated("true");
@@ -471,7 +471,7 @@ public class FinerJavaFileBuilderTest {
     final Path targetPath = Paths.get("src/test/resources/finergit/ast/token/Field.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
     final FinerGitConfig config = new FinerGitConfig();
-    config.setOuterFileGenerated("false");
+    config.setPeripheralFileGenerated("false");
     config.setClassFileGenerated("true");
     config.setMethodFileGenerated("true");
     config.setFieldFileGenerated("true");
@@ -538,7 +538,7 @@ public class FinerJavaFileBuilderTest {
     final Path targetPath = Paths.get("src/test/resources/finergit/ast/EscapeRout.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
     final FinerGitConfig config = new FinerGitConfig();
-    config.setOuterFileGenerated("false");
+    config.setPeripheralFileGenerated("false");
     config.setClassFileGenerated("true");
     config.setMethodFileGenerated("true");
     config.setFieldFileGenerated("true");

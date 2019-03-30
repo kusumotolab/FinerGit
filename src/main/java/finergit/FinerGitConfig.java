@@ -22,7 +22,7 @@ public class FinerGitConfig {
   private boolean isMethodTokenIncluded;
   private boolean isCheckCommit;
   private boolean isParallel;
-  private boolean isOuterFileGenerated;
+  private boolean isPeripheralFileGenerated;
   private boolean isClassFileGenerated;
   private boolean isMethodFileGenerated;
   private boolean isFieldFileGenerated;
@@ -43,7 +43,7 @@ public class FinerGitConfig {
     this.isMethodTokenIncluded = true;
     this.isCheckCommit = false;
     this.isParallel = true;
-    this.isOuterFileGenerated = false;
+    this.isPeripheralFileGenerated = false;
     this.isClassFileGenerated = false;
     this.isMethodFileGenerated = true;
     this.isFieldFileGenerated = false;
@@ -243,17 +243,18 @@ public class FinerGitConfig {
     this.hashLength = hashLength;
   }
 
-  // ===== "--outer-file-generated" =====
+  // ===== "--peripheral-file-generated" =====
 
-  public boolean isOuterFileGenerated() {
-    return this.isOuterFileGenerated;
+  public boolean isPeripheralFileGenerated() {
+    return this.isPeripheralFileGenerated;
   }
 
-  @Option(name = "--outer-file-generated", metaVar = "<true|false>)",
-      usage = "generate files for outer tokens")
-  public void setOuterFileGenerated(final String flag) {
-    final String errorMessage = "\"--outer-file-generated\" option can take only true or false";
-    this.isOuterFileGenerated = getBooleanValue(flag, errorMessage);
+  @Option(name = "--peripheral-file-generated", metaVar = "<true|false>)",
+      usage = "generate files for peripheral (outer) tokens")
+  public void setPeripheralFileGenerated(final String flag) {
+    final String errorMessage =
+        "\"--peripheral-file-generated\" option can take only true or false";
+    this.isPeripheralFileGenerated = getBooleanValue(flag, errorMessage);
   }
 
   // ===== "--class-file-generated" =====
