@@ -22,7 +22,7 @@ public class FinerGitConfig {
   private boolean isMethodTokenIncluded;
   private boolean isCheckCommit;
   private boolean isParallel;
-  private boolean isFileFileGenerated;
+  private boolean isOuterFileGenerated;
   private boolean isClassFileGenerated;
   private boolean isMethodFileGenerated;
   private boolean isFieldFileGenerated;
@@ -43,7 +43,7 @@ public class FinerGitConfig {
     this.isMethodTokenIncluded = true;
     this.isCheckCommit = false;
     this.isParallel = true;
-    this.isFileFileGenerated = false;
+    this.isOuterFileGenerated = false;
     this.isClassFileGenerated = false;
     this.isMethodFileGenerated = true;
     this.isFieldFileGenerated = false;
@@ -243,17 +243,17 @@ public class FinerGitConfig {
     this.hashLength = hashLength;
   }
 
-  // ===== "--file-file-generated" =====
+  // ===== "--outer-file-generated" =====
 
-  public boolean isFileFileGenerated() {
-    return this.isFileFileGenerated;
+  public boolean isOuterFileGenerated() {
+    return this.isOuterFileGenerated;
   }
 
-  @Option(name = "--file-file-generated", metaVar = "<true|false>)",
+  @Option(name = "--outer-file-generated", metaVar = "<true|false>)",
       usage = "generate files for outer tokens")
-  public void setFileFileGenerated(final String flag) {
-    final String errorMessage = "\"--file-file-generated\" option can take only true or false";
-    this.isFileFileGenerated = getBooleanValue(flag, errorMessage);
+  public void setOuterFileGenerated(final String flag) {
+    final String errorMessage = "\"--outer-file-generated\" option can take only true or false";
+    this.isOuterFileGenerated = getBooleanValue(flag, errorMessage);
   }
 
   // ===== "--class-file-generated" =====
