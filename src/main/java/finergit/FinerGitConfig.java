@@ -22,6 +22,10 @@ public class FinerGitConfig {
   private boolean isMethodTokenIncluded;
   private boolean isCheckCommit;
   private boolean isParallel;
+  private boolean isPeripheralFileGenerated;
+  private boolean isClassFileGenerated;
+  private boolean isMethodFileGenerated;
+  private boolean isFieldFileGenerated;
   private int maxFileNameLength;
   private int hashLength;
 
@@ -39,9 +43,15 @@ public class FinerGitConfig {
     this.isMethodTokenIncluded = true;
     this.isCheckCommit = false;
     this.isParallel = true;
+    this.isPeripheralFileGenerated = false;
+    this.isClassFileGenerated = false;
+    this.isMethodFileGenerated = true;
+    this.isFieldFileGenerated = false;
     this.maxFileNameLength = 255;
     this.hashLength = 7;
   }
+
+  // ===== "-s" =====
 
   public Path getSrcPath() {
     return this.srcPath;
@@ -54,6 +64,8 @@ public class FinerGitConfig {
         .toAbsolutePath();
   }
 
+  // ===== "-d =====
+
   public Path getDesPath() {
     return this.desPath;
   }
@@ -65,6 +77,7 @@ public class FinerGitConfig {
         .toAbsolutePath();
   }
 
+  // ===== "--head" =====
   public String getHeadCommitId() {
     return this.headCommitId;
   }
@@ -74,6 +87,8 @@ public class FinerGitConfig {
     this.headCommitId = headCommitId;
   }
 
+  // ===== "-o" =====
+
   public boolean isOriginalJavaIncluded() {
     return this.isOriginalJavaIncluded;
   }
@@ -81,21 +96,11 @@ public class FinerGitConfig {
   @Option(name = "-o", aliases = "--original-javafiles", metaVar = "<true|false>)",
       usage = "finer repository includes whether original Java files or not")
   public void setOriginalJavaIncluded(final String flag) {
-    switch (flag.toLowerCase()) {
-      case "true": {
-        this.isOriginalJavaIncluded = true;
-        break;
-      }
-      case "false": {
-        this.isOriginalJavaIncluded = false;
-        break;
-      }
-      default: {
-        System.err.println("\"-o\" option can take only true or false");
-        System.exit(0);
-      }
-    }
+    final String errorMessage = "\"-o\" option can take only true or false";
+    this.isOriginalJavaIncluded = getBooleanValue(flag, errorMessage);
   }
+
+  // ===== "-p" =====
 
   public boolean isOtherFilesIncluded() {
     return this.isOtherFilesIncluded;
@@ -104,21 +109,11 @@ public class FinerGitConfig {
   @Option(name = "-p", aliases = "--otherfiles", metaVar = "<true|false>)",
       usage = "finer repository includes whether other files or not")
   public void setOtherFilesIncluded(final String flag) {
-    switch (flag.toLowerCase()) {
-      case "true": {
-        this.isOtherFilesIncluded = true;
-        break;
-      }
-      case "false": {
-        this.isOtherFilesIncluded = false;
-        break;
-      }
-      default: {
-        System.err.println("\"-p\" option can take only true or false");
-        System.exit(0);
-      }
-    }
+    final String errorMessage = "\"-p\" option can take only true or false";
+    this.isOtherFilesIncluded = getBooleanValue(flag, errorMessage);
   }
+
+  // ===== "-t" =====
 
   public boolean isTokenized() {
     return this.isTokenized;
@@ -127,21 +122,11 @@ public class FinerGitConfig {
   @Option(name = "-t", aliases = "--tokenize", metaVar = "<true|false>)",
       usage = "do tokenize Java method files")
   public void setTokenized(final String flag) {
-    switch (flag.toLowerCase()) {
-      case "true": {
-        this.isTokenized = true;
-        break;
-      }
-      case "false": {
-        this.isTokenized = false;
-        break;
-      }
-      default: {
-        System.err.println("\"-t\" option can take only true or false");
-        System.exit(0);
-      }
-    }
+    final String errorMessage = "\"-t\" option can take only true or false";
+    this.isTokenized = getBooleanValue(flag, errorMessage);
   }
+
+  // ===== "--access--modifier-included" =====
 
   public boolean isAccessModifierIncluded() {
     return this.isAccessModifierIncluded;
@@ -150,22 +135,11 @@ public class FinerGitConfig {
   @Option(name = "--access-modifier-included", metaVar = "<true|false>)",
       usage = "include access modifiers in Java method files")
   public void setAccessModifierIncluded(final String flag) {
-    switch (flag.toLowerCase()) {
-      case "true": {
-        this.isAccessModifierIncluded = true;
-        break;
-      }
-      case "false": {
-        this.isAccessModifierIncluded = false;
-        break;
-      }
-      default: {
-        System.err.println("\"--access-modifier-included\" option can take only true or false");
-        System.exit(0);
-      }
-    }
+    final String errorMessage = "\"--access-modifier-included\" option can take only true or false";
+    this.isAccessModifierIncluded = getBooleanValue(flag, errorMessage);
   }
 
+  // ===== "--method-type-erasure-included" =====
   public boolean isMethodTypeErasureIncluded() {
     return this.isMethodTypeErasureIncluded;
   }
@@ -173,22 +147,12 @@ public class FinerGitConfig {
   @Option(name = "--method-type-erasure-included", metaVar = "<true|false>)",
       usage = "include method type erasure in Java method files")
   public void setMethodTypeErasureIncluded(final String flag) {
-    switch (flag.toLowerCase()) {
-      case "true": {
-        this.isMethodTypeErasureIncluded = true;
-        break;
-      }
-      case "false": {
-        this.isMethodTypeErasureIncluded = false;
-        break;
-      }
-      default: {
-        System.err.println("\"--method-type-erasure-included\" option can take only true or false");
-        System.exit(0);
-      }
-    }
+    final String errorMessage =
+        "\"--method-type-erasure-included\" option can take only true or false";
+    this.isMethodTypeErasureIncluded = getBooleanValue(flag, errorMessage);
   }
 
+  // ===== "--return-type-included" =====
   public boolean isReturnTypeIncluded() {
     return this.isReturnTypeIncluded;
   }
@@ -196,44 +160,22 @@ public class FinerGitConfig {
   @Option(name = "--return-type-included", metaVar = "<true|false>)",
       usage = "include return types in Java method files")
   public void setReturnTypeIncluded(final String flag) {
-    switch (flag.toLowerCase()) {
-      case "true": {
-        this.isReturnTypeIncluded = true;
-        break;
-      }
-      case "false": {
-        this.isReturnTypeIncluded = false;
-        break;
-      }
-      default: {
-        System.err.println("\"--return-type-included\" option can take only true or false");
-        System.exit(0);
-      }
-    }
+    final String errorMessage = "\"--return-type-included\" option can take only true or false";
+    this.isReturnTypeIncluded = getBooleanValue(flag, errorMessage);
   }
 
+  // ===== "--token-type-included =====
   public boolean isTokenTypeIncluded() {
     return this.isTokenTypeIncluded;
   }
 
   @Option(name = "--token-type-included", metaVar = "<true|false>)", usage = "include token types")
   public void setTokenTypeIncluded(final String flag) {
-    switch (flag.toLowerCase()) {
-      case "true": {
-        this.isTokenTypeIncluded = true;
-        break;
-      }
-      case "false": {
-        this.isTokenTypeIncluded = false;
-        break;
-      }
-      default: {
-        System.err.println("\"--token-type-included\" option can take only true or false");
-        System.exit(0);
-      }
-    }
+    final String errorMessage = "\"--token-type-included\" option can take only true or false";
+    this.isTokenTypeIncluded = getBooleanValue(flag, errorMessage);
   }
 
+  // ===== "--method-token-included" =====
   public boolean isMethodTokenIncluded() {
     return this.isMethodTokenIncluded;
   }
@@ -241,21 +183,11 @@ public class FinerGitConfig {
   @Option(name = "--method-token-included", metaVar = "<true|false>)",
       usage = "include method tokens")
   public void setMethodTokenIncluded(final String flag) {
-    switch (flag.toLowerCase()) {
-      case "true": {
-        this.isMethodTokenIncluded = true;
-        break;
-      }
-      case "false": {
-        this.isMethodTokenIncluded = false;
-        break;
-      }
-      default: {
-        System.err.println("\"--method-token-included\" option can take only true or false");
-        System.exit(0);
-      }
-    }
+    final String errorMessage = "\"--method-token-included\" option can take only true or false";
+    this.isMethodTokenIncluded = getBooleanValue(flag, errorMessage);
   }
+
+  // ===== "--check-commit" =====
 
   public boolean isCheckCommit() {
     return this.isCheckCommit;
@@ -264,21 +196,11 @@ public class FinerGitConfig {
   @Option(name = "--check-commit", metaVar = "<true|false>)",
       usage = "check whether each rebuilt commit is fine state or not")
   public void setCheckCommit(final String flag) {
-    switch (flag.toLowerCase()) {
-      case "true": {
-        this.isCheckCommit = true;
-        break;
-      }
-      case "false": {
-        this.isCheckCommit = false;
-        break;
-      }
-      default: {
-        System.err.println("\"--check-commit\" option can take only true or false");
-        System.exit(0);
-      }
-    }
+    final String errorMessage = "\"--check-commit\" option can take only true or false";
+    this.isCheckCommit = getBooleanValue(flag, errorMessage);
   }
+
+  // ===== "--parallel" =====
 
   public boolean isParallel() {
     return this.isParallel;
@@ -286,21 +208,11 @@ public class FinerGitConfig {
 
   @Option(name = "--parallel", metaVar = "<true|false>)", usage = "rewrite trees in parallel")
   public void setParallel(final String flag) {
-    switch (flag.toLowerCase()) {
-      case "true": {
-        this.isParallel = true;
-        break;
-      }
-      case "false": {
-        this.isParallel = false;
-        break;
-      }
-      default: {
-        System.err.println("\"--parallel\" option can take only true or false");
-        System.exit(0);
-      }
-    }
+    final String errorMessage = "\"--parallel\" option can take only true or false";
+    this.isParallel = getBooleanValue(flag, errorMessage);
   }
+
+  // ===== "--max-file-name-length" =====
 
   public int getMaxFileNameLength() {
     return this.maxFileNameLength;
@@ -316,6 +228,8 @@ public class FinerGitConfig {
     this.maxFileNameLength = maxFileNameLength;
   }
 
+  // ===== "--hash-length" =====
+
   public int getHashLength() {
     return this.hashLength;
   }
@@ -329,6 +243,60 @@ public class FinerGitConfig {
     this.hashLength = hashLength;
   }
 
+  // ===== "--peripheral-file-generated" =====
+
+  public boolean isPeripheralFileGenerated() {
+    return this.isPeripheralFileGenerated;
+  }
+
+  @Option(name = "--peripheral-file-generated", metaVar = "<true|false>)",
+      usage = "generate files for peripheral (outer) tokens")
+  public void setPeripheralFileGenerated(final String flag) {
+    final String errorMessage =
+        "\"--peripheral-file-generated\" option can take only true or false";
+    this.isPeripheralFileGenerated = getBooleanValue(flag, errorMessage);
+  }
+
+  // ===== "--class-file-generated" =====
+
+  public boolean isClassFileGenerated() {
+    return this.isClassFileGenerated;
+  }
+
+  @Option(name = "--class-file-generated", metaVar = "<true|false>)",
+      usage = "generate files for classes")
+  public void setClassFileGenerated(final String flag) {
+    final String errorMessage = "\"--class-file-generated\" option can take only true or false";
+    this.isClassFileGenerated = getBooleanValue(flag, errorMessage);
+  }
+
+  // ===== "--method-file-generated" =====
+
+  public boolean isMethodFileGenerated() {
+    return this.isMethodFileGenerated;
+  }
+
+  @Option(name = "--method-file-generated", metaVar = "<true|false>)",
+      usage = "generate files for methods")
+  public void setMethodFileGenerated(final String flag) {
+    final String errorMessage = "\"--method-file-generated\" option can take only true or false";
+    this.isMethodFileGenerated = getBooleanValue(flag, errorMessage);
+  }
+
+  // ===== "--field-file-generated" =====
+
+  public boolean isFieldFileGenerated() {
+    return this.isFieldFileGenerated;
+  }
+
+  @Option(name = "--field-file-generated", metaVar = "<true|false>)",
+      usage = "generate files for methods")
+  public void setFieldFileGenerated(final String flag) {
+    final String errorMessage = "\"--Field-file-generated\" option can take only true or false";
+    this.isFieldFileGenerated = getBooleanValue(flag, errorMessage);
+  }
+
+  // ===== "-l" =====
   @Option(name = "-l", aliases = "--log-level", metaVar = "<level>",
       usage = "log level (trace, debug, info, warn, error)")
   public void setLogLevel(final String logLevel) {
@@ -360,5 +328,21 @@ public class FinerGitConfig {
         System.exit(0);
       }
     }
+  }
+
+  private boolean getBooleanValue(final String flag, final String message) {
+    switch (flag.toLowerCase()) {
+      case "true": {
+        return true;
+      }
+      case "false": {
+        return false;
+      }
+      default: {
+        System.err.println(message);
+        System.exit(0);
+      }
+    }
+    return false;
   }
 }

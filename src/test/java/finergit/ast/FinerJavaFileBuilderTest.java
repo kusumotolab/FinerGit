@@ -17,7 +17,12 @@ public class FinerJavaFileBuilderTest {
     final Path targetPath =
         Paths.get("src/test/resources/finergit/ast/token/MethodAndConstructor.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
-    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("true");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
     final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
 
     final Set<String> moduleNames = modules.stream()
@@ -65,7 +70,12 @@ public class FinerJavaFileBuilderTest {
   public void getFinerJavaModulesSuccessTest03() throws Exception {
     final Path targetPath = Paths.get("src/test/resources/finergit/ast/token/NestedClass.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
-    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("true");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
     final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
 
     final Set<String> moduleNames = modules.stream()
@@ -110,7 +120,12 @@ public class FinerJavaFileBuilderTest {
   public void getFinerJavaModulesSuccessTest05() throws Exception {
     final Path targetPath = Paths.get("src/test/resources/finergit/ast/token/GetterAndSetter.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
-    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("true");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
     final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
 
     final Set<String> moduleNames = modules.stream()
@@ -353,7 +368,12 @@ public class FinerJavaFileBuilderTest {
   public void getFinerJavaModulesSuccessTest10() throws Exception {
     final Path targetPath = Paths.get("src/test/resources/finergit/ast/Enum.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
-    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("true");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
     final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
 
     final Set<String> moduleNames = modules.stream()
@@ -368,7 +388,12 @@ public class FinerJavaFileBuilderTest {
     final Path targetPath =
         Paths.get("src/test/resources/finergit/ast/VariableLengthParameter.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
-    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("true");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
     final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
 
     final List<String> moduleNames = modules.stream()
@@ -383,7 +408,12 @@ public class FinerJavaFileBuilderTest {
   public void getFinerJavaModulesSuccessTest12() throws Exception {
     final Path targetPath = Paths.get("src/test/resources/finergit/ast/MethodTypeErasure.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
-    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("true");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
     final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
 
     final List<String> moduleNames = modules.stream()
@@ -398,7 +428,12 @@ public class FinerJavaFileBuilderTest {
   public void getFinerJavaModulesSuccessTest13() throws Exception {
     final Path targetPath = Paths.get("src/test/resources/finergit/ast/ArrayDefinition.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
-    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("true");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
     final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
 
     final List<String> moduleNames = modules.stream()
@@ -415,7 +450,12 @@ public class FinerJavaFileBuilderTest {
   public void getFinerJavaModulesSuccessTest14() throws Exception {
     final Path targetPath = Paths.get("src/test/resources/finergit/ast/ClassName.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
-    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("true");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
     final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
 
     final List<String> moduleNames = modules.stream()
@@ -430,7 +470,12 @@ public class FinerJavaFileBuilderTest {
   public void getFinerJavaModulesSuccessTest15() throws Exception {
     final Path targetPath = Paths.get("src/test/resources/finergit/ast/token/Field.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
-    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("true");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
     final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
 
     final List<String> moduleNames = modules.stream()
@@ -492,7 +537,12 @@ public class FinerJavaFileBuilderTest {
   public void getFinerJavaModulesSuccessTest17() throws Exception {
     final Path targetPath = Paths.get("src/test/resources/finergit/ast/EscapeRout.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
-    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("true");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
     final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
 
     final List<String> moduleNames = modules.stream()

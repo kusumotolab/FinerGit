@@ -41,13 +41,12 @@ public class JavaFileVisitor extends ASTVisitor {
     this.moduleList.add(finerJavaFile);
   }
 
-  public List<FinerJavaModule> getFinerJavaModules(final boolean wantFile, final boolean wantClass,
-      final boolean wantMethod, final boolean wantAttribute) {
+  public List<FinerJavaModule> getFinerJavaModules() {
     return this.moduleList.stream()
-        .filter(m -> (FinerJavaFile.class == m.getClass() && wantFile)
-            || (FinerJavaClass.class == m.getClass() && wantClass)
-            || (FinerJavaMethod.class == m.getClass() && wantMethod)
-            || (FinerJavaField.class == m.getClass() && wantAttribute))
+        .filter(m -> (FinerJavaFile.class == m.getClass() && config.isPeripheralFileGenerated())
+            || (FinerJavaClass.class == m.getClass() && config.isClassFileGenerated())
+            || (FinerJavaMethod.class == m.getClass() && config.isMethodFileGenerated())
+            || (FinerJavaField.class == m.getClass() && config.isFieldFileGenerated()))
         .collect(Collectors.toList());
   }
 
