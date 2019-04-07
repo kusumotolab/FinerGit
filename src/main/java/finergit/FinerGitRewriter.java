@@ -15,6 +15,7 @@ import jp.ac.titech.c.se.stein.core.EntrySet.Entry;
 import jp.ac.titech.c.se.stein.core.EntrySet.EntryList;
 
 public class FinerGitRewriter extends ConcurrentRepositoryRewriter {
+
   private static final Logger log = LoggerFactory.getLogger(FinerGitRewriter.class);
 
   private final FinerGitConfig config;
@@ -51,7 +52,8 @@ public class FinerGitRewriter extends ConcurrentRepositoryRewriter {
       result.add(entry);
     }
     for (final FinerJavaModule m : extractFinerModules(entry)) {
-      final String finerSource = String.join(System.lineSeparator(), m.getLines());
+      final String finerSource = // 最終行に改行を入れないと途中行とのマッチングが正しく行われない
+          String.join(System.lineSeparator(), m.getLines()) + System.lineSeparator();
       final ObjectId newId = writeBlob(finerSource.getBytes(StandardCharsets.UTF_8));
       final String name = m.getFileName();
       log.debug("Generate finer module: {} -> {} {}", entry, name, newId.name());
