@@ -14,7 +14,7 @@ The second feature improves the trackability of Java methods.
 ## Preparation
 
 1. Access to [FinerGit page in GitHub](https://github.com/kusumotolab/FinerGit), and clone FinerGit to your PC.
-2. Copy 4 files in directory `git-subcommand` (`FinerGit.jar`, `git-fg`, `git-msv`, and `git-sv`) to a directory which is included in your $PATH.
+2. Copy 4 files in directory `git-subcommand` (`FinerGit.jar`, `git-fg`, ~~`git-msv`, and `git-sv`~~) to a directory which is included in your $PATH.
 
 Execute your terminal and type the following command.
 ```sh
@@ -55,6 +55,8 @@ You will get all commits where method `bar()` was changed.
 git log --follow Foo#bar().mjava
 ```
 
+<!--
+
 ## Obtain semantic versions of Java methods
 
 In a single phrase, [semantic versioning](https://semver.org/lang/en/) is a mechanical versioning way with the following rules.
@@ -91,6 +93,7 @@ By using `git-msv` instead of `git-sv`, you can get rid of overhead to launch Ja
 `git-msv` requires a file including a list of files to calculate semantic versions.
 We recommend using **absolute paths** to specify files instead of relative ones.
 
+-->
 
 ## At the end
 
@@ -157,6 +160,8 @@ git log --follow Hoge#fuga().mjava
 ```
 というように，``--follow`` オプションを利用すれば，メソッド名やそれを含むクラス名が変わっていた場合でも追跡して，コミット一覧を表示します．
 
+<!-- 
+
 ## FinerGit リポジトリを使って Java メソッドのセマンティックバージョンを取得する
 
 ひとことで言うと，[セマンティックバージョニング](https://semver.org/lang/ja/)とは，ソフトウェアのバージョニングを以下のルールに基づいて行うことです．
@@ -186,6 +191,8 @@ git sv Hoge#fuga().mjava
 また，このコマンドは内部で Java VM を起動しているため，何度も連続して `git-sv` を実行する場合，そのプロセス起動オーバーヘッドも無視できない時間となります．
 複数ファイルに対してセマンティックバージョンを算出したい場合には，`git-sv` ではなく，`git-msv` を使うとプロセス起動オーバーヘッドを除外することができます．
 `git-msv` を実行する場合は，その引数には，各行にJavaファイルへのパスを記入したリストファイルを指定してください．Javaファイルへのパスは，相対パスでも指定できますが，絶対パスで指定することをオススメします．
+
+-->
 
 ## 最後に
 
