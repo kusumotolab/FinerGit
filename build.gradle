@@ -67,3 +67,7 @@ jar {
         attributes "Main-Class": "finergit.JarEntryPoint"
     }
 }
+
+wrapper {
+    gradleVersion = '5.0'
+}
