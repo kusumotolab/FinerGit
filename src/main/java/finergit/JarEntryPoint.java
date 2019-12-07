@@ -13,8 +13,19 @@ public class JarEntryPoint {
   public static void main(final String[] args) {
 
     final String[] realArgs = Arrays.copyOfRange(args, 1, args.length);
-    final String className = args[0];
 
+    String className = null;
+    switch(args[0]) {
+      case "create":{
+        className = "finergit.FinerGitMain";
+        break;
+      }
+      default:{
+        System.err.println("undefined task: " + args[0]);
+        System.exit(0);
+      }        
+    }
+    
     try {
       final Class<?> main = Class.forName(className);
       final Method method = main.getMethod("main", String[].class);
