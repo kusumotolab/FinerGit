@@ -66,6 +66,13 @@ jar {
     manifest {
         attributes "Main-Class": "finergit.JarEntryPoint"
     }
+    from { 
+        (configurations.runtime).collect { 
+            it.isDirectory() ? it : zipTree(it) 
+        } 
+    } {
+        exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
+    }
 }
 
 wrapper {
