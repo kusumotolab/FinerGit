@@ -1802,7 +1802,6 @@ public class JavaFileVisitor extends ASTVisitor {
       this.addToPeekModule(new LEFTTRYPAREN());
 
       ((Expression) resources.get(0)).accept(this);
-      this.addToPeekModule(new TRYRESOURCESEMICOLON());
 
       for (int index = 1; index < resources.size(); index++) {
         this.addToPeekModule(new TRYRESOURCESEMICOLON());
