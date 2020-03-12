@@ -277,7 +277,8 @@ public class FinerJavaFileBuilderTest {
         case "void_foreachMethod()":
           assertThat(tokens).containsExactly(//
               "void", "foreachMethod", "(", ")", "{", //
-              "for", "(", "Object", "o", ":", "Collections", ".", "emptyList", "(", ")", ")", "{", //
+              "for", "(", "Object", "o", ":", "Collections", ".", "emptyList", "(", ")", ")", "{",
+              //
               "o", ".", "toString", "(", ")", ";", //
               "}", //
               "}");

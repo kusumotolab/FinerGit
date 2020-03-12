@@ -62,7 +62,7 @@ public abstract class FinerJavaModule {
   /**
    * このモジュールのファイル名を返す．モジュールのファイル名は，"外側のモジュール名 + 自分のベースネーム + 拡張子"である．
    * モジュール名がしきい値よりも長い場合には，しきい値の長さになるように縮められる．なお，その場合はモジュール名から算出したハッシュ値が後ろに付く．
-   * 
+   *
    * @return
    */
   public final String getFileName() {
@@ -96,14 +96,14 @@ public abstract class FinerJavaModule {
 
   /**
    * 拡張子を返す．
-   * 
+   *
    * @return
    */
   public abstract String getExtension();
 
   /**
    * ベースネーム（拡張子がないファイル名）を返す．
-   * 
+   *
    * @return
    */
   abstract public String getBaseName();

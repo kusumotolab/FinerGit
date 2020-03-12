@@ -25,7 +25,7 @@ public class FinerJavaField extends FinerJavaModule {
 
   /**
    * ベースネーム（拡張子がないファイル名）を返す．
-   * 
+   *
    * @return
    */
   public String getBaseName() {

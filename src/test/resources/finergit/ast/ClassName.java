@@ -3,7 +3,8 @@ package finergit.ast;
 
 public class ClassName {
 
-  public void set(String a) {}
+  public void set(String a) {
+  }
 }
 
 

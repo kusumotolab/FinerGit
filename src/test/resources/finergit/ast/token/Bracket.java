@@ -11,7 +11,7 @@ public class Bracket {
   }
 
   void forMethod() {
-    for (; true;) {
+    for (; true; ) {
 
     }
   }

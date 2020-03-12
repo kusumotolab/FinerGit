@@ -26,8 +26,8 @@ public class ModifierFactory {
         return new VOLATILE();
       default:
         return new ANNOTATION(modifierName);
-        //assert false : "error happend at ModifierFactor#create(String): " + modifierName;
-        //return null;
+      //assert false : "error happend at ModifierFactor#create(String): " + modifierName;
+      //return null;
     }
   }
 }

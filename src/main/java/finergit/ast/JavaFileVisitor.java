@@ -7,12 +7,292 @@ import java.util.Stack;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.io.FilenameUtils;
-import org.eclipse.jdt.core.dom.*;
+import org.eclipse.jdt.core.dom.ASTNode;
+import org.eclipse.jdt.core.dom.ASTVisitor;
+import org.eclipse.jdt.core.dom.Annotation;
+import org.eclipse.jdt.core.dom.AnnotationTypeDeclaration;
+import org.eclipse.jdt.core.dom.AnnotationTypeMemberDeclaration;
+import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
+import org.eclipse.jdt.core.dom.ArrayAccess;
+import org.eclipse.jdt.core.dom.ArrayCreation;
+import org.eclipse.jdt.core.dom.ArrayInitializer;
+import org.eclipse.jdt.core.dom.ArrayType;
+import org.eclipse.jdt.core.dom.AssertStatement;
+import org.eclipse.jdt.core.dom.Assignment;
+import org.eclipse.jdt.core.dom.Block;
+import org.eclipse.jdt.core.dom.BlockComment;
+import org.eclipse.jdt.core.dom.BodyDeclaration;
+import org.eclipse.jdt.core.dom.BooleanLiteral;
+import org.eclipse.jdt.core.dom.BreakStatement;
+import org.eclipse.jdt.core.dom.CastExpression;
+import org.eclipse.jdt.core.dom.CatchClause;
+import org.eclipse.jdt.core.dom.CharacterLiteral;
+import org.eclipse.jdt.core.dom.ClassInstanceCreation;
+import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.ConditionalExpression;
+import org.eclipse.jdt.core.dom.ConstructorInvocation;
+import org.eclipse.jdt.core.dom.ContinueStatement;
+import org.eclipse.jdt.core.dom.CreationReference;
+import org.eclipse.jdt.core.dom.Dimension;
+import org.eclipse.jdt.core.dom.DoStatement;
+import org.eclipse.jdt.core.dom.EmptyStatement;
+import org.eclipse.jdt.core.dom.EnhancedForStatement;
+import org.eclipse.jdt.core.dom.EnumConstantDeclaration;
+import org.eclipse.jdt.core.dom.EnumDeclaration;
+import org.eclipse.jdt.core.dom.ExportsDirective;
+import org.eclipse.jdt.core.dom.Expression;
+import org.eclipse.jdt.core.dom.ExpressionMethodReference;
+import org.eclipse.jdt.core.dom.ExpressionStatement;
+import org.eclipse.jdt.core.dom.FieldAccess;
+import org.eclipse.jdt.core.dom.FieldDeclaration;
+import org.eclipse.jdt.core.dom.ForStatement;
+import org.eclipse.jdt.core.dom.IfStatement;
+import org.eclipse.jdt.core.dom.ImportDeclaration;
+import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.InfixExpression.Operator;
+import org.eclipse.jdt.core.dom.Initializer;
+import org.eclipse.jdt.core.dom.InstanceofExpression;
+import org.eclipse.jdt.core.dom.IntersectionType;
+import org.eclipse.jdt.core.dom.Javadoc;
+import org.eclipse.jdt.core.dom.LabeledStatement;
+import org.eclipse.jdt.core.dom.LambdaExpression;
+import org.eclipse.jdt.core.dom.LineComment;
+import org.eclipse.jdt.core.dom.MarkerAnnotation;
+import org.eclipse.jdt.core.dom.MemberRef;
+import org.eclipse.jdt.core.dom.MemberValuePair;
+import org.eclipse.jdt.core.dom.MethodDeclaration;
+import org.eclipse.jdt.core.dom.MethodInvocation;
+import org.eclipse.jdt.core.dom.MethodRef;
+import org.eclipse.jdt.core.dom.MethodRefParameter;
+import org.eclipse.jdt.core.dom.Modifier;
+import org.eclipse.jdt.core.dom.ModuleDeclaration;
+import org.eclipse.jdt.core.dom.ModuleModifier;
+import org.eclipse.jdt.core.dom.Name;
+import org.eclipse.jdt.core.dom.NameQualifiedType;
+import org.eclipse.jdt.core.dom.NormalAnnotation;
+import org.eclipse.jdt.core.dom.NullLiteral;
+import org.eclipse.jdt.core.dom.NumberLiteral;
+import org.eclipse.jdt.core.dom.OpensDirective;
+import org.eclipse.jdt.core.dom.PackageDeclaration;
+import org.eclipse.jdt.core.dom.ParameterizedType;
+import org.eclipse.jdt.core.dom.ParenthesizedExpression;
+import org.eclipse.jdt.core.dom.PostfixExpression;
+import org.eclipse.jdt.core.dom.PrefixExpression;
+import org.eclipse.jdt.core.dom.PrimitiveType;
+import org.eclipse.jdt.core.dom.ProvidesDirective;
+import org.eclipse.jdt.core.dom.QualifiedName;
+import org.eclipse.jdt.core.dom.QualifiedType;
+import org.eclipse.jdt.core.dom.RequiresDirective;
+import org.eclipse.jdt.core.dom.ReturnStatement;
+import org.eclipse.jdt.core.dom.SimpleName;
+import org.eclipse.jdt.core.dom.SimpleType;
+import org.eclipse.jdt.core.dom.SingleMemberAnnotation;
+import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
+import org.eclipse.jdt.core.dom.Statement;
+import org.eclipse.jdt.core.dom.StringLiteral;
+import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
+import org.eclipse.jdt.core.dom.SuperFieldAccess;
+import org.eclipse.jdt.core.dom.SuperMethodInvocation;
+import org.eclipse.jdt.core.dom.SuperMethodReference;
+import org.eclipse.jdt.core.dom.SwitchCase;
+import org.eclipse.jdt.core.dom.SwitchStatement;
+import org.eclipse.jdt.core.dom.SynchronizedStatement;
+import org.eclipse.jdt.core.dom.TagElement;
+import org.eclipse.jdt.core.dom.TextElement;
+import org.eclipse.jdt.core.dom.ThisExpression;
+import org.eclipse.jdt.core.dom.ThrowStatement;
+import org.eclipse.jdt.core.dom.TryStatement;
+import org.eclipse.jdt.core.dom.Type;
+import org.eclipse.jdt.core.dom.TypeDeclaration;
+import org.eclipse.jdt.core.dom.TypeDeclarationStatement;
+import org.eclipse.jdt.core.dom.TypeLiteral;
+import org.eclipse.jdt.core.dom.TypeMethodReference;
+import org.eclipse.jdt.core.dom.TypeParameter;
+import org.eclipse.jdt.core.dom.UnionType;
+import org.eclipse.jdt.core.dom.UsesDirective;
+import org.eclipse.jdt.core.dom.VariableDeclaration;
+import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
+import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
+import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
+import org.eclipse.jdt.core.dom.WhileStatement;
+import org.eclipse.jdt.core.dom.WildcardType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import finergit.FinerGitConfig;
-import finergit.ast.token.*;
+import finergit.ast.token.AND;
+import finergit.ast.token.ANNOTATION;
+import finergit.ast.token.ANNOTATIONCOMMA;
+import finergit.ast.token.ANNOTATIONTYPEMEMBERDECLARATIONSEMICOLON;
+import finergit.ast.token.ARRAYINITIALIZERCOMMA;
+import finergit.ast.token.ASSERT;
+import finergit.ast.token.ASSERTSTATEMENTSEMICOLON;
+import finergit.ast.token.ASSIGN;
+import finergit.ast.token.BLOCKCOMMENT;
+import finergit.ast.token.BREAK;
+import finergit.ast.token.BREAKSTATEMENTSEMICOLON;
+import finergit.ast.token.BooleanLiteralFactory;
+import finergit.ast.token.CASE;
+import finergit.ast.token.CATCH;
+import finergit.ast.token.CHARLITERAL;
+import finergit.ast.token.CLASS;
+import finergit.ast.token.CLASSINSTANCECREATIONCOMMA;
+import finergit.ast.token.CLASSNAME;
+import finergit.ast.token.COLON;
+import finergit.ast.token.CONSTRUCTORINVOCATIONCOMMA;
+import finergit.ast.token.CONSTRUCTORINVOCATIONSEMICOLON;
+import finergit.ast.token.CONTINUE;
+import finergit.ast.token.CONTINUESTATEMENTSEMICOLON;
+import finergit.ast.token.DECLAREDMETHODNAME;
+import finergit.ast.token.DEFAULT;
+import finergit.ast.token.DIMENSIONCOMMA;
+import finergit.ast.token.DO;
+import finergit.ast.token.DOSTATEMENTSEMICOLON;
+import finergit.ast.token.DOT;
+import finergit.ast.token.ELSE;
+import finergit.ast.token.EMPTYSTATEMENTSEMICOLON;
+import finergit.ast.token.ENUM;
+import finergit.ast.token.ENUMCOMMA;
+import finergit.ast.token.EXPRESSIONSTATEMENTSEMICOLON;
+import finergit.ast.token.EXTENDS;
+import finergit.ast.token.FIELDDECLARATIONCOMMA;
+import finergit.ast.token.FIELDDECLARATIONSEMICOLON;
+import finergit.ast.token.FINALLY;
+import finergit.ast.token.FOR;
+import finergit.ast.token.FORCONDITIONSEMICOLON;
+import finergit.ast.token.FORINITIALIZERCOMMA;
+import finergit.ast.token.FORINITIALIZERSEMICOLON;
+import finergit.ast.token.FORUPDATERCOMMA;
+import finergit.ast.token.FinerJavaClassToken;
+import finergit.ast.token.FinerJavaFieldToken;
+import finergit.ast.token.FinerJavaMethodToken;
+import finergit.ast.token.GREAT;
+import finergit.ast.token.IF;
+import finergit.ast.token.IMPLEMENTS;
+import finergit.ast.token.IMPORT;
+import finergit.ast.token.IMPORTNAME;
+import finergit.ast.token.INSTANCEOF;
+import finergit.ast.token.INVOKEDMETHODNAME;
+import finergit.ast.token.JAVADOCCOMMENT;
+import finergit.ast.token.JavaToken;
+import finergit.ast.token.LABELNAME;
+import finergit.ast.token.LAMBDAEXPRESSIONCOMMA;
+import finergit.ast.token.LEFTANNOTATIONBRACKET;
+import finergit.ast.token.LEFTANNOTATIONPAREN;
+import finergit.ast.token.LEFTANONYMOUSCLASSBRACKET;
+import finergit.ast.token.LEFTARRAYINITIALIZERBRACKET;
+import finergit.ast.token.LEFTCASTPAREN;
+import finergit.ast.token.LEFTCATCHCLAUSEBRACKET;
+import finergit.ast.token.LEFTCATCHCLAUSEPAREN;
+import finergit.ast.token.LEFTCLASSBRACKET;
+import finergit.ast.token.LEFTCLASSINSTANCECREATIONPAREN;
+import finergit.ast.token.LEFTCONSTRUCTORINVOCATIONPAREN;
+import finergit.ast.token.LEFTDOBRACKET;
+import finergit.ast.token.LEFTDOPAREN;
+import finergit.ast.token.LEFTENHANCEDFORBRACKET;
+import finergit.ast.token.LEFTENHANCEDFORPAREN;
+import finergit.ast.token.LEFTENUMPAREN;
+import finergit.ast.token.LEFTFORBRACKET;
+import finergit.ast.token.LEFTFORPAREN;
+import finergit.ast.token.LEFTIFBRACKET;
+import finergit.ast.token.LEFTIFPAREN;
+import finergit.ast.token.LEFTINITIALIZERBRACKET;
+import finergit.ast.token.LEFTLAMBDABRACKET;
+import finergit.ast.token.LEFTLAMBDAEXPRESSIONPAREN;
+import finergit.ast.token.LEFTMETHODBRACKET;
+import finergit.ast.token.LEFTMETHODINVOCATIONPAREN;
+import finergit.ast.token.LEFTMETHODPAREN;
+import finergit.ast.token.LEFTPARENTHESIZEDEXPRESSIONPAREN;
+import finergit.ast.token.LEFTSIMPLEBLOCKBRACKET;
+import finergit.ast.token.LEFTSQUAREBRACKET;
+import finergit.ast.token.LEFTSUPERCONSTRUCTORINVOCATIONPAREN;
+import finergit.ast.token.LEFTSWITCHBRACKET;
+import finergit.ast.token.LEFTSWITCHPAREN;
+import finergit.ast.token.LEFTSYNCHRONIZEDBRACKET;
+import finergit.ast.token.LEFTSYNCHRONIZEDPAREN;
+import finergit.ast.token.LEFTTRYBRACKET;
+import finergit.ast.token.LEFTTRYPAREN;
+import finergit.ast.token.LEFTWHILEBRACKET;
+import finergit.ast.token.LEFTWHILEPAREN;
+import finergit.ast.token.LESS;
+import finergit.ast.token.LINECOMMENT;
+import finergit.ast.token.LineToken;
+import finergit.ast.token.METHODDECLARAIONPARAMETERCOMMA;
+import finergit.ast.token.METHODDECLARATIONSEMICOLON;
+import finergit.ast.token.METHODDECLARATIONTHROWSCOMMA;
+import finergit.ast.token.METHODINVOCATIONCOMMA;
+import finergit.ast.token.METHODREFERENCE;
+import finergit.ast.token.ModifierFactory;
+import finergit.ast.token.NEW;
+import finergit.ast.token.NULL;
+import finergit.ast.token.NUMBERLITERAL;
+import finergit.ast.token.OR;
+import finergit.ast.token.OperatorFactory;
+import finergit.ast.token.PACKAGE;
+import finergit.ast.token.PACKAGENAME;
+import finergit.ast.token.PARAMETERIZEDTYPECOMMA;
+import finergit.ast.token.PrimitiveTypeFactory;
+import finergit.ast.token.QUESTION;
+import finergit.ast.token.RETURN;
+import finergit.ast.token.RETURNSTATEMENTSEMICOLON;
+import finergit.ast.token.RIGHTANNOTATIONBRACKET;
+import finergit.ast.token.RIGHTANNOTATIONPAREN;
+import finergit.ast.token.RIGHTANONYMOUSCLASSBRACKET;
+import finergit.ast.token.RIGHTARRAYINITIALIZERBRACKET;
+import finergit.ast.token.RIGHTARROW;
+import finergit.ast.token.RIGHTCASTPAREN;
+import finergit.ast.token.RIGHTCATCHCLAUSEBRACKET;
+import finergit.ast.token.RIGHTCATCHCLAUSEPAREN;
+import finergit.ast.token.RIGHTCLASSBRACKET;
+import finergit.ast.token.RIGHTCLASSINSTANCECREATIONPAREN;
+import finergit.ast.token.RIGHTCONSTRUCTORINVOCATIONPAREN;
+import finergit.ast.token.RIGHTDOBRACKET;
+import finergit.ast.token.RIGHTDOPAREN;
+import finergit.ast.token.RIGHTENHANCEDFORBRACKET;
+import finergit.ast.token.RIGHTENHANCEDFORPAREN;
+import finergit.ast.token.RIGHTENUMPAREN;
+import finergit.ast.token.RIGHTFORBRACKET;
+import finergit.ast.token.RIGHTFORPAREN;
+import finergit.ast.token.RIGHTIFBRACKET;
+import finergit.ast.token.RIGHTIFPAREN;
+import finergit.ast.token.RIGHTINITIALIZERBRACKET;
+import finergit.ast.token.RIGHTLAMBDABRACKET;
+import finergit.ast.token.RIGHTLAMBDAEXPRESSIONPAREN;
+import finergit.ast.token.RIGHTMETHODBRACKET;
+import finergit.ast.token.RIGHTMETHODINVOCATIONPAREN;
+import finergit.ast.token.RIGHTMETHODPAREN;
+import finergit.ast.token.RIGHTPARENTHESIZEDEXPRESSIONPAREN;
+import finergit.ast.token.RIGHTSIMPLEBLOCKBRACKET;
+import finergit.ast.token.RIGHTSQUAREBRACKET;
+import finergit.ast.token.RIGHTSUPERCONSTRUCTORINVOCATIONPAREN;
+import finergit.ast.token.RIGHTSWITCHBRACKET;
+import finergit.ast.token.RIGHTSWITCHPAREN;
+import finergit.ast.token.RIGHTSYNCHRONIZEDBRACKET;
+import finergit.ast.token.RIGHTSYNCHRONIZEDPAREN;
+import finergit.ast.token.RIGHTTRYBRACKET;
+import finergit.ast.token.RIGHTTRYPAREN;
+import finergit.ast.token.RIGHTWHILEBRACKET;
+import finergit.ast.token.RIGHTWHILEPAREN;
+import finergit.ast.token.STATIC;
+import finergit.ast.token.STRINGLITERAL;
+import finergit.ast.token.SUPER;
+import finergit.ast.token.SUPERCONSTRUCTORINVOCATIONCOMMA;
+import finergit.ast.token.SUPERCONSTRUCTORINVOCATIONSEMICOLON;
+import finergit.ast.token.SWITCH;
+import finergit.ast.token.SYNCHRONIZED;
+import finergit.ast.token.THIS;
+import finergit.ast.token.THROW;
+import finergit.ast.token.THROWS;
+import finergit.ast.token.THROWSTATEMENTSEMICOLON;
+import finergit.ast.token.TRY;
+import finergit.ast.token.TRYRESOURCESEMICOLON;
+import finergit.ast.token.TYPEDECLARATIONCOMMA;
+import finergit.ast.token.TYPENAME;
+import finergit.ast.token.TYPEPARAMETERNAME;
+import finergit.ast.token.VARIABLEDECLARATIONCOMMA;
+import finergit.ast.token.VARIABLEDECLARATIONSTATEMENTSEMICOLON;
+import finergit.ast.token.VARIABLENAME;
+import finergit.ast.token.VariableArity;
+import finergit.ast.token.WHILE;
 
 public class JavaFileVisitor extends ASTVisitor {
 
@@ -71,7 +351,8 @@ public class JavaFileVisitor extends ASTVisitor {
     node.getName()
         .accept(this);
     final Class<?> context = this.contexts.pop();
-    assert CLASSNAME.class == context : "error happened at JavaFileVisitor#visit(AnnotationTypeDeclaration)";
+    assert CLASSNAME.class
+        == context : "error happened at JavaFileVisitor#visit(AnnotationTypeDeclaration)";
 
     this.addToPeekModule(new LEFTANNOTATIONBRACKET());
 
@@ -111,7 +392,8 @@ public class JavaFileVisitor extends ASTVisitor {
     node.getName()
         .accept(this);
     final Class<?> context = this.contexts.pop();
-    assert VARIABLENAME.class == context : "error happened at JavaFileVisitor#visit(AnnotationTypeMemberDeclaration)";
+    assert VARIABLENAME.class
+        == context : "error happened at JavaFileVisitor#visit(AnnotationTypeMemberDeclaration)";
 
     final Expression defaultValue = node.getDefault();
     if (null != defaultValue) {
@@ -252,7 +534,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
   /**
    * ブラケット"{"もしくは"}"を追加するためのメソッド．第一引数はコンテキスト情報（親ノード情報）．第二引数は"{"か"}"の選択のためのboolean型．
-   * 
+   *
    * @param parent
    * @param left
    */
@@ -563,7 +845,8 @@ public class JavaFileVisitor extends ASTVisitor {
     node.getName()
         .accept(this);
     final Class<?> context = this.contexts.pop();
-    assert CLASSNAME.class == context : "error happend at JavaFileVisitor#visit(EnumConstantDeclaration)";
+    assert CLASSNAME.class
+        == context : "error happend at JavaFileVisitor#visit(EnumConstantDeclaration)";
 
     final List<?> arguments = node.arguments();
     if (null != arguments && !arguments.isEmpty()) {
@@ -664,7 +947,8 @@ public class JavaFileVisitor extends ASTVisitor {
     node.getName()
         .accept(this);
     final Class<?> context = this.contexts.pop();
-    assert INVOKEDMETHODNAME.class == context : "error happened at visit(ExpressionMethodReference)";
+    assert
+        INVOKEDMETHODNAME.class == context : "error happened at visit(ExpressionMethodReference)";
 
     return false;
   }
@@ -1363,7 +1647,8 @@ public class JavaFileVisitor extends ASTVisitor {
     node.getName()
         .accept(this);
     final Class<?> context = this.contexts.pop();
-    assert PACKAGENAME.class == context : "context error at JavaFileVisitor#visit(PackageDeclaration)";
+    assert
+        PACKAGENAME.class == context : "context error at JavaFileVisitor#visit(PackageDeclaration)";
 
     return false;
   }
@@ -1517,41 +1802,23 @@ public class JavaFileVisitor extends ASTVisitor {
     final Class<?> context = this.contexts.peek();
     if (VARIABLENAME.class == context) {
       this.addToPeekModule(new VARIABLENAME(identifier));
-    }
-
-    else if (TYPENAME.class == context) {
+    } else if (TYPENAME.class == context) {
       this.addToPeekModule(new TYPENAME(identifier));
-    }
-
-    else if (TYPEPARAMETERNAME.class == context) {
+    } else if (TYPEPARAMETERNAME.class == context) {
       this.addToPeekModule(new TYPEPARAMETERNAME(identifier));
-    }
-
-    else if (DECLAREDMETHODNAME.class == context) {
+    } else if (DECLAREDMETHODNAME.class == context) {
       this.addToPeekModule(new DECLAREDMETHODNAME(identifier));
-    }
-
-    else if (INVOKEDMETHODNAME.class == context) {
+    } else if (INVOKEDMETHODNAME.class == context) {
       this.addToPeekModule(new INVOKEDMETHODNAME(identifier));
-    }
-
-    else if (PACKAGENAME.class == context) {
+    } else if (PACKAGENAME.class == context) {
       this.addToPeekModule(new PACKAGENAME(identifier));
-    }
-
-    else if (IMPORTNAME.class == context) {
+    } else if (IMPORTNAME.class == context) {
       this.addToPeekModule(new IMPORTNAME(identifier));
-    }
-
-    else if (CLASSNAME.class == context) {
+    } else if (CLASSNAME.class == context) {
       this.addToPeekModule(new CLASSNAME(identifier));
-    }
-
-    else if (LABELNAME.class == context) {
+    } else if (LABELNAME.class == context) {
       this.addToPeekModule(new LABELNAME(identifier));
-    }
-
-    else {
+    } else {
       log.error("unknown context: " + context.toString());
     }
 
@@ -1669,7 +1936,8 @@ public class JavaFileVisitor extends ASTVisitor {
         .accept(this);
 
     final Class<?> context = this.contexts.pop();
-    assert INVOKEDMETHODNAME.class == context : "error happend at JavaFileVisitor#visit(SuperMethodInvocation)";
+    assert INVOKEDMETHODNAME.class
+        == context : "error happend at JavaFileVisitor#visit(SuperMethodInvocation)";
 
     this.addToPeekModule(new LEFTMETHODINVOCATIONPAREN());
 
@@ -2049,7 +2317,8 @@ public class JavaFileVisitor extends ASTVisitor {
     node.getName()
         .accept(this);
     final Class<?> context = this.contexts.pop();
-    assert VARIABLENAME.class == context : "error happened at JavaFileVisitor#visit(VariableDeclarationFragment)";
+    assert VARIABLENAME.class
+        == context : "error happened at JavaFileVisitor#visit(VariableDeclarationFragment)";
 
     final Expression initializer = node.getInitializer();
     if (null != initializer) {
@@ -2089,8 +2358,9 @@ public class JavaFileVisitor extends ASTVisitor {
       return this.removeTerminalLineCharacter(text.substring(0, text.length() - 2));
     } else if (text.endsWith("\r") || text.endsWith("\n")) {
       return this.removeTerminalLineCharacter(text.substring(0, text.length() - 1));
-    } else
+    } else {
       return text;
+    }
   }
 
   private void addToPeekModule(final JavaToken... tokens) {

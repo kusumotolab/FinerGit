@@ -15,17 +15,17 @@ public class JarEntryPoint {
     final String[] realArgs = Arrays.copyOfRange(args, 1, args.length);
 
     String className = null;
-    switch(args[0]) {
-      case "create":{
+    switch (args[0]) {
+      case "create": {
         className = "finergit.FinerGitMain";
         break;
       }
-      default:{
+      default: {
         System.err.println("undefined task: " + args[0]);
         System.exit(0);
-      }        
+      }
     }
-    
+
     try {
       final Class<?> main = Class.forName(className);
       final Method method = main.getMethod("main", String[].class);

@@ -5,6 +5,7 @@ public class NestedClass {
 
   // 抽出されないはず
   class InnerClass01 {
+
   }
 
   // 抽出されるはず
@@ -14,7 +15,8 @@ public class NestedClass {
     new Runnable() {
 
       @Override
-      public void run() {}
+      public void run() {
+      }
     };
   }
 
@@ -24,6 +26,7 @@ public class NestedClass {
     // 抽出されないはず
     @SuppressWarnings("unused")
     class InnerClass02 {
+
     }
   }
 }

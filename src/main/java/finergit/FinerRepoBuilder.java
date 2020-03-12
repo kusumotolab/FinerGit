@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Gitリポジトリから細粒度リポジトリの生成処理を行うクラス
- *
  */
 public class FinerRepoBuilder {
 
