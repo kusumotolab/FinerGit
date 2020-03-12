@@ -37,22 +37,28 @@ You can see other options with the following command.
 git fg
 ```
 
+You can also run `FinerGit.jar` directly.
+```sh
+java -jar FinerGit.jar create --src repoA --des repoB
+```
+
 ## See change histories of Java methods in FinerGit repositories
 
 In FinerGit repositories, there are files whose extensions are `.cjava` or `.mjava`.
 
 - Extension `.cjava` means that its file represents a Java class. But all methods included in the class get extracted as different files.
 - Extension `.mjava` means that its file represents a Java method. Names of method files follow the format of `ClassName#MethodSignature.mjava`.
+- Extension `.fjava` means that its file represents a Java field. Names of method files follow the format of `ClassName#FieldSignature.fjava`.
 
 If you want to see the change history of `Foo#bar().mjava`, type the following command.
 ```sh
-git log Foo#bar().mjava
+git log "Foo#bar().mjava"
 ```
 You will get all commits where method `bar()` was changed.
 
 ``--follow`` option is useful because it enables Git to track files even if their names got changed.
 ```sh
-git log --follow Foo#bar().mjava
+git log --follow "Foo#bar().mjava"
 ```
 
 <!--
@@ -118,7 +124,7 @@ FinerGit の出力は，以下の2つの特徴をもった Git リポジトリ�
 ## 準備
 
 1. [GitHub の FinerGit のページ](https://github.com/kusumotolab/FinerGit)にアクセスし，ローカルストレージに FinerGit を clone する．
-2. `git-subcommand` 内のファイル（`FinerGit.jar`，`git-fg`，`git-msv`，`git-sv`）を環境変数 PATH が通ったディレクトリ以下にコピーする．
+2. `git-subcommand` 内のファイル（`FinerGit.jar`および`git-fg`）を環境変数 PATH が通ったディレクトリ以下にコピーする．
 
 ターミナルを起動し，
 ```sh
@@ -143,6 +149,11 @@ git fg
 
 と，引数無しでタイプすれば，利用可能なオプションが表示されます．
 
+また，`FinerGit.jar`を直接実行することで細粒度リポジトリを作成することもできます．
+```sh
+java -jar FinerGit.jar create --src repoA --des repoB
+```
+
 ## FinerGit リポジトリを使って Java メソッドの変更履歴を確認する
 
 FinerGit リポジトリには拡張子が `.cjava` や `.mjava` なファイルが含まれています．
@@ -152,11 +163,11 @@ FinerGit リポジトリには拡張子が `.cjava` や `.mjava` なファイル
 
 例えば，
 ```sh
-git log Hoge#fuga().mjava
+git log "Hoge#fuga().mjava"
 ```
 というコマンドを入力すると，`fuga()` メソッドに変更を加えたコミットの一覧を得ることができます．
 ```sh
-git log --follow Hoge#fuga().mjava
+git log --follow "Hoge#fuga().mjava"
 ```
 というように，``--follow`` オプションを利用すれば，メソッド名やそれを含むクラス名が変わっていた場合でも追跡して，コミット一覧を表示します．
 
@@ -196,7 +207,7 @@ git sv Hoge#fuga().mjava
 
 ## 最後に
 
-FinerGit は主に，Mac + JDK1.8 + Eclipse を用いて開発されています．`git-subcommand/FinerGit.jar` も JDK1.8 でビルドされています．Windows 上ではほぼテストを行っていません．
+FinerGit は主に，Mac + JDK11 + Eclipse を用いて開発されています．`git-subcommand/FinerGit.jar` も JDK1.11 でビルドされています．Windows 上ではほぼテストを行っていません．
 
 
 
