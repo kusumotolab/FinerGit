@@ -14,7 +14,7 @@ The second feature improves the trackability of Java methods.
 ## Preparation
 
 1. Access to [FinerGit page in GitHub](https://github.com/kusumotolab/FinerGit), and clone FinerGit to your PC.
-2. Copy 4 files in directory `git-subcommand` (`FinerGit.jar`, `git-fg`, ~~`git-msv`, and `git-sv`~~) to a directory which is included in your $PATH.
+2. Copy 2 files in directory `git-subcommand` (`FinerGit.jar` and `git-fg`) to a directory which is included in your $PATH.
 
 Execute your terminal and type the following command.
 ```sh
