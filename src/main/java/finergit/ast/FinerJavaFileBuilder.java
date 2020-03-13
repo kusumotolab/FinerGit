@@ -14,6 +14,7 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.FileASTRequestor;
 import org.eclipse.jdt.core.formatter.DefaultCodeFormatterConstants;
 import finergit.FinerGitConfig;
+import finergit.JavaVersion;
 
 public class FinerJavaFileBuilder {
 
@@ -75,14 +76,9 @@ public class FinerJavaFileBuilder {
   }
 
   private ASTParser createNewParser() {
-    ASTParser parser = ASTParser.newParser(AST.JLS11);
-
-    @SuppressWarnings("unchecked")
-    final Map<String, String> options = DefaultCodeFormatterConstants.getEclipseDefaultSettings();
-    options.put(JavaCore.COMPILER_COMPLIANCE, JavaCore.VERSION_1_8);
-    options.put(JavaCore.COMPILER_CODEGEN_TARGET_PLATFORM, JavaCore.VERSION_1_8);
-    options.put(JavaCore.COMPILER_SOURCE, JavaCore.VERSION_1_8);
-    options.put(JavaCore.COMPILER_DOC_COMMENT_SUPPORT, JavaCore.ENABLED);
+    ASTParser parser = ASTParser.newParser(AST.JLS13);
+    final JavaVersion javaVersion = this.config.getJavaVersion();
+    final Map<String, String> options = javaVersion.getOptions();
     parser.setCompilerOptions(options);
 
     // TODO: Bindingが必要か検討

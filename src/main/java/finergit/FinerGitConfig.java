@@ -1,5 +1,6 @@
 package finergit;
 
+import static java.lang.System.exit;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.kohsuke.args4j.Option;
@@ -9,47 +10,26 @@ import ch.qos.logback.classic.Level;
 
 public class FinerGitConfig {
 
-  private Path srcPath;
-  private Path desPath;
-  private String headCommitId;
-  private boolean isOriginalJavaIncluded;
-  private boolean isOtherFilesIncluded;
-  private boolean isTokenized;
-  private boolean isAccessModifierIncluded;
-  private boolean isMethodTypeErasureIncluded;
-  private boolean isReturnTypeIncluded;
-  private boolean isTokenTypeIncluded;
-  private boolean isMethodTokenIncluded;
-  private boolean isCheckCommit;
-  private boolean isParallel;
-  private boolean isPeripheralFileGenerated;
-  private boolean isClassFileGenerated;
-  private boolean isMethodFileGenerated;
-  private boolean isFieldFileGenerated;
-  private int maxFileNameLength;
-  private int hashLength;
-
-  public FinerGitConfig() {
-    this.srcPath = null;
-    this.desPath = null;
-    this.headCommitId = null;
-    this.isOriginalJavaIncluded = false;
-    this.isOtherFilesIncluded = false;
-    this.isTokenized = true;
-    this.isAccessModifierIncluded = true;
-    this.isMethodTypeErasureIncluded = true;
-    this.isReturnTypeIncluded = true;
-    this.isTokenTypeIncluded = false;
-    this.isMethodTokenIncluded = true;
-    this.isCheckCommit = false;
-    this.isParallel = true;
-    this.isPeripheralFileGenerated = false;
-    this.isClassFileGenerated = false;
-    this.isMethodFileGenerated = true;
-    this.isFieldFileGenerated = false;
-    this.maxFileNameLength = 255;
-    this.hashLength = 7;
-  }
+  private Path srcPath = null;
+  private Path desPath = null;
+  private String headCommitId = null;
+  private JavaVersion javaVersion = JavaVersion.V1_8;
+  private boolean isOriginalJavaIncluded = false;
+  private boolean isOtherFilesIncluded = false;
+  private boolean isTokenized = true;
+  private boolean isAccessModifierIncluded = true;
+  private boolean isMethodTypeErasureIncluded = true;
+  private boolean isReturnTypeIncluded = true;
+  private boolean isTokenTypeIncluded = false;
+  private boolean isMethodTokenIncluded = true;
+  private boolean isCheckCommit = false;
+  private boolean isParallel = true;
+  private boolean isPeripheralFileGenerated = false;
+  private boolean isClassFileGenerated = false;
+  private boolean isMethodFileGenerated = true;
+  private boolean isFieldFileGenerated = false;
+  private int maxFileNameLength = 255;
+  private int hashLength = 7;
 
   // ===== "-s" =====
 
@@ -85,6 +65,23 @@ public class FinerGitConfig {
   @Option(name = "--head", metaVar = "<commitId>", usage = "commitId for HEAD of finer repository")
   public void setHeadCommit(final String headCommitId) {
     this.headCommitId = headCommitId;
+  }
+
+  // ===== "-j =====
+
+  public JavaVersion getJavaVersion() {
+    return this.javaVersion;
+  }
+
+  @Option(name = "-j", required = false, aliases = "--java-version", metaVar = "<version>",
+      usage = "java version of target source files")
+  public void setJavaVersion(final String versionText) {
+    this.javaVersion = JavaVersion.get(versionText);
+    if(null == this.javaVersion){
+      System.err.println("an invalid value is specified for option \"-j\".");
+      System.err.println("specify your Java version in \"1.4\" ~ \"1.13\".");
+      exit(1);
+    }
   }
 
   // ===== "-o" =====
@@ -223,7 +220,7 @@ public class FinerGitConfig {
   public void setMaxFileNameLength(final int maxFileNameLength) {
     if (maxFileNameLength < 13 || 255 < maxFileNameLength) {
       System.err.println("option \"--max-file-name-length\" must be between 13 and 255");
-      System.exit(0);
+      exit(0);
     }
     this.maxFileNameLength = maxFileNameLength;
   }
@@ -238,7 +235,7 @@ public class FinerGitConfig {
   public void setHashLength(final int hashLength) {
     if (hashLength < 7 || 40 < hashLength) {
       System.err.println("option \"--hash-length\" must be between 7 and 40");
-      System.exit(0);
+      exit(0);
     }
     this.hashLength = hashLength;
   }
@@ -325,7 +322,7 @@ public class FinerGitConfig {
       }
       default: {
         System.err.println("inappropriate value for \"-l\" option");
-        System.exit(0);
+        exit(0);
       }
     }
   }
@@ -340,7 +337,7 @@ public class FinerGitConfig {
       }
       default: {
         System.err.println(message);
-        System.exit(0);
+        exit(0);
       }
     }
     return false;
