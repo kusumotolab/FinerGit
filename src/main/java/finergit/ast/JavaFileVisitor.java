@@ -298,7 +298,6 @@ public class JavaFileVisitor extends ASTVisitor {
 
   private static final Logger log = LoggerFactory.getLogger(JavaFileVisitor.class);
 
-  public final Path path;
   private final FinerGitConfig config;
   private final Stack<FinerJavaModule> moduleStack;
   private final List<FinerJavaModule> moduleList;
@@ -307,16 +306,15 @@ public class JavaFileVisitor extends ASTVisitor {
 
   public JavaFileVisitor(final Path path, final FinerGitConfig config) {
 
-    this.path = path;
     this.config = config;
     this.moduleStack = new Stack<>();
     this.moduleList = new ArrayList<>();
     this.contexts = new Stack<>();
     this.classNestLevel = 0;
 
-    final Path parent = path.getParent();
+    final Path dirName = path.getParent();
     final String fileName = FilenameUtils.getBaseName(path.toString());
-    final FinerJavaFile finerJavaFile = new FinerJavaFile(parent, fileName, config);
+    final FinerJavaFile finerJavaFile = new FinerJavaFile(dirName, fileName, config);
     this.moduleStack.push(finerJavaFile);
     this.moduleList.add(finerJavaFile);
   }
