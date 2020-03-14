@@ -77,7 +77,7 @@ public class FinerGitConfig {
       usage = "java version of target source files")
   public void setJavaVersion(final String versionText) {
     this.javaVersion = JavaVersion.get(versionText);
-    if(null == this.javaVersion){
+    if (null == this.javaVersion) {
       System.err.println("an invalid value is specified for option \"-j\".");
       System.err.println("specify your Java version in \"1.4\" ~ \"1.13\".");
       exit(1);

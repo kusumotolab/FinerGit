@@ -8,7 +8,7 @@ import org.junit.Test;
 public class FinerGitConfigTest {
 
   @Test
-  public void testJavaVersion(){
+  public void testJavaVersion() {
     final FinerGitConfig config = new FinerGitConfig();
     config.setJavaVersion("1.4");
     final JavaVersion version4 = config.getJavaVersion();

@@ -6,7 +6,7 @@ import org.eclipse.jdt.core.formatter.DefaultCodeFormatterConstants;
 
 public enum JavaVersion {
 
-  V1_4{
+  V1_4 {
     @Override
     protected String getJavaCore() {
       return JavaCore.VERSION_1_4;

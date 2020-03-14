@@ -82,7 +82,7 @@ public abstract class FinerJavaModule {
         .substring(0, hashLength);
     final StringBuilder shrinkedName = new StringBuilder();
     shrinkedName
-        .append(name.substring(0, maxFileNameLength - (hashLength + getExtension().length() + 1)))
+        .append(name, 0, maxFileNameLength - (hashLength + getExtension().length() + 1))
         .append("_")
         .append(sha1)
         .append(getExtension());

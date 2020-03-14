@@ -14,6 +14,23 @@ public class FinerJavaFileBuilderTest {
 
   @Test
   public void getFinerJavaModulesSuccessTest01() throws Exception {
+
+    final String text0 = "public class MethodAndConstructor {" + //
+        "  MethodAndConstructor() { new String();} // 抽出されるはず" + //
+        "  void method01() { new String(); } // 抽出されるはず" + //
+        "  void method02() {    // 抽出されるはず " + //
+        "    new String();" +
+        "    @SuppressWarnings(\"unused\") class InnerClass01 { // 抽出されないはず" + //
+        "      InnerClass01() { new String();} // 抽出されないはず" + //
+        "      void method03() { new String(); }" + //
+        "    }" + //
+        "  }" + //
+        "  class InnerClass02 { // 抽出されないはず" + //
+        "    InnerClass02() { new String(); } // 抽出されないはず" + //
+        "    void method04() { new String(); } // 抽出されないはず" + //
+        "  }" + //
+        "}";
+
     final Path targetPath =
         Paths.get("src/test/resources/finergit/ast/token/MethodAndConstructor.java");
     final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
@@ -234,7 +251,7 @@ public class FinerJavaFileBuilderTest {
               "System", ".", "out", ".", "println", "(", "0l", ")", ";", //
               "System", ".", "out", ".", "println", "(", "0f", ")", ";", //
               "System", ".", "out", ".", "println", "(", "\"0\"", ")", ";", //
-              "System", ".", "out", ".", "println", "(", "\'0\'", ")", ";", //
+              "System", ".", "out", ".", "println", "(", "'0'", ")", ";", //
               "}");
           break;
         default:
@@ -510,7 +527,7 @@ public class FinerJavaFileBuilderTest {
           break;
         case "private_char_b":
           assertThat(tokens).containsExactly(//
-              "private", "final", "char", "b", "=", "\'b\'", ";");//
+              "private", "final", "char", "b", "=", "'b'", ";");//
           break;
         case "private_byte[]_c_d":
           assertThat(tokens).containsExactly(//
