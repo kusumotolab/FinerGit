@@ -101,10 +101,36 @@ We recommend using **absolute paths** to specify files instead of relative ones.
 
 -->
 
+## Use in your research
+
+If you are using FinerGit in your research, please cite the following paper:
+
+Yoshiki Higo, Shinpei Hayashi, and Shinji Kusumoto, "On Tracking Java Methods with Git Mechanisms," Journal of Systems and Software, Vol.xx, No.xx, pages xx-xx, 2020. [[available online](https://doi.org/10.1016/j.jss.2020.110571)]
+```
+@article{10.1016/j.jss.2020.110571,
+author = {Higo, Yoshiki and Hayashi, Shinpei and Kusumoto, Shinji},
+title = {On Tracking Java Methods with Git Mechanisms},
+year = {2020},
+issue_date = {xxx 2020},
+publisher = {Elsevier Science Inc.},
+address = {USA},
+volume = {xx},
+number = {xx},
+issn = {0164-1212},
+url = {https://doi.org/10.1016/j.jss.2020.110571},
+doi = {10.1016/j.jss.2020.110571},
+journal = {Journal of Systems and Software},
+month = xxx,
+pages = {xxx–-xxx},
+numpages = {xx},
+keywords = {Mining software repositories, Source code analysis, Tracking Java methods}
+}
+```
+
 ## At the end
 
-FinerGit is still under development. We mainly use MacOS + JDK1.8 + Eclipse in our FinerGit development.
-`git-subcommand/FinerGit.jar` is built with JDk1.8.
+FinerGit is still under development. We mainly use MacOS + JDK11 + ~~Eclipse~~ IntelliJ IDEA in our FinerGit development.
+`git-subcommand/FinerGit.jar` is built with JDk11.
 We rarely test FinerGit on Windows environment.
 
 -----
@@ -160,6 +186,7 @@ FinerGit リポジトリには拡張子が `.cjava` や `.mjava` なファイル
 
 - 拡張子が `.cjava` なファイルは，Java のクラスを表すファイルです．ただし，その中に定義されているメソッドは別ファイルとして抽出されています．
 - 拡張子が `.mjava` なファイルは，Java のメソッドを表すクラスです．なお，Java メソッドのファイル名は，`クラス名#メソッドシグネチャ.mjava` となっています．
+- 拡張子が `.fjava` なファイルは，Java のフィールドを表すクラスです．なお，Java フィールドのファイル名は，`クラス名#フィールドシグネチャ.fjava` となっています．
 
 例えば，
 ```sh
@@ -205,9 +232,36 @@ git sv Hoge#fuga().mjava
 
 -->
 
+## 研究での利用
+
+研究でFinerGitを利用した場合には，以下の論文を引用してください．
+
+Yoshiki Higo, Shinpei Hayashi, and Shinji Kusumoto, "On Tracking Java Methods with Git Mechanisms," Journal of Systems and Software, Vol.xx, No.xx, pages xx-xx, 2020. [[available online](https://doi.org/10.1016/j.jss.2020.110571)]
+```
+@article{10.1016/j.jss.2020.110571,
+author = {Higo, Yoshiki and Hayashi, Shinpei and Kusumoto, Shinji},
+title = {On Tracking Java Methods with Git Mechanisms},
+year = {2020},
+issue_date = {xxx 2020},
+publisher = {Elsevier Science Inc.},
+address = {USA},
+volume = {xx},
+number = {xx},
+issn = {0164-1212},
+url = {https://doi.org/10.1016/j.jss.2020.110571},
+doi = {10.1016/j.jss.2020.110571},
+journal = {Journal of Systems and Software},
+month = xxx,
+pages = {xxx–-xxx},
+numpages = {xx},
+keywords = {Mining software repositories, Source code analysis, Tracking Java methods}
+}
+```
+
+
 ## 最後に
 
-FinerGit は主に，Mac + JDK11 + Eclipse を用いて開発されています．`git-subcommand/FinerGit.jar` も JDK1.11 でビルドされています．Windows 上ではほぼテストを行っていません．
+FinerGit は主に，Mac + JDK11 + ~~Eclipse~~ IntelliJ IDEA を用いて開発されています．`git-subcommand/FinerGit.jar` も JDK1.11 でビルドされています．Windows 上ではほぼテストを行っていません．
 
 
 
