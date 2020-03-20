@@ -137,19 +137,6 @@ public class GitRepo {
     }
   }
 
-  public Iterable<RevCommit> getLog(final String path, final AnyObjectId startCommit) {
-    try (final Git git = new Git(this.repository)) {
-      return git.log()
-          .addPath(path)
-          .add(startCommit)
-          .call();
-    } catch (final Exception e) {
-      log.error("failed to execute git-log command for \"{}\"", path);
-      log.error(e.getMessage());
-    }
-    return Collections.emptyList();
-  }
-
   /**
    * `git reset --hard (HEAD)` を適用する．
    */

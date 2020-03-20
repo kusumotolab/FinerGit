@@ -58,8 +58,6 @@ public class FinerGitMain {
 
   public void exec() {
     log.trace("enter exec()");
-    // final FinerRepoBuilder builder = new FinerRepoBuilder(this.config);
-    // return builder.exec();
     final FinerRepoBuilder builder = new FinerRepoBuilder(this.config);
     builder.exec();
   }
