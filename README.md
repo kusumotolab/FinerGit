@@ -23,7 +23,7 @@ Java HotSpot(TM) 64-Bit Server VM 18.9 (build 11.0.6+8-LTS, mixed mode)
 ```
 
 ### Build FinerGit
-Make FinerGit.jar with the following commands.
+Build FinerGit.jar with the following commands.
 ```shell-session
 $ git clone https://github.com/kusumotolab/FinerGit.git
 $ cd FinerGit
@@ -31,16 +31,16 @@ $ ./gradlew build
 ```
 
 ### Run FinerGit
-A basic command to converting a Git repository to FinerGit repository is as follows.
+A basic command to convert a Git repository to a FinerGit repository is as follows.
 ```shell-session
-java -jar FinerGit.jar create --src /path/to/repoA --des /path/to/repoB
+$ java -jar FinerGit.jar create --src /path/to/repoA --des /path/to/repoB
 ```
 Herein, `/path/to/repoA` is an existing Git repository, and `/path/to/repoB` is a path to output a new FinerGit repository.
 
 FinerGit has several options for converting repositories.
 The options are printed with the following command.
 ```shell-session
-java -jar build/libs/FinerGit.jar create
+$ java -jar build/libs/FinerGit.jar create
 ```
 
 ### See change histories of Java methods in a FinerGit repository
@@ -53,13 +53,13 @@ In FinerGit repositories, there are files whose extensions are `.cjava`, `fjava`
 
 If you want to see the change history of `Foo#bar().mjava`, type the following command.
 ```shell-session
-git log "Foo#bar().mjava"
+$ git log "Foo#bar().mjava"
 ```
 You will get all commits where method `bar()` was changed.
 
 ``--follow`` option is useful since it enables Git to track files even if their names got changed.
 ```shell-session
-git log --follow "Foo#bar().mjava"
+$ git log --follow "Foo#bar().mjava"
 ```
 
 ## Use in your research
@@ -132,14 +132,14 @@ $ ./gradlew build
 ### FinerGit の実行
 Gitリポジトリを変換するための基本コマンドは以下の通りです．
 ```shell-session
-java -jar FinerGit.jar create --src /path/to/repoA --des /path/to/repoB
+$ java -jar FinerGit.jar create --src /path/to/repoA --des /path/to/repoB
 ```
 ここで，`/path/to/repoA`は既存のGitリポジトリのパス，`/path/to/repoB`は生成するFinerGitリポジトリのパスを表しています．
 
 FinerGitは変換のオプションをいくつか備えています．
 オブション一覧は以下のコマンドにより確認できます．
 ```shell-session
-java -jar build/libs/FinerGit.jar create
+$ java -jar build/libs/FinerGit.jar create
 ```
 
 ### FinerGit リポジトリを使って Java メソッドの変更履歴を確認する
@@ -152,11 +152,11 @@ FinerGit リポジトリには拡張子が `.cjava`，`.fjava`，`.mjava` なフ
 
 例えば，
 ```shell-session
-git log "Hoge#fuga().mjava"
+$ git log "Hoge#fuga().mjava"
 ```
 というコマンドを入力すると，`fuga()` メソッドに変更を加えたコミットの一覧を得ることができます．
 ```shell-session
-git log --follow "Hoge#fuga().mjava"
+$ git log --follow "Hoge#fuga().mjava"
 ```
 というように，``--follow`` オプションを利用すれば，メソッド名やそれを含むクラス名が変わっていた場合でも追跡して，コミット一覧を表示します．
 
