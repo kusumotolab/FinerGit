@@ -94,6 +94,9 @@ FinerGit is still under development. We mainly use MacOS + JDK11 + ~~Eclipse~~ I
 `git-subcommand/FinerGit.jar` is built with JDk11.
 We rarely test FinerGit on Windows environment.
 
+[cregit](https://github.com/cregit/cregit) and [git-stein](https://github.com/sh5i/git-stein) are other tools that convert/rewrite Git repositories.
+FinerGit internally uses git-stein.
+
 -----
 -----
 
@@ -112,8 +115,8 @@ FinerGit の出力は，以下の2つの特徴をもった Git リポジトリ�
 ## 使い方
 
 ### 環境の確認
-FinerGitはコマンドラインツールであり，実行にはJavaのバージョン11以降を必要とします．
-以下のコマンドにより，Javaのバージョン11以降がインストールされていることを確認してください．
+FinerGit はコマンドラインツールであり，実行には Java のバージョン11以降を必要とします．
+以下のコマンドにより，Java のバージョン11以降がインストールされていることを確認してください．
 ```shell-session
 $ java -version
 java version "11.0.6" 2020-01-14 LTS
@@ -130,13 +133,13 @@ $ ./gradlew build
 ```
 
 ### FinerGit の実行
-Gitリポジトリを変換するための基本コマンドは以下の通りです．
+Git リポジトリを変換するための基本コマンドは以下の通りです．
 ```shell-session
 $ java -jar FinerGit.jar create --src /path/to/repoA --des /path/to/repoB
 ```
-ここで，`/path/to/repoA`は既存のGitリポジトリのパス，`/path/to/repoB`は生成するFinerGitリポジトリのパスを表しています．
+ここで，`/path/to/repoA`は既存の Git リポジトリのパス，`/path/to/repoB`は生成する FinerGit リポジトリのパスを表しています．
 
-FinerGitは変換のオプションをいくつか備えています．
+FinerGit は変換のオプションをいくつか備えています．
 オブション一覧は以下のコマンドにより確認できます．
 ```shell-session
 $ java -jar build/libs/FinerGit.jar create
@@ -163,7 +166,7 @@ $ git log --follow "Hoge#fuga().mjava"
 
 ## 研究での利用
 
-研究でFinerGitを利用した場合には，以下の論文を引用してください．
+研究で FinerGit を利用した場合には，以下の論文を引用してください．
 
 Yoshiki Higo, Shinpei Hayashi, and Shinji Kusumoto, "On Tracking Java Methods with Git Mechanisms," Journal of Systems and Software, Vol.xx, No.xx, pages xx-xx, 2020. [[available online](https://doi.org/10.1016/j.jss.2020.110571)]
 ```
@@ -192,7 +195,8 @@ keywords = {Mining software repositories, Source code analysis, Tracking Java me
 
 FinerGit は主に，Mac + JDK11 + ~~Eclipse~~ IntelliJ IDEA を用いて開発されています．`git-subcommand/FinerGit.jar` も JDK1.11 でビルドされています．Windows 上ではほぼテストを行っていません．
 
-
+Gitリポジトリの変換／書換ツールとしては，他に[cregit](https://github.com/cregit/cregit)や[git-stein](https://github.com/sh5i/git-stein)があります．
+FinerGit では内部で git-stein を利用しています．
 
 
 
