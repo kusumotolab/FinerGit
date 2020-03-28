@@ -9,6 +9,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import jp.ac.titech.c.se.stein.core.Context;
 
 /**
  * Gitリポジトリから細粒度リポジトリの生成処理を行うクラス
@@ -35,8 +36,8 @@ public class FinerRepoBuilder {
       repo.setIgnoreCase(false);
 
       final FinerGitRewriter rewriter = new FinerGitRewriter(config);
-      rewriter.initialize(repo.getRepository());
-      rewriter.rewrite();
+      rewriter.initialize(repo.getRepository(), repo.getRepository());
+      rewriter.rewrite(Context.init());
 
       // clean up working copy
       final boolean resetSucceeded = repo.resetHard();
