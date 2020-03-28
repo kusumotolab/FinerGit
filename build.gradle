@@ -29,10 +29,10 @@ dependencies {
 
 
     // Use JUnit test framework
-    testImplementation 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.13'
 
     // https://mvnrepository.com/artifact/org.eclipse.jgit/org.eclipse.jgit
-    compile group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '5.4.0.201906121030-r'
+    compile group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '5.7.0.202003110725-r'
 
     // https://mvnrepository.com/artifact/commons-io/commons-io
     compile group: 'commons-io', name: 'commons-io', version: '2.6'
@@ -47,7 +47,7 @@ dependencies {
     compile group: 'commons-codec', name: 'commons-codec', version: '1.12'
 
     // https://mvnrepository.com/artifact/org.slf4j/slf4j-api
-    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.26'
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.30'
 
     // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
     compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
