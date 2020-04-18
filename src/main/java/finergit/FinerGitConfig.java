@@ -24,6 +24,7 @@ public class FinerGitConfig {
   private boolean isMethodTokenIncluded = true;
   private boolean isCheckCommit = false;
   private boolean isParallel = true;
+  private int nthreads = 0; // 0: number of processors - 1
   private boolean isPeripheralFileGenerated = false;
   private boolean isClassFileGenerated = false;
   private boolean isMethodFileGenerated = true;
@@ -209,6 +210,18 @@ public class FinerGitConfig {
     this.isParallel = getBooleanValue(flag, errorMessage);
   }
 
+  // ===== "--nthreads" =====
+
+  public int getNumberOfThreads() {
+    return this.nthreads;
+  }
+
+  @Option(name = "--nthreads", metaVar = "<num>", usage = "number of threads used for --parallel")
+  public void setNumberOfThreads(final String nthreads) {
+    final String errorMessage = "\"--nthreads\" option can take only an integer";
+    this.nthreads = getIntValue(nthreads, errorMessage);
+  }
+
   // ===== "--max-file-name-length" =====
 
   public int getMaxFileNameLength() {
@@ -341,5 +354,15 @@ public class FinerGitConfig {
       }
     }
     return false;
+  }
+
+  private int getIntValue(final String stringValue, final String message) {
+    try {
+      return Integer.valueOf(stringValue);
+    } catch (final NumberFormatException e) {
+      System.err.println(message);
+      exit(0);
+      return 0;
+    }
   }
 }
