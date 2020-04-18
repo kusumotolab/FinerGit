@@ -24,7 +24,7 @@ public class FinerGitConfig {
   private boolean isMethodTokenIncluded = true;
   private boolean isCheckCommit = false;
   private boolean isParallel = true;
-  private int nthreads = 0;
+  private int nthreads = 0; // 0: number of processors - 1
   private boolean isPeripheralFileGenerated = false;
   private boolean isClassFileGenerated = false;
   private boolean isMethodFileGenerated = true;
