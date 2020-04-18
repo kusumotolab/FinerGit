@@ -25,7 +25,7 @@ public class FinerGitRewriter extends RepositoryRewriter {
   public FinerGitRewriter(final FinerGitConfig config) {
     this.config = config;
     this.builder = new FinerJavaFileBuilder(config);
-    this.nthreads = config.isParallel() ? 0 : 1;
+    this.nthreads = config.isParallel() ? config.getNumberOfThreads() : 1;
     this.isPathSensitive = true;
   }
 
