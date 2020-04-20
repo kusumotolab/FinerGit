@@ -23,8 +23,7 @@ public class FinerGitConfig {
   private boolean isTokenTypeIncluded = false;
   private boolean isMethodTokenIncluded = true;
   private boolean isCheckCommit = false;
-  private boolean isParallel = true;
-  private int nthreads = 0; // 0: number of processors - 1
+  private int nthreads;
   private boolean isPeripheralFileGenerated = false;
   private boolean isClassFileGenerated = false;
   private boolean isMethodFileGenerated = true;
@@ -32,6 +31,11 @@ public class FinerGitConfig {
   private int maxFileNameLength = 255;
   private int hashLength = 7;
 
+  public FinerGitConfig() {
+    final int cpu = Runtime.getRuntime()
+        .availableProcessors();
+    this.nthreads = 1 < cpu ? cpu - 1 : 1;
+  }
   // ===== "-s" =====
 
   public Path getSrcPath() {
@@ -196,18 +200,6 @@ public class FinerGitConfig {
   public void setCheckCommit(final String flag) {
     final String errorMessage = "\"--check-commit\" option can take only true or false";
     this.isCheckCommit = getBooleanValue(flag, errorMessage);
-  }
-
-  // ===== "--parallel" =====
-
-  public boolean isParallel() {
-    return this.isParallel;
-  }
-
-  @Option(name = "--parallel", metaVar = "<true|false>)", usage = "rewrite trees in parallel")
-  public void setParallel(final String flag) {
-    final String errorMessage = "\"--parallel\" option can take only true or false";
-    this.isParallel = getBooleanValue(flag, errorMessage);
   }
 
   // ===== "--nthreads" =====
