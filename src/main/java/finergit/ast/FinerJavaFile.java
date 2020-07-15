@@ -41,6 +41,7 @@ public class FinerJavaFile extends FinerJavaModule {
    *
    * @return
    */
+  @Override
   public String getBaseName() {
     return this.name;
   }
