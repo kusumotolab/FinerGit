@@ -76,18 +76,16 @@ Yoshiki Higo, Shinpei Hayashi, and Shinji Kusumoto, "On Tracking Java Methods wi
 author = {Higo, Yoshiki and Hayashi, Shinpei and Kusumoto, Shinji},
 title = {On Tracking Java Methods with Git Mechanisms},
 year = {2020},
-issue_date = {xxx 2020},
+issue_date = {July 2020},
 publisher = {Elsevier Science Inc.},
 address = {USA},
-volume = {xx},
-number = {xx},
+volume = {165},
 issn = {0164-1212},
 url = {https://doi.org/10.1016/j.jss.2020.110571},
 doi = {10.1016/j.jss.2020.110571},
 journal = {Journal of Systems and Software},
-month = xxx,
-pages = {xxx–-xxx},
-numpages = {xx},
+month = July,
+numpages = {13},
 keywords = {Mining software repositories, Source code analysis, Tracking Java methods}
 }
 ```
@@ -95,7 +93,6 @@ keywords = {Mining software repositories, Source code analysis, Tracking Java me
 ## At the end
 
 FinerGit is still under development. We mainly use MacOS + JDK11 + ~~Eclipse~~ IntelliJ IDEA in our FinerGit development.
-`git-subcommand/FinerGit.jar` is built with JDk11.
 We rarely test FinerGit on Windows environment.
 
 [cregit](https://github.com/cregit/cregit) and [git-stein](https://github.com/sh5i/git-stein) are other tools that convert/rewrite Git repositories.
@@ -119,7 +116,7 @@ FinerGit の出力は，以下の2つの特徴をもった Git リポジトリ�
 ## 使い方
 
 ### 環境の確認
-FinerGit はコマンドラインツールであり，実行には Java のバージョン11以降を必要とします．
+FinerGit はコマンドラインツールであり，実行には JDK (JREではない) のバージョン11以降を必要とします．
 以下のコマンドにより，Java のバージョン11以降がインストールされていることを確認してください．
 ```shell-session
 $ java -version
@@ -183,18 +180,16 @@ Yoshiki Higo, Shinpei Hayashi, and Shinji Kusumoto, "On Tracking Java Methods wi
 author = {Higo, Yoshiki and Hayashi, Shinpei and Kusumoto, Shinji},
 title = {On Tracking Java Methods with Git Mechanisms},
 year = {2020},
-issue_date = {xxx 2020},
+issue_date = {July 2020},
 publisher = {Elsevier Science Inc.},
 address = {USA},
-volume = {xx},
-number = {xx},
+volume = {165},
 issn = {0164-1212},
 url = {https://doi.org/10.1016/j.jss.2020.110571},
 doi = {10.1016/j.jss.2020.110571},
 journal = {Journal of Systems and Software},
-month = xxx,
-pages = {xxx–-xxx},
-numpages = {xx},
+month = July,
+numpages = {13},
 keywords = {Mining software repositories, Source code analysis, Tracking Java methods}
 }
 ```
@@ -202,7 +197,8 @@ keywords = {Mining software repositories, Source code analysis, Tracking Java me
 
 ## 最後に
 
-FinerGit は主に，Mac + JDK11 + ~~Eclipse~~ IntelliJ IDEA を用いて開発されています．`git-subcommand/FinerGit.jar` も JDK1.11 でビルドされています．Windows 上ではほぼテストを行っていません．
+FinerGit は主に，Mac + JDK11 + ~~Eclipse~~ IntelliJ IDEA を用いて開発されています．
+Windows環境ではほとんど動作確認を行っていません．
 
 Gitリポジトリの変換／書換ツールとしては，他に[cregit](https://github.com/cregit/cregit)や[git-stein](https://github.com/sh5i/git-stein)があります．
 FinerGit では内部で git-stein を利用しています．
