@@ -1063,7 +1063,7 @@ public class JavaFileVisitor extends ASTVisitor {
       else {
         Stream.of(node.toString()
             .split("(\\r\\n|\\r|\\n)"))
-            .map(l -> new LineToken(l))
+            .map(LineToken::new)
             .forEach(javaField::addToken);
       }
     }
@@ -1458,9 +1458,8 @@ public class JavaFileVisitor extends ASTVisitor {
       final SingleVariableDeclaration svd = (SingleVariableDeclaration) parameter;
       final StringBuilder typeText = new StringBuilder();
       typeText.append(svd.getType());
-      for (int i = 0; i < svd.getExtraDimensions(); i++) { // "int a[]"のような表記に対応するため
-        typeText.append("[]");
-      }
+      // "int a[]"のような表記に対応するため
+      typeText.append("[]".repeat(Math.max(0, svd.getExtraDimensions())));
       if (svd.isVarargs()) {
         typeText.append("...");
       }
@@ -1493,7 +1492,7 @@ public class JavaFileVisitor extends ASTVisitor {
       else {
         Stream.of(node.toString()
             .split("(\\r\\n|\\r|\\n)"))
-            .map(l -> new LineToken(l))
+            .map(LineToken::new)
             .forEach(javaMethod::addToken);
         this.moduleStack.pop();
         return false;

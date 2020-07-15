@@ -80,13 +80,10 @@ public abstract class FinerJavaModule {
     final int hashLength = this.config.getHashLength();
     final String sha1 = DigestUtils.sha1Hex(name)
         .substring(0, hashLength);
-    final StringBuilder shrinkedName = new StringBuilder();
-    shrinkedName
-        .append(name, 0, maxFileNameLength - (hashLength + getExtension().length() + 1))
-        .append("_")
-        .append(sha1)
-        .append(getExtension());
-    return shrinkedName.toString();
+    return name.substring(0, maxFileNameLength - (hashLength + getExtension().length() + 1))
+        + "_"
+        + sha1
+        + getExtension();
   }
 
   public final Path getPath() {

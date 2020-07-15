@@ -50,8 +50,7 @@ public class FinerJavaFileBuilder {
 
     final ASTParser parser = createNewParser();
     final String[] filePaths = pathToTextMap.keySet()
-        .stream()
-        .toArray(String[]::new);
+        .toArray(new String[0]);
     parser.createASTs(filePaths, null, new String[] {}, requestor, null);
 
     return finerJavaModules;
@@ -74,7 +73,7 @@ public class FinerJavaFileBuilder {
   }
 
   private ASTParser createNewParser() {
-    ASTParser parser = ASTParser.newParser(AST.JLS13);
+    ASTParser parser = ASTParser.newParser(AST.JLS14);
     final JavaVersion javaVersion = this.config.getJavaVersion();
     final Map<String, String> options = javaVersion.getOptions();
     parser.setCompilerOptions(options);
