@@ -278,6 +278,7 @@ import finergit.ast.token.SUPER;
 import finergit.ast.token.SUPERCONSTRUCTORINVOCATIONCOMMA;
 import finergit.ast.token.SUPERCONSTRUCTORINVOCATIONSEMICOLON;
 import finergit.ast.token.SWITCH;
+import finergit.ast.token.SWITCHCASECOMMA;
 import finergit.ast.token.SYNCHRONIZED;
 import finergit.ast.token.THIS;
 import finergit.ast.token.THROW;
@@ -1970,17 +1971,20 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final SwitchCase node) {
 
-    final Expression expression = node.getExpression();
-
-    // case のとき
-    if (null != expression) {
-      this.addToPeekModule(new CASE());
-      expression.accept(this);
+    if(node.isDefault()){
+      this.addToPeekModule(new DEFAULT());
     }
 
-    // default のとき
-    else {
-      this.addToPeekModule(new DEFAULT());
+    else{
+      this.addToPeekModule(new CASE());
+
+      final List<?> expressions = node.expressions();
+      ((Expression)expressions.get(0)).accept(this);
+
+      for (int index = 1; index < expressions.size(); index++) {
+        this.addToPeekModule(new SWITCHCASECOMMA());
+        ((Expression) expressions.get(index)).accept(this);
+      }
     }
 
     this.addToPeekModule(new COLON());
