@@ -27,20 +27,24 @@ Build FinerGit.jar with the following commands.
 ```shell-session
 $ git clone https://github.com/kusumotolab/FinerGit.git
 $ cd FinerGit
-$ ./gradlew build
+$ ./gradlew shadowJar
 ```
+
+It is fine if you have `FinerGit-all.jar` in the `FinerGit/build/lib` directory.
+If you specify `jar` or `build` instead of `shadowJar` as an argument for `gradlew`, you will get `FinerGit.jar` in the directory. 
+`FinerGit.jar` is not a single executable jar file.
 
 ### Run FinerGit
 A basic command to convert a Git repository to a FinerGit repository is as follows.
 ```shell-session
-$ java -jar FinerGit.jar create --src /path/to/repoA --des /path/to/repoB
+$ java -jar FinerGit-all.jar create --src /path/to/repoA --des /path/to/repoB
 ```
 Herein, `/path/to/repoA` is an existing Git repository, and `/path/to/repoB` is a path to output a new FinerGit repository.
 
 FinerGit has several options for converting repositories.
 The options are printed with the following command.
 ```shell-session
-$ java -jar build/libs/FinerGit.jar create
+$ java -jar build/libs/FinerGit-all.jar create
 ```
 
 ### See change histories of Java methods in a FinerGit repository
@@ -72,18 +76,16 @@ Yoshiki Higo, Shinpei Hayashi, and Shinji Kusumoto, "On Tracking Java Methods wi
 author = {Higo, Yoshiki and Hayashi, Shinpei and Kusumoto, Shinji},
 title = {On Tracking Java Methods with Git Mechanisms},
 year = {2020},
-issue_date = {xxx 2020},
+issue_date = {July 2020},
 publisher = {Elsevier Science Inc.},
 address = {USA},
-volume = {xx},
-number = {xx},
+volume = {165},
 issn = {0164-1212},
 url = {https://doi.org/10.1016/j.jss.2020.110571},
 doi = {10.1016/j.jss.2020.110571},
 journal = {Journal of Systems and Software},
-month = xxx,
-pages = {xxx–-xxx},
-numpages = {xx},
+month = July,
+numpages = {13},
 keywords = {Mining software repositories, Source code analysis, Tracking Java methods}
 }
 ```
@@ -91,7 +93,6 @@ keywords = {Mining software repositories, Source code analysis, Tracking Java me
 ## At the end
 
 FinerGit is still under development. We mainly use MacOS + JDK11 + ~~Eclipse~~ IntelliJ IDEA in our FinerGit development.
-`git-subcommand/FinerGit.jar` is built with JDk11.
 We rarely test FinerGit on Windows environment.
 
 [cregit](https://github.com/cregit/cregit) and [git-stein](https://github.com/sh5i/git-stein) are other tools that convert/rewrite Git repositories.
@@ -115,7 +116,7 @@ FinerGit の出力は，以下の2つの特徴をもった Git リポジトリ�
 ## 使い方
 
 ### 環境の確認
-FinerGit はコマンドラインツールであり，実行には Java のバージョン11以降を必要とします．
+FinerGit はコマンドラインツールであり，実行には JDK (JREではない) のバージョン11以降を必要とします．
 以下のコマンドにより，Java のバージョン11以降がインストールされていることを確認してください．
 ```shell-session
 $ java -version
@@ -129,20 +130,25 @@ Java HotSpot(TM) 64-Bit Server VM 18.9 (build 11.0.6+8-LTS, mixed mode)
 ```shell-session
 $ git clone https://github.com/kusumotolab/FinerGit.git
 $ cd FinerGit
-$ ./gradlew build
+$ ./gradlew shadowJar
 ```
+
+`FinerGit/build/lib` ディレクトリに `FinerGit-all.jar` ができていればOKです．
+`gradlew` の引数として `shadowJar` ではなく `jar` や `build` を指定した場合もjarファイルは作成されますが，
+その場合の名前は `FinerGit.jar`になり，単体で実行可能なjarファイルではありません．
+
 
 ### FinerGit の実行
 Git リポジトリを変換するための基本コマンドは以下の通りです．
 ```shell-session
-$ java -jar FinerGit.jar create --src /path/to/repoA --des /path/to/repoB
+$ java -jar FinerGit-all.jar create --src /path/to/repoA --des /path/to/repoB
 ```
 ここで，`/path/to/repoA`は既存の Git リポジトリのパス，`/path/to/repoB`は生成する FinerGit リポジトリのパスを表しています．
 
 FinerGit は変換のオプションをいくつか備えています．
 オブション一覧は以下のコマンドにより確認できます．
 ```shell-session
-$ java -jar build/libs/FinerGit.jar create
+$ java -jar build/libs/FinerGit-all.jar create
 ```
 
 ### FinerGit リポジトリを使って Java メソッドの変更履歴を確認する
@@ -174,18 +180,16 @@ Yoshiki Higo, Shinpei Hayashi, and Shinji Kusumoto, "On Tracking Java Methods wi
 author = {Higo, Yoshiki and Hayashi, Shinpei and Kusumoto, Shinji},
 title = {On Tracking Java Methods with Git Mechanisms},
 year = {2020},
-issue_date = {xxx 2020},
+issue_date = {July 2020},
 publisher = {Elsevier Science Inc.},
 address = {USA},
-volume = {xx},
-number = {xx},
+volume = {165},
 issn = {0164-1212},
 url = {https://doi.org/10.1016/j.jss.2020.110571},
 doi = {10.1016/j.jss.2020.110571},
 journal = {Journal of Systems and Software},
-month = xxx,
-pages = {xxx–-xxx},
-numpages = {xx},
+month = July,
+numpages = {13},
 keywords = {Mining software repositories, Source code analysis, Tracking Java methods}
 }
 ```
@@ -193,7 +197,8 @@ keywords = {Mining software repositories, Source code analysis, Tracking Java me
 
 ## 最後に
 
-FinerGit は主に，Mac + JDK11 + ~~Eclipse~~ IntelliJ IDEA を用いて開発されています．`git-subcommand/FinerGit.jar` も JDK1.11 でビルドされています．Windows 上ではほぼテストを行っていません．
+FinerGit は主に，Mac + JDK11 + ~~Eclipse~~ IntelliJ IDEA を用いて開発されています．
+Windows環境ではほとんど動作確認を行っていません．
 
 Gitリポジトリの変換／書換ツールとしては，他に[cregit](https://github.com/cregit/cregit)や[git-stein](https://github.com/sh5i/git-stein)があります．
 FinerGit では内部で git-stein を利用しています．

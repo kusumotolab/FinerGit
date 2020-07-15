@@ -278,6 +278,7 @@ import finergit.ast.token.SUPER;
 import finergit.ast.token.SUPERCONSTRUCTORINVOCATIONCOMMA;
 import finergit.ast.token.SUPERCONSTRUCTORINVOCATIONSEMICOLON;
 import finergit.ast.token.SWITCH;
+import finergit.ast.token.SWITCHCASECOMMA;
 import finergit.ast.token.SYNCHRONIZED;
 import finergit.ast.token.THIS;
 import finergit.ast.token.THROW;
@@ -1063,7 +1064,7 @@ public class JavaFileVisitor extends ASTVisitor {
       else {
         Stream.of(node.toString()
             .split("(\\r\\n|\\r|\\n)"))
-            .map(l -> new LineToken(l))
+            .map(LineToken::new)
             .forEach(javaField::addToken);
       }
     }
@@ -1458,9 +1459,8 @@ public class JavaFileVisitor extends ASTVisitor {
       final SingleVariableDeclaration svd = (SingleVariableDeclaration) parameter;
       final StringBuilder typeText = new StringBuilder();
       typeText.append(svd.getType());
-      for (int i = 0; i < svd.getExtraDimensions(); i++) { // "int a[]"のような表記に対応するため
-        typeText.append("[]");
-      }
+      // "int a[]"のような表記に対応するため
+      typeText.append("[]".repeat(Math.max(0, svd.getExtraDimensions())));
       if (svd.isVarargs()) {
         typeText.append("...");
       }
@@ -1493,7 +1493,7 @@ public class JavaFileVisitor extends ASTVisitor {
       else {
         Stream.of(node.toString()
             .split("(\\r\\n|\\r|\\n)"))
-            .map(l -> new LineToken(l))
+            .map(LineToken::new)
             .forEach(javaMethod::addToken);
         this.moduleStack.pop();
         return false;
@@ -1971,17 +1971,20 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final SwitchCase node) {
 
-    final Expression expression = node.getExpression();
-
-    // case のとき
-    if (null != expression) {
-      this.addToPeekModule(new CASE());
-      expression.accept(this);
+    if(node.isDefault()){
+      this.addToPeekModule(new DEFAULT());
     }
 
-    // default のとき
-    else {
-      this.addToPeekModule(new DEFAULT());
+    else{
+      this.addToPeekModule(new CASE());
+
+      final List<?> expressions = node.expressions();
+      ((Expression)expressions.get(0)).accept(this);
+
+      for (int index = 1; index < expressions.size(); index++) {
+        this.addToPeekModule(new SWITCHCASECOMMA());
+        ((Expression) expressions.get(index)).accept(this);
+      }
     }
 
     this.addToPeekModule(new COLON());

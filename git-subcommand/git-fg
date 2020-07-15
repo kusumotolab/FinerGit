@@ -1,4 +1,4 @@
 #!/bin/bash
 CDIR=`pwd`
 JARDIR=`dirname $0`
-java -Xss48m -Xmx8g -jar $JARDIR/FinerGit.jar create $@ 
+java -Xss48m -Xmx8g -jar $JARDIR/FinerGit-all.jar create $@ 

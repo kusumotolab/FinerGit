@@ -2,15 +2,15 @@
 plugins {
     id 'java'
     id 'eclipse'
-    id 'com.github.johnrengelman.shadow' version '2.0.4'
+    id 'com.github.johnrengelman.shadow' version '6.0.0'
 }
 
 // Set default encoding to UTF-8
 compileJava.options.encoding = 'UTF-8'
 compileTestJava.options.encoding = 'UTF-8'
 
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
+sourceCompatibility = '1.11'
+targetCompatibility = '1.11'
 
 // In this section you declare where to find the dependencies of your project
 repositories {
@@ -21,60 +21,28 @@ repositories {
 }
 
 dependencies {
-    // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
-    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.9'
+    implementation 'org.apache.commons:commons-lang3:3.10'
+    implementation 'com.google.guava:guava:29.0-jre'
+    implementation 'org.eclipse.jgit:org.eclipse.jgit:5.8.0.202006091008-r'
+    implementation 'commons-io:commons-io:2.7'
+    implementation 'org.eclipse.jdt:org.eclipse.jdt.core:3.22.0'
+    implementation 'args4j:args4j:2.33'
+    implementation 'commons-codec:commons-codec:1.14'
+    implementation 'org.slf4j:slf4j-api:1.7.30'
+    implementation 'ch.qos.logback:logback-classic:1.2.3'
+    implementation 'com.github.sh5i:git-stein:v0.5.0'
 
-    // https://mvnrepository.com/artifact/com.google.guava/guava
-    compile group: 'com.google.guava', name: 'guava', version: '28.0-jre'
-
-
-    // Use JUnit test framework
     testImplementation 'junit:junit:4.13'
-
-    // https://mvnrepository.com/artifact/org.eclipse.jgit/org.eclipse.jgit
-    compile group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '5.7.0.202003110725-r'
-
-    // https://mvnrepository.com/artifact/commons-io/commons-io
-    compile group: 'commons-io', name: 'commons-io', version: '2.6'
-
-    // https://mvnrepository.com/artifact/org.eclipse.jdt/org.eclipse.jdt.core
-    compile group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.core', version: '3.20.0'
-
-    // https://mvnrepository.com/artifact/args4j/args4j
-    compile group: 'args4j', name: 'args4j', version: '2.33'
-
-    // https://mvnrepository.com/artifact/commons-codec/commons-codec
-    compile group: 'commons-codec', name: 'commons-codec', version: '1.12'
-
-    // https://mvnrepository.com/artifact/org.slf4j/slf4j-api
-    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.30'
-
-    // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
-    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
-
-    // https://github.com/sh5i/git-stein/
-    compile group: 'com.github.sh5i', name: 'git-stein', version: 'v0.5.0'
-
-    // https://mvnrepository.com/artifact/org.assertj/assertj-core
-    testCompile group: 'org.assertj', name: 'assertj-core', version: '3.12.2'
-
-    // https://mvnrepository.com/artifact/com.github.stefanbirkner/system-rules
-    testCompile group: 'com.github.stefanbirkner', name: 'system-rules', version: '1.19.0'
+    testImplementation 'org.assertj:assertj-core:3.16.1'
+    testImplementation 'com.github.stefanbirkner:system-rules:1.19.0'
 }
 
 jar {
     manifest {
         attributes "Main-Class": "finergit.JarEntryPoint"
     }
-    from {
-        (configurations.runtime).collect {
-            it.isDirectory() ? it : zipTree(it)
-        }
-    } {
-        exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
-    }
 }
 
-wrapper {
-    gradleVersion = '5.0'
+shadowJar {
+    minimize()
 }
