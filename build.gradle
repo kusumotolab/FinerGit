@@ -2,7 +2,7 @@
 plugins {
     id 'java'
     id 'eclipse'
-    id 'com.github.johnrengelman.shadow' version '2.0.4'
+    id 'com.github.johnrengelman.shadow' version '6.0.0'
 }
 
 // Set default encoding to UTF-8
@@ -41,11 +41,8 @@ jar {
     manifest {
         attributes "Main-Class": "finergit.JarEntryPoint"
     }
-    from {
-        (configurations.runtime).collect {
-            it.isDirectory() ? it : zipTree(it)
-        }
-    } {
-        exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
-    }
+}
+
+shadowJar {
+    minimize();
 }
