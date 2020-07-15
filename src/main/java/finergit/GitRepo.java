@@ -3,7 +3,6 @@ package finergit;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 import org.eclipse.jgit.api.CleanCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand;

@@ -28,6 +28,7 @@ public class FinerJavaClass extends FinerJavaModule {
    *
    * @return
    */
+  @Override
   public String getBaseName() {
 
     final StringBuilder builder = new StringBuilder();

@@ -28,6 +28,7 @@ public class FinerJavaMethod extends FinerJavaModule {
    *
    * @return
    */
+  @Override
   public String getBaseName() {
     return this.outerModule.getBaseName() + METHOD_DELIMITER + this.name;
   }

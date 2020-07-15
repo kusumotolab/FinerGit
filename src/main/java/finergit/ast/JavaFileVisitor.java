@@ -1174,9 +1174,9 @@ public class JavaFileVisitor extends ASTVisitor {
         .accept(this);
 
     final List<?> extendedOperands = node.extendedOperands();
-    for (int index = 0; index < extendedOperands.size(); index++) {
+    for (final Object extendedOperand : extendedOperands) {
       this.addToPeekModule(operatorToken);
-      ((Expression) extendedOperands.get(index)).accept(this);
+      ((Expression) extendedOperand).accept(this);
     }
 
     return false;
@@ -1971,15 +1971,17 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final SwitchCase node) {
 
-    if(node.isDefault()){
+    // default のとき
+    if (node.isDefault()) {
       this.addToPeekModule(new DEFAULT());
     }
 
-    else{
+    // case ... のとき
+    else {
       this.addToPeekModule(new CASE());
 
       final List<?> expressions = node.expressions();
-      ((Expression)expressions.get(0)).accept(this);
+      ((Expression) expressions.get(0)).accept(this);
 
       for (int index = 1; index < expressions.size(); index++) {
         this.addToPeekModule(new SWITCHCASECOMMA());
@@ -2148,7 +2150,7 @@ public class JavaFileVisitor extends ASTVisitor {
     // implements 節の処理
     @SuppressWarnings("rawtypes")
     final List interfaces = node.superInterfaceTypes();
-    if (null != interfaces && 0 < interfaces.size()) {
+    if (null != interfaces && !interfaces.isEmpty()) {
 
       this.contexts.push(TYPENAME.class);
 

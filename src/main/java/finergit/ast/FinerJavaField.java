@@ -28,6 +28,7 @@ public class FinerJavaField extends FinerJavaModule {
    *
    * @return
    */
+  @Override
   public String getBaseName() {
     return this.outerModule.getBaseName() + FIELD_DELIMITER + this.name;
   }
