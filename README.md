@@ -27,20 +27,24 @@ Build FinerGit.jar with the following commands.
 ```shell-session
 $ git clone https://github.com/kusumotolab/FinerGit.git
 $ cd FinerGit
-$ ./gradlew build
+$ ./gradlew shadowJar
 ```
+
+It is fine if you have `FinerGit-all.jar` in the `FinerGit/build/lib` directory.
+If you specify `jar` or `build` instead of `shadowJar` as an argument for `gradlew`, you will get `FinerGit.jar` in the directory. 
+`FinerGit.jar` is not a single executable jar file.
 
 ### Run FinerGit
 A basic command to convert a Git repository to a FinerGit repository is as follows.
 ```shell-session
-$ java -jar FinerGit.jar create --src /path/to/repoA --des /path/to/repoB
+$ java -jar FinerGit-all.jar create --src /path/to/repoA --des /path/to/repoB
 ```
 Herein, `/path/to/repoA` is an existing Git repository, and `/path/to/repoB` is a path to output a new FinerGit repository.
 
 FinerGit has several options for converting repositories.
 The options are printed with the following command.
 ```shell-session
-$ java -jar build/libs/FinerGit.jar create
+$ java -jar build/libs/FinerGit-all.jar create
 ```
 
 ### See change histories of Java methods in a FinerGit repository
@@ -129,20 +133,25 @@ Java HotSpot(TM) 64-Bit Server VM 18.9 (build 11.0.6+8-LTS, mixed mode)
 ```shell-session
 $ git clone https://github.com/kusumotolab/FinerGit.git
 $ cd FinerGit
-$ ./gradlew build
+$ ./gradlew shadowJar
 ```
+
+`FinerGit/build/lib` ディレクトリに `FinerGit-all.jar` ができていればOKです．
+`gradlew` の引数として `shadowJar` ではなく `jar` や `build` を指定した場合もjarファイルは作成されますが，
+その場合の名前は `FinerGit.jar`になり，単体で実行可能なjarファイルではありません．
+
 
 ### FinerGit の実行
 Git リポジトリを変換するための基本コマンドは以下の通りです．
 ```shell-session
-$ java -jar FinerGit.jar create --src /path/to/repoA --des /path/to/repoB
+$ java -jar FinerGit-all.jar create --src /path/to/repoA --des /path/to/repoB
 ```
 ここで，`/path/to/repoA`は既存の Git リポジトリのパス，`/path/to/repoB`は生成する FinerGit リポジトリのパスを表しています．
 
 FinerGit は変換のオプションをいくつか備えています．
 オブション一覧は以下のコマンドにより確認できます．
 ```shell-session
-$ java -jar build/libs/FinerGit.jar create
+$ java -jar build/libs/FinerGit-all.jar create
 ```
 
 ### FinerGit リポジトリを使って Java メソッドの変更履歴を確認する
