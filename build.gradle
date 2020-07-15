@@ -9,8 +9,8 @@ plugins {
 compileJava.options.encoding = 'UTF-8'
 compileTestJava.options.encoding = 'UTF-8'
 
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
+sourceCompatibility = '1.11'
+targetCompatibility = '1.11'
 
 // In this section you declare where to find the dependencies of your project
 repositories {
@@ -21,19 +21,19 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.apache.commons:commons-lang3:3.9'
-    implementation 'com.google.guava:guava:28.0-jre'
-    implementation 'org.eclipse.jgit:org.eclipse.jgit:5.7.0.202003110725-r'
-    implementation 'commons-io:commons-io:2.6'
-    implementation 'org.eclipse.jdt:org.eclipse.jdt.core:3.20.0'
+    implementation 'org.apache.commons:commons-lang3:3.10'
+    implementation 'com.google.guava:guava:29.0-jre'
+    implementation 'org.eclipse.jgit:org.eclipse.jgit:5.8.0.202006091008-r'
+    implementation 'commons-io:commons-io:2.7'
+    implementation 'org.eclipse.jdt:org.eclipse.jdt.core:3.22.0'
     implementation 'args4j:args4j:2.33'
-    implementation 'commons-codec:commons-codec:1.12'
+    implementation 'commons-codec:commons-codec:1.14'
     implementation 'org.slf4j:slf4j-api:1.7.30'
     implementation 'ch.qos.logback:logback-classic:1.2.3'
     implementation 'com.github.sh5i:git-stein:v0.5.0'
 
     testImplementation 'junit:junit:4.13'
-    testImplementation 'org.assertj:assertj-core:3.12.2'
+    testImplementation 'org.assertj:assertj-core:3.16.1'
     testImplementation 'com.github.stefanbirkner:system-rules:1.19.0'
 }
 
@@ -44,5 +44,5 @@ jar {
 }
 
 shadowJar {
-    minimize();
+    minimize()
 }
