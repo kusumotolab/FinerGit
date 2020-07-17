@@ -29,7 +29,7 @@ public class FinerGitMain {
       cmdLineParser.parseArgument(args);
     } catch (final CmdLineException e) {
       cmdLineParser.printUsage(System.err);
-      System.exit(0);
+      return;
     }
 
     final Timer timer = new Timer();
