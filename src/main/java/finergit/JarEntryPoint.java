@@ -22,7 +22,7 @@ public class JarEntryPoint {
       }
       default: {
         System.err.println("undefined task: " + args[0]);
-        System.exit(0);
+        return;
       }
     }
 
@@ -33,17 +33,13 @@ public class JarEntryPoint {
 
     } catch (final ClassNotFoundException e) {
       log.error("unknown class Name \"{}\"", className);
-      System.exit(1);
     } catch (final NoSuchMethodException e) {
       log.error("main method was not found in class");
-      System.exit(1);
     } catch (final InvocationTargetException e) {
       log.error("An exception was thrown by invoked main method");
       log.error(e.getMessage());
-      System.exit(1);
     } catch (final IllegalAccessException e) {
       log.error("failed to access main method");
-      System.exit(1);
     }
   }
 }
