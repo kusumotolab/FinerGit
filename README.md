@@ -70,7 +70,7 @@ $ git log --follow "Foo#bar().mjava"
 
 If you are using FinerGit in your research, please cite the following paper:
 
-Yoshiki Higo, Shinpei Hayashi, and Shinji Kusumoto, "On Tracking Java Methods with Git Mechanisms," Journal of Systems and Software, Vol.xx, No.xx, pages xx-xx, 2020. [[available online](https://doi.org/10.1016/j.jss.2020.110571)]
+Yoshiki Higo, Shinpei Hayashi, and Shinji Kusumoto, "On Tracking Java Methods with Git Mechanisms," Journal of Systems and Software, Vol.165, 2020. [[available online](https://doi.org/10.1016/j.jss.2020.110571)]
 ```
 @article{10.1016/j.jss.2020.110571,
 author = {Higo, Yoshiki and Hayashi, Shinpei and Kusumoto, Shinji},
@@ -174,7 +174,7 @@ $ git log --follow "Hoge#fuga().mjava"
 
 研究で FinerGit を利用した場合には，以下の論文を引用してください．
 
-Yoshiki Higo, Shinpei Hayashi, and Shinji Kusumoto, "On Tracking Java Methods with Git Mechanisms," Journal of Systems and Software, Vol.xx, No.xx, pages xx-xx, 2020. [[available online](https://doi.org/10.1016/j.jss.2020.110571)]
+Yoshiki Higo, Shinpei Hayashi, and Shinji Kusumoto, "On Tracking Java Methods with Git Mechanisms," Journal of Systems and Software, Vol.165, 2020. [[available online](https://doi.org/10.1016/j.jss.2020.110571)]
 ```
 @article{10.1016/j.jss.2020.110571,
 author = {Higo, Yoshiki and Hayashi, Shinpei and Kusumoto, Shinji},
