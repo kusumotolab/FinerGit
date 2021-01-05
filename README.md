@@ -1,5 +1,5 @@
 # FinerGit 
-[日本語の説明はこちら](#user-content-finergit-日本語)
+[Click here to Japanese README](#user-content-finergit-日本語)
 
 FinerGit is a tool to easily obtain change histories of Java methods by using the Git mechanism.
 FinerGit takes a Git repository as its input and generates another Git repository.
