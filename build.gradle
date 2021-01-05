@@ -32,7 +32,7 @@ dependencies {
     implementation 'ch.qos.logback:logback-classic:1.2.3'
     implementation 'com.github.sh5i:git-stein:v0.5.0'
 
-    testImplementation 'junit:junit:4.13'
+    testImplementation 'junit:junit:4.13.1'
     testImplementation 'org.assertj:assertj-core:3.16.1'
     testImplementation 'com.github.stefanbirkner:system-rules:1.19.0'
 }
