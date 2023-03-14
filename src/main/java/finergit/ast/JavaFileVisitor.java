@@ -7,115 +7,8 @@ import java.util.Stack;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.io.FilenameUtils;
-import org.eclipse.jdt.core.dom.ASTNode;
-import org.eclipse.jdt.core.dom.ASTVisitor;
-import org.eclipse.jdt.core.dom.Annotation;
-import org.eclipse.jdt.core.dom.AnnotationTypeDeclaration;
-import org.eclipse.jdt.core.dom.AnnotationTypeMemberDeclaration;
-import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
-import org.eclipse.jdt.core.dom.ArrayAccess;
-import org.eclipse.jdt.core.dom.ArrayCreation;
-import org.eclipse.jdt.core.dom.ArrayInitializer;
-import org.eclipse.jdt.core.dom.ArrayType;
-import org.eclipse.jdt.core.dom.AssertStatement;
-import org.eclipse.jdt.core.dom.Assignment;
-import org.eclipse.jdt.core.dom.Block;
-import org.eclipse.jdt.core.dom.BlockComment;
-import org.eclipse.jdt.core.dom.BodyDeclaration;
-import org.eclipse.jdt.core.dom.BooleanLiteral;
-import org.eclipse.jdt.core.dom.BreakStatement;
-import org.eclipse.jdt.core.dom.CastExpression;
-import org.eclipse.jdt.core.dom.CatchClause;
-import org.eclipse.jdt.core.dom.CharacterLiteral;
-import org.eclipse.jdt.core.dom.ClassInstanceCreation;
-import org.eclipse.jdt.core.dom.CompilationUnit;
-import org.eclipse.jdt.core.dom.ConditionalExpression;
-import org.eclipse.jdt.core.dom.ConstructorInvocation;
-import org.eclipse.jdt.core.dom.ContinueStatement;
-import org.eclipse.jdt.core.dom.CreationReference;
-import org.eclipse.jdt.core.dom.Dimension;
-import org.eclipse.jdt.core.dom.DoStatement;
-import org.eclipse.jdt.core.dom.EmptyStatement;
-import org.eclipse.jdt.core.dom.EnhancedForStatement;
-import org.eclipse.jdt.core.dom.EnumConstantDeclaration;
-import org.eclipse.jdt.core.dom.EnumDeclaration;
-import org.eclipse.jdt.core.dom.ExportsDirective;
-import org.eclipse.jdt.core.dom.Expression;
-import org.eclipse.jdt.core.dom.ExpressionMethodReference;
-import org.eclipse.jdt.core.dom.ExpressionStatement;
-import org.eclipse.jdt.core.dom.FieldAccess;
-import org.eclipse.jdt.core.dom.FieldDeclaration;
-import org.eclipse.jdt.core.dom.ForStatement;
-import org.eclipse.jdt.core.dom.IfStatement;
-import org.eclipse.jdt.core.dom.ImportDeclaration;
-import org.eclipse.jdt.core.dom.InfixExpression;
+import org.eclipse.jdt.core.dom.*;
 import org.eclipse.jdt.core.dom.InfixExpression.Operator;
-import org.eclipse.jdt.core.dom.Initializer;
-import org.eclipse.jdt.core.dom.InstanceofExpression;
-import org.eclipse.jdt.core.dom.IntersectionType;
-import org.eclipse.jdt.core.dom.Javadoc;
-import org.eclipse.jdt.core.dom.LabeledStatement;
-import org.eclipse.jdt.core.dom.LambdaExpression;
-import org.eclipse.jdt.core.dom.LineComment;
-import org.eclipse.jdt.core.dom.MarkerAnnotation;
-import org.eclipse.jdt.core.dom.MemberRef;
-import org.eclipse.jdt.core.dom.MemberValuePair;
-import org.eclipse.jdt.core.dom.MethodDeclaration;
-import org.eclipse.jdt.core.dom.MethodInvocation;
-import org.eclipse.jdt.core.dom.MethodRef;
-import org.eclipse.jdt.core.dom.MethodRefParameter;
-import org.eclipse.jdt.core.dom.Modifier;
-import org.eclipse.jdt.core.dom.ModuleDeclaration;
-import org.eclipse.jdt.core.dom.ModuleModifier;
-import org.eclipse.jdt.core.dom.Name;
-import org.eclipse.jdt.core.dom.NameQualifiedType;
-import org.eclipse.jdt.core.dom.NormalAnnotation;
-import org.eclipse.jdt.core.dom.NullLiteral;
-import org.eclipse.jdt.core.dom.NumberLiteral;
-import org.eclipse.jdt.core.dom.OpensDirective;
-import org.eclipse.jdt.core.dom.PackageDeclaration;
-import org.eclipse.jdt.core.dom.ParameterizedType;
-import org.eclipse.jdt.core.dom.ParenthesizedExpression;
-import org.eclipse.jdt.core.dom.PostfixExpression;
-import org.eclipse.jdt.core.dom.PrefixExpression;
-import org.eclipse.jdt.core.dom.PrimitiveType;
-import org.eclipse.jdt.core.dom.ProvidesDirective;
-import org.eclipse.jdt.core.dom.QualifiedName;
-import org.eclipse.jdt.core.dom.QualifiedType;
-import org.eclipse.jdt.core.dom.RequiresDirective;
-import org.eclipse.jdt.core.dom.ReturnStatement;
-import org.eclipse.jdt.core.dom.SimpleName;
-import org.eclipse.jdt.core.dom.SimpleType;
-import org.eclipse.jdt.core.dom.SingleMemberAnnotation;
-import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
-import org.eclipse.jdt.core.dom.Statement;
-import org.eclipse.jdt.core.dom.StringLiteral;
-import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
-import org.eclipse.jdt.core.dom.SuperFieldAccess;
-import org.eclipse.jdt.core.dom.SuperMethodInvocation;
-import org.eclipse.jdt.core.dom.SuperMethodReference;
-import org.eclipse.jdt.core.dom.SwitchCase;
-import org.eclipse.jdt.core.dom.SwitchStatement;
-import org.eclipse.jdt.core.dom.SynchronizedStatement;
-import org.eclipse.jdt.core.dom.TagElement;
-import org.eclipse.jdt.core.dom.TextElement;
-import org.eclipse.jdt.core.dom.ThisExpression;
-import org.eclipse.jdt.core.dom.ThrowStatement;
-import org.eclipse.jdt.core.dom.TryStatement;
-import org.eclipse.jdt.core.dom.Type;
-import org.eclipse.jdt.core.dom.TypeDeclaration;
-import org.eclipse.jdt.core.dom.TypeDeclarationStatement;
-import org.eclipse.jdt.core.dom.TypeLiteral;
-import org.eclipse.jdt.core.dom.TypeMethodReference;
-import org.eclipse.jdt.core.dom.TypeParameter;
-import org.eclipse.jdt.core.dom.UnionType;
-import org.eclipse.jdt.core.dom.UsesDirective;
-import org.eclipse.jdt.core.dom.VariableDeclaration;
-import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
-import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
-import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
-import org.eclipse.jdt.core.dom.WhileStatement;
-import org.eclipse.jdt.core.dom.WildcardType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import finergit.FinerGitConfig;
@@ -278,6 +171,7 @@ import finergit.ast.token.SUPER;
 import finergit.ast.token.SUPERCONSTRUCTORINVOCATIONCOMMA;
 import finergit.ast.token.SUPERCONSTRUCTORINVOCATIONSEMICOLON;
 import finergit.ast.token.SWITCH;
+import finergit.ast.token.SWITCHCASEARROW;
 import finergit.ast.token.SWITCHCASECOMMA;
 import finergit.ast.token.SYNCHRONIZED;
 import finergit.ast.token.THIS;
@@ -294,6 +188,8 @@ import finergit.ast.token.VARIABLEDECLARATIONSTATEMENTSEMICOLON;
 import finergit.ast.token.VARIABLENAME;
 import finergit.ast.token.VariableArity;
 import finergit.ast.token.WHILE;
+import finergit.ast.token.YIELD;
+import finergit.ast.token.YIELDSTATEMENTSEMICOLON;
 
 public class JavaFileVisitor extends ASTVisitor {
 
@@ -564,6 +460,9 @@ public class JavaFileVisitor extends ASTVisitor {
       this.addToPeekModule(left ? new LEFTSYNCHRONIZEDBRACKET() : new RIGHTSYNCHRONIZEDBRACKET());
     } else if (SwitchStatement.class == parent.getClass()) {
       // switch文のときには，ここにくるのはswitch文内部のシンプルブロックのはず
+      this.addToPeekModule(left ? new LEFTSIMPLEBLOCKBRACKET() : new RIGHTSIMPLEBLOCKBRACKET());
+    }else if (SwitchExpression.class == parent.getClass()){
+      // switch式のときには，ここにくるのはswitch式内部のシンプルブロックのはず
       this.addToPeekModule(left ? new LEFTSIMPLEBLOCKBRACKET() : new RIGHTSIMPLEBLOCKBRACKET());
     } else if (TryStatement.class == parent.getClass()) {
       this.addToPeekModule(left ? new LEFTTRYBRACKET() : new RIGHTTRYBRACKET());
@@ -1063,7 +962,7 @@ public class JavaFileVisitor extends ASTVisitor {
       // 一行一トークンでない場合は，,フィールドの文字列表現からトークンを作り出し，それらをフィールドモジュールに追加し，処理を終了する
       else {
         Stream.of(node.toString()
-            .split("(\\r\\n|\\r|\\n)"))
+                .split("(\\r\\n|\\r|\\n)"))
             .map(LineToken::new)
             .forEach(javaField::addToken);
       }
@@ -1492,7 +1391,7 @@ public class JavaFileVisitor extends ASTVisitor {
       // 一行一トークンでない場合は，メソッドの文字列表現からトークンを作り出し，それらをメソッドモジュールに追加し，処理を終了する
       else {
         Stream.of(node.toString()
-            .split("(\\r\\n|\\r|\\n)"))
+                .split("(\\r\\n|\\r|\\n)"))
             .map(LineToken::new)
             .forEach(javaMethod::addToken);
         this.moduleStack.pop();
@@ -1566,6 +1465,12 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final ModuleModifier node) {
     log.error("JavaFileVisitor#visit(ModuleModifier) is not implemented yet.");
+    return super.visit(node);
+  }
+
+  @Override
+  public boolean visit(ModuleQualifiedName node) {
+    log.error("JavaFileVisitor#visit(ModuleQualifiedName) not implemented yet.");
     return super.visit(node);
   }
 
@@ -1687,6 +1592,12 @@ public class JavaFileVisitor extends ASTVisitor {
   }
 
   @Override
+  public boolean visit(PatternInstanceofExpression node) {
+    log.error("JavaFileVisitor#visit(PatternInstanceofExpression) is not implemented yet.");
+    return super.visit(node);
+  }
+
+  @Override
   public boolean visit(final PostfixExpression node) {
 
     node.getOperand()
@@ -1763,6 +1674,13 @@ public class JavaFileVisitor extends ASTVisitor {
     assert TYPENAME.class == context : "error happened at JavaFileVisitor#visit(QualifiedType)";
 
     return false;
+  }
+
+
+  @Override
+  public boolean visit(RecordDeclaration node) {
+    log.error("JavaFileVisitor#visit(RecordDeclaration) is not implemented yet.");
+    return super.visit(node);
   }
 
   // TODO テストできていない
@@ -1989,7 +1907,32 @@ public class JavaFileVisitor extends ASTVisitor {
       }
     }
 
-    this.addToPeekModule(new COLON());
+    if (node.isSwitchLabeledRule()) {
+      this.addToPeekModule(new SWITCHCASEARROW());
+    } else {
+      this.addToPeekModule(new COLON());
+    }
+
+    return false;
+  }
+
+
+  @Override
+  public boolean visit(SwitchExpression node) {
+
+    this.addToPeekModule(new SWITCH(), new LEFTSWITCHPAREN());
+
+    node.getExpression()
+        .accept(this);
+
+    this.addToPeekModule(new RIGHTSWITCHPAREN(), new LEFTSWITCHBRACKET());
+
+    for (final Object o : node.statements()) {
+      final Statement statement = (Statement) o;
+      statement.accept(this);
+    }
+
+    this.addToPeekModule(new RIGHTSWITCHBRACKET());
 
     return false;
   }
@@ -2034,6 +1977,13 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final TagElement node) {
     log.error("JavaFileVisitor#visit(TagElement) is not implemented yet.");
+    return super.visit(node);
+  }
+
+
+  @Override
+  public boolean visit(TextBlock node) {
+    log.error("JavaFileVisitor#visit(TextBlock) is not implemented yet.");
     return super.visit(node);
   }
 
@@ -2353,7 +2303,21 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final WildcardType node) {
     this.addToPeekModule(new QUESTION());
-    return super.visit(node);
+    return false;
+  }
+
+
+  @Override
+  public boolean visit(final YieldStatement node) {
+
+    this.addToPeekModule(new YIELD());
+
+    node.getExpression()
+        .accept(this);
+
+    this.addToPeekModule(new YIELDSTATEMENTSEMICOLON());
+
+    return false;
   }
 
   private String removeTerminalLineCharacter(final String text) {

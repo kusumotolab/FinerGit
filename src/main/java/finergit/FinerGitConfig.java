@@ -13,7 +13,7 @@ public class FinerGitConfig {
   private Path srcPath = null;
   private Path desPath = null;
   private String headCommitId = null;
-  private JavaVersion javaVersion = JavaVersion.V1_8;
+  private JavaVersion javaVersion = JavaVersion.V1_14;
   private boolean isOriginalJavaIncluded = false;
   private boolean isOtherFilesIncluded = false;
   private boolean isTokenized = true;

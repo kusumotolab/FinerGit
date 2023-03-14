@@ -1,8 +1,10 @@
 package finergit.ast;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.List;
 import java.util.stream.Collectors;
+
 import org.junit.Test;
 import finergit.FinerGitConfig;
 
@@ -146,6 +148,9 @@ public class JavaFileVisitorTest {
         "    switch(value) {" + //
         "    case \"a\":" + //
         "      return true;" + //
+        "    case \"b\": {" + //
+        "      return true;" + //
+        "    }" + //
         "    default:" + //
         "      return false;" + //
         "    }" + //
@@ -166,6 +171,47 @@ public class JavaFileVisitorTest {
         .collect(Collectors.toList());
     assertThat(tokens).containsExactly("boolean", "switchStatement", "(", "String", "value", ")",
         "{", "switch", "(", "value", ")", "{", "case", "\"a\"", ":", "return", "true", ";",
-        "default", ":", "return", "false", ";", "}", "}");
+        "case", "\"b\"", ":", "{", "return", "true", ";", "}", "default", ":", "return", "false",
+        ";", "}", "}");
+  }
+
+  @Test
+  public void testSwitchExpression() {
+
+    final String text = "class SwitchExpression {" + //
+        "  int switchExpression(String text) {" + //
+        "    int number = switch (text) {" + //
+        "      case \"a\", \"b\", \"c\" -> {" + //
+        "        yield 1;" + //
+        "      }" + //
+        "      case \"d\", \"e\" -> {" + //
+        "        yield 2;" + //
+        "      }" + //
+        "      case \"f\", \"g\" -> {" + //
+        "        yield 3;" + //
+        "      }" + //
+        "    };" + //
+        "    return number;" + //
+        "  }" + //
+        "}";
+
+    final String path = "dir/SwitchExpression.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+    final List<String> tokens = modules.get(0)
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(tokens).containsExactly("int", "switchExpression", "(", "String", "text", ")", "{",
+        "int", "number", "=", "switch", "(", "text", ")", "{", "case", "\"a\"", ",", "\"b\"", ",",
+        "\"c\"", "->", "{", "yield", "1", ";", "}", "case", "\"d\"", ",", "\"e\"", "->", "{",
+        "yield", "2", ";", "}", "case", "\"f\"", ",", "\"g\"", "->", "{", "yield", "3", ";", "}",
+        "}", ";", "return", "number", ";", "}");
   }
 }
