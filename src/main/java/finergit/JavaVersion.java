@@ -71,6 +71,21 @@ public enum JavaVersion {
     protected String getJavaCore() {
       return JavaCore.VERSION_16;
     }
+  }, V1_17 {
+    @Override
+    protected String getJavaCore() {
+      return JavaCore.VERSION_17;
+    }
+  }, V1_18 {
+    @Override
+    protected String getJavaCore() {
+      return JavaCore.VERSION_18;
+    }
+  }, V1_19 {
+    @Override
+    protected String getJavaCore() {
+      return JavaCore.VERSION_19;
+    }
   };
 
   static public JavaVersion get(final String versionText) {
@@ -101,6 +116,12 @@ public enum JavaVersion {
         return V1_15;
       case "1.16":
         return V1_16;
+      case "1.17":
+        return V1_17;
+      case "1.18":
+        return V1_18;
+      case "1.19":
+        return V1_19;
       default:
         return null;
     }
