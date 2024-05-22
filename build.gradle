@@ -9,8 +9,8 @@ plugins {
 compileJava.options.encoding = 'UTF-8'
 compileTestJava.options.encoding = 'UTF-8'
 
-sourceCompatibility = '1.17'
-targetCompatibility = '1.17'
+sourceCompatibility = '1.21'
+targetCompatibility = '1.21'
 
 // In this section you declare where to find the dependencies of your project
 repositories {
@@ -25,7 +25,7 @@ dependencies {
     implementation group: 'com.google.guava', name: 'guava', version: '31.1-jre'
     implementation group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '6.5.0.202303070854-r'
     implementation group: 'commons-io', name: 'commons-io', version: '2.11.0'
-    implementation group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.core', version: '3.32.0'
+    implementation group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.core', version: '3.37.0'
     implementation group: 'args4j', name: 'args4j', version: '2.33'
     implementation group: 'commons-codec', name: 'commons-codec', version: '1.15'
     implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.36'
@@ -48,5 +48,5 @@ shadowJar {
 }
 
 wrapper {
-    gradleVersion = '7.5'
+    gradleVersion = '8.5'
 }
