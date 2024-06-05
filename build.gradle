@@ -30,7 +30,7 @@ dependencies {
     implementation group: 'commons-codec', name: 'commons-codec', version: '1.15'
     implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.36'
     implementation 'com.github.sh5i:git-stein:v0.5.0'
-    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.4.4'
+    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.5.6'
 
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     testImplementation group: 'org.assertj', name: 'assertj-core', version: '3.23.1'
