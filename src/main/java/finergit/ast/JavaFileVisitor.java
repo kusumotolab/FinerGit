@@ -2320,6 +2320,90 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
+  // TODO テストできていない
+  @Override
+  public boolean visit(CaseDefaultExpression node) {
+    log.error("JavaFileVisitor#visit(CaseDefaultExpression) is not implemented yet.");
+    return super.visit(node);
+  }
+
+  // TODO テストできていない
+  @Override
+  public boolean visit(EnhancedForWithRecordPattern node) {
+    log.error("JavaFileVisitor#visit(EnhancedForWithRecordPattern) is not implemented yet.");
+    return super.visit(node);
+  }
+
+  // TODO テストできていない
+  @Override
+  public boolean visit(GuardedPattern node) {
+    log.error("JavaFileVisitor#visit(GuardedPattern) is not implemented yet.");
+    return super.visit(node);
+  }
+
+  // TODO テストできていない
+  @Override
+  public boolean visit(JavaDocRegion node) {
+    log.error("JavaFileVisitor#visit(JavaDocRegion) is not implemented yet.");
+    return super.visit(node);
+  }
+
+  // TODO テストできていない
+  @Override
+  public boolean visit(JavaDocTextElement node) {
+    log.error("JavaFileVisitor#visit(JavaDocTextElement) is not implemented yet.");
+    return super.visit(node);
+  }
+
+  // TODO テストできていない
+  @Override
+  public boolean visit(NullPattern node) {
+    log.error("JavaFileVisitor#visit(NullPattern) is not implemented yet.");
+    return super.visit(node);
+  }
+
+  // TODO テストできていない
+  @Override
+  public boolean visit(RecordPattern node) {
+    log.error("JavaFileVisitor#visit(RecordPattern) is not implemented yet.");
+    return super.visit(node);
+  }
+
+  // TODO テストできていない
+  @Override
+  public boolean visit(TagProperty node) {
+    log.error("JavaFileVisitor#visit(TagProperty) is not implemented yet.");
+    return super.visit(node);
+  }
+
+  // TODO テストできていない
+  @Override
+  public boolean visit(TypePattern node) {
+    log.error("JavaFileVisitor#visit(TypePattern) is not implemented yet.");
+    return super.visit(node);
+  }
+
+  // TODO テストできていない
+  @Override
+  public boolean visit(StringTemplateExpression node) {
+    log.error("JavaFileVisitor#visit(StringTemplateExpression) is not implemented yet.");
+    return super.visit(node);
+  }
+
+  // TODO テストできていない
+  @Override
+  public boolean visit(StringFragment node) {
+    log.error("JavaFileVisitor#visit(StringFragment) is not implemented yet.");
+    return super.visit(node);
+  }
+
+  // TODO テストできていない
+  @Override
+  public boolean visit(StringTemplateComponent node) {
+    log.error("JavaFileVisitor#visit(StringTemplateComponent) is not implemented yet.");
+    return super.visit(node);
+  }
+
   private String removeTerminalLineCharacter(final String text) {
     if (text.endsWith("\r\n")) {
       return this.removeTerminalLineCharacter(text.substring(0, text.length() - 2));
