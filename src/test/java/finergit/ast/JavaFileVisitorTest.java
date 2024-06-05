@@ -190,6 +190,9 @@ public class JavaFileVisitorTest {
         "      case \"f\", \"g\" -> {" + //
         "        yield 3;" + //
         "      }" + //
+        "      default -> {" + //
+        "        yield 4;" + //
+        "      }" + //
         "    };" + //
         "    return number;" + //
         "  }" + //
@@ -212,6 +215,6 @@ public class JavaFileVisitorTest {
         "int", "number", "=", "switch", "(", "text", ")", "{", "case", "\"a\"", ",", "\"b\"", ",",
         "\"c\"", "->", "{", "yield", "1", ";", "}", "case", "\"d\"", ",", "\"e\"", "->", "{",
         "yield", "2", ";", "}", "case", "\"f\"", ",", "\"g\"", "->", "{", "yield", "3", ";", "}",
-        "}", ";", "return", "number", ";", "}");
+        "default", "->", "{", "yield", "4", ";", "}", "}", ";", "return", "number", ";", "}");
   }
 }
