@@ -125,6 +125,8 @@ import finergit.ast.token.PACKAGENAME;
 import finergit.ast.token.PARAMETERIZEDTYPECOMMA;
 import finergit.ast.token.PrimitiveTypeFactory;
 import finergit.ast.token.QUESTION;
+import finergit.ast.token.RECORD;
+import finergit.ast.token.RECORDNAME;
 import finergit.ast.token.RETURN;
 import finergit.ast.token.RETURNSTATEMENTSEMICOLON;
 import finergit.ast.token.RIGHTANNOTATIONBRACKET;
@@ -461,7 +463,7 @@ public class JavaFileVisitor extends ASTVisitor {
     } else if (SwitchStatement.class == parent.getClass()) {
       // switch文のときには，ここにくるのはswitch文内部のシンプルブロックのはず
       this.addToPeekModule(left ? new LEFTSIMPLEBLOCKBRACKET() : new RIGHTSIMPLEBLOCKBRACKET());
-    }else if (SwitchExpression.class == parent.getClass()){
+    } else if (SwitchExpression.class == parent.getClass()) {
       // switch式のときには，ここにくるのはswitch式内部のシンプルブロックのはず
       this.addToPeekModule(left ? new LEFTSIMPLEBLOCKBRACKET() : new RIGHTSIMPLEBLOCKBRACKET());
     } else if (TryStatement.class == parent.getClass()) {
@@ -1678,9 +1680,81 @@ public class JavaFileVisitor extends ASTVisitor {
 
 
   @Override
-  public boolean visit(RecordDeclaration node) {
-    log.error("JavaFileVisitor#visit(RecordDeclaration) is not implemented yet.");
-    return super.visit(node);
+  public boolean visit(final RecordDeclaration node) {
+
+    // インナークラスでない場合は，新しいクラスモジュールを作り，モジュールスタックにpush
+    if (0 == this.classNestLevel) {
+      final FinerJavaModule outerModule = this.moduleStack.peek();
+      final String recordName = node.getName()
+          .getIdentifier();
+      final FinerJavaClass recordModule = new FinerJavaClass(recordName, outerModule, this.config);
+      this.moduleStack.push(recordModule);
+      this.moduleList.add(recordModule);
+    }
+
+    this.classNestLevel++;
+
+    final Javadoc javadoc = node.getJavadoc();
+    if (null != javadoc) {
+      this.addToPeekModule(
+          new JAVADOCCOMMENT(this.removeTerminalLineCharacter(javadoc.toString())));
+    }
+
+    // 修飾子の処理
+    for (final Object modifier : node.modifiers()) {
+      final JavaToken modifierToken = ModifierFactory.create(modifier.toString());
+      this.addToPeekModule(modifierToken);
+    }
+
+    // "record"の処理
+    this.addToPeekModule(new RECORD());
+
+    // クラス名の処理
+    this.contexts.push(RECORDNAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> nameContext = this.contexts.pop();
+    assert RECORDNAME.class == nameContext : "error happened at visit(TypeDeclaration)";
+
+    // implements 節の処理
+    @SuppressWarnings("rawtypes")
+    final List interfaces = node.superInterfaceTypes();
+    if (null != interfaces && !interfaces.isEmpty()) {
+
+      this.contexts.push(TYPENAME.class);
+
+      this.addToPeekModule(new IMPLEMENTS());
+      ((Type) interfaces.get(0)).accept(this);
+
+      for (int index = 1; index < interfaces.size(); index++) {
+        this.addToPeekModule(new TYPEDECLARATIONCOMMA());
+        ((Type) interfaces.get(index)).accept(this);
+      }
+
+      final Class<?> implementsContext = this.contexts.pop();
+      assert TYPENAME.class == implementsContext : "error happened at visit(TypeDeclaration)";
+    }
+
+    this.addToPeekModule(new LEFTCLASSBRACKET());
+
+    // 中身の処理
+    for (final Object o : node.bodyDeclarations()) {
+      final BodyDeclaration bodyDeclaration = (BodyDeclaration) o;
+      bodyDeclaration.accept(this);
+    }
+
+    this.addToPeekModule(new RIGHTCLASSBRACKET());
+
+    this.classNestLevel--;
+
+    // インナークラスでない場合は，モジュールスタックからクラスモジュールをポップし，外側のモジュールにクラスを表すトークンを追加する
+    if (0 == this.classNestLevel) {
+      final FinerJavaClass finerJavaClass = (FinerJavaClass) this.moduleStack.pop();
+      this.addToPeekModule(
+          new FinerJavaClassToken("ClassToken[" + finerJavaClass.name + "]", finerJavaClass));
+    }
+
+    return false;
   }
 
   // TODO テストできていない
@@ -1732,6 +1806,8 @@ public class JavaFileVisitor extends ASTVisitor {
       this.addToPeekModule(new IMPORTNAME(identifier));
     } else if (CLASSNAME.class == context) {
       this.addToPeekModule(new CLASSNAME(identifier));
+    } else if (RECORDNAME.class == context) {
+      this.addToPeekModule(new RECORDNAME(identifier));
     } else if (LABELNAME.class == context) {
       this.addToPeekModule(new LABELNAME(identifier));
     } else {
