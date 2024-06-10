@@ -12,7 +12,7 @@ public class JavaFileVisitorExecutor {
 
   public static void main(final String[] args) {
 
-    final String path = args[1];
+    final String path = args[0];
     String text = null;
     try {
       text = Files.readString(Paths.get(path), Charsets.UTF_8);
