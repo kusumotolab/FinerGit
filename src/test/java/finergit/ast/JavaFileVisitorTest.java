@@ -1,10 +1,8 @@
 package finergit.ast;
 
 import static org.assertj.core.api.Assertions.assertThat;
-
 import java.util.List;
 import java.util.stream.Collectors;
-
 import org.junit.Test;
 import finergit.FinerGitConfig;
 
@@ -216,5 +214,41 @@ public class JavaFileVisitorTest {
         "\"c\"", "->", "{", "yield", "1", ";", "}", "case", "\"d\"", ",", "\"e\"", "->", "{",
         "yield", "2", ";", "}", "case", "\"f\"", ",", "\"g\"", "->", "{", "yield", "3", ";", "}",
         "default", "->", "{", "yield", "4", ";", "}", "}", ";", "return", "number", ";", "}");
+  }
+
+  @Test
+  public void testRecord() {
+
+    final String text = "record RecordExample(double length, double width) {" + //
+        "  RecordExample(double length, double width) {" + //
+        "    this.length = length;" + //
+        "    this.width = width;" + //
+        "  }" + //
+        "}";
+
+    final String path = "dir/Record.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+    final List<String> tokens = modules.getFirst()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(tokens).containsExactly("RecordExample", "(", "double", "length", ",", "double",
+        "width", ")", "{", "this", ".", "length", "=", "length", ";", "this", ".", "width", "=",
+        "width", ";", "}");
+
+    final FinerJavaModule outerModule = modules.getFirst().outerModule;
+    final List<String> outerTokens = outerModule.getTokens()
+        .stream()
+        .map(t -> t.value)
+        .toList();
+    assertThat(outerTokens).containsExactly("record", "RecordExample", "(", "double", "length", ",",
+        "double", "width", ")", "{", "MethodToken[RecordExample(double,double)]", "}");
   }
 }

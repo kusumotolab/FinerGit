@@ -58,6 +58,7 @@ import finergit.ast.token.FORUPDATERCOMMA;
 import finergit.ast.token.FinerJavaClassToken;
 import finergit.ast.token.FinerJavaFieldToken;
 import finergit.ast.token.FinerJavaMethodToken;
+import finergit.ast.token.FinerJavaRecordToken;
 import finergit.ast.token.GREAT;
 import finergit.ast.token.IF;
 import finergit.ast.token.IMPLEMENTS;
@@ -95,6 +96,8 @@ import finergit.ast.token.LEFTMETHODBRACKET;
 import finergit.ast.token.LEFTMETHODINVOCATIONPAREN;
 import finergit.ast.token.LEFTMETHODPAREN;
 import finergit.ast.token.LEFTPARENTHESIZEDEXPRESSIONPAREN;
+import finergit.ast.token.LEFTRECORDBRACKET;
+import finergit.ast.token.LEFTRECORDPAREN;
 import finergit.ast.token.LEFTSIMPLEBLOCKBRACKET;
 import finergit.ast.token.LEFTSQUAREBRACKET;
 import finergit.ast.token.LEFTSUPERCONSTRUCTORINVOCATIONPAREN;
@@ -126,6 +129,7 @@ import finergit.ast.token.PARAMETERIZEDTYPECOMMA;
 import finergit.ast.token.PrimitiveTypeFactory;
 import finergit.ast.token.QUESTION;
 import finergit.ast.token.RECORD;
+import finergit.ast.token.RECORDCOMPONENTCOMMA;
 import finergit.ast.token.RECORDNAME;
 import finergit.ast.token.RETURN;
 import finergit.ast.token.RETURNSTATEMENTSEMICOLON;
@@ -156,6 +160,8 @@ import finergit.ast.token.RIGHTMETHODBRACKET;
 import finergit.ast.token.RIGHTMETHODINVOCATIONPAREN;
 import finergit.ast.token.RIGHTMETHODPAREN;
 import finergit.ast.token.RIGHTPARENTHESIZEDEXPRESSIONPAREN;
+import finergit.ast.token.RIGHTRECORDBRACKET;
+import finergit.ast.token.RIGHTRECORDPAREN;
 import finergit.ast.token.RIGHTSIMPLEBLOCKBRACKET;
 import finergit.ast.token.RIGHTSQUAREBRACKET;
 import finergit.ast.token.RIGHTSUPERCONSTRUCTORINVOCATIONPAREN;
@@ -1413,7 +1419,7 @@ public class JavaFileVisitor extends ASTVisitor {
     if (1 == this.classNestLevel) {
       final FinerJavaMethod finerJavaMethod = (FinerJavaMethod) this.moduleStack.pop();
       this.addToPeekModule(
-          new FinerJavaMethodToken("MetodToken[" + finerJavaMethod.name + "]", finerJavaMethod));
+          new FinerJavaMethodToken("MethodToken[" + finerJavaMethod.name + "]", finerJavaMethod));
     }
 
     return false;
@@ -1687,7 +1693,8 @@ public class JavaFileVisitor extends ASTVisitor {
       final FinerJavaModule outerModule = this.moduleStack.peek();
       final String recordName = node.getName()
           .getIdentifier();
-      final FinerJavaClass recordModule = new FinerJavaClass(recordName, outerModule, this.config);
+      final FinerJavaRecord recordModule = new FinerJavaRecord(recordName, outerModule,
+          this.config);
       this.moduleStack.push(recordModule);
       this.moduleList.add(recordModule);
     }
@@ -1709,12 +1716,27 @@ public class JavaFileVisitor extends ASTVisitor {
     // "record"の処理
     this.addToPeekModule(new RECORD());
 
-    // クラス名の処理
+    // レコード名の処理
     this.contexts.push(RECORDNAME.class);
     node.getName()
         .accept(this);
     final Class<?> nameContext = this.contexts.pop();
-    assert RECORDNAME.class == nameContext : "error happened at visit(TypeDeclaration)";
+    assert RECORDNAME.class == nameContext : "error happened at visit(RecordDeclaration)";
+
+    this.addToPeekModule(new LEFTRECORDPAREN());
+
+    // コンポーネントの処理
+    final List<?> components = node.recordComponents();
+    if(null != components && !components.isEmpty()){
+      ((SingleVariableDeclaration)components.getFirst()).accept(this);
+
+      for(int index = 1; index < components.size() ; index++){
+        this.addToPeekModule(new RECORDCOMPONENTCOMMA());
+        ((SingleVariableDeclaration)components.get(index)).accept(this);
+      }
+    }
+
+    this.addToPeekModule(new RIGHTRECORDPAREN());
 
     // implements 節の処理
     @SuppressWarnings("rawtypes")
@@ -1732,10 +1754,10 @@ public class JavaFileVisitor extends ASTVisitor {
       }
 
       final Class<?> implementsContext = this.contexts.pop();
-      assert TYPENAME.class == implementsContext : "error happened at visit(TypeDeclaration)";
+      assert TYPENAME.class == implementsContext : "error happened at visit(RecordDeclaration)";
     }
 
-    this.addToPeekModule(new LEFTCLASSBRACKET());
+    this.addToPeekModule(new LEFTRECORDBRACKET());
 
     // 中身の処理
     for (final Object o : node.bodyDeclarations()) {
@@ -1743,15 +1765,15 @@ public class JavaFileVisitor extends ASTVisitor {
       bodyDeclaration.accept(this);
     }
 
-    this.addToPeekModule(new RIGHTCLASSBRACKET());
+    this.addToPeekModule(new RIGHTRECORDBRACKET());
 
     this.classNestLevel--;
 
-    // インナークラスでない場合は，モジュールスタックからクラスモジュールをポップし，外側のモジュールにクラスを表すトークンを追加する
+    // インナーレコードでない場合は，モジュールスタックからレコードモジュールをポップし，外側のモジュールにレコードを表すトークンを追加する
     if (0 == this.classNestLevel) {
-      final FinerJavaClass finerJavaClass = (FinerJavaClass) this.moduleStack.pop();
+      final FinerJavaRecord finerJavaRecord = (FinerJavaRecord) this.moduleStack.pop();
       this.addToPeekModule(
-          new FinerJavaClassToken("ClassToken[" + finerJavaClass.name + "]", finerJavaClass));
+          new FinerJavaRecordToken("RecordToken[" + finerJavaRecord.name + "]", finerJavaRecord));
     }
 
     return false;

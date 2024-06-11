@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Charsets;
 import ch.qos.logback.classic.Level;
 import finergit.FinerGitConfig;
+import finergit.ast.token.JavaToken;
 
 public class JavaFileVisitorExecutor {
 
@@ -34,23 +35,19 @@ public class JavaFileVisitorExecutor {
     final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
 
     final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
-    if(!modules.isEmpty()) {
+    if (!modules.isEmpty()) {
       final FinerJavaModule module = modules.getFirst();
-      final List<String> tokens = module
-          .getTokens()
-          .stream()
-          .map(t -> t.value)
-          .toList();
+      final List<JavaToken> tokens = module.getTokens();
       System.out.println("===== method tokens =====");
-      for (final String token : tokens) {
-        System.out.println(token);
-      }
+      printTokens(tokens);
 
-      final List<String> tokens2 = module.outerModule.getTokens().stream().map(t -> t.value).toList();
+      final List<JavaToken> outModuleTokens = module.outerModule.getTokens();
       System.out.println("===== class/record tokens =====");
-      for (final String token : tokens2) {
-        System.out.println(token);
-      }
+      printTokens(outModuleTokens);
     }
+  }
+
+  private static void printTokens(final List<JavaToken> tokens) {
+    tokens.forEach(t -> System.out.println(t.toLine(true)));
   }
 }
