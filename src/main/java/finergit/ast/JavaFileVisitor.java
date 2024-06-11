@@ -2481,14 +2481,14 @@ public class JavaFileVisitor extends ASTVisitor {
     return super.visit(node);
   }
 
-  // TODO テストできていない
+  // TODO テストできていない（JDK21ではプレビュー）
   @Override
   public boolean visit(StringTemplateExpression node) {
     log.error("JavaFileVisitor#visit(StringTemplateExpression) is not implemented yet.");
     return super.visit(node);
   }
 
-  // TODO テストできていない
+  // TODO テストできていない（JDK21ではプレビュー）
   @Override
   public boolean visit(StringFragment node) {
     log.error("JavaFileVisitor#visit(StringFragment) is not implemented yet.");
