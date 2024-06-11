@@ -251,4 +251,33 @@ public class JavaFileVisitorTest {
     assertThat(outerTokens).containsExactly("record", "RecordExample", "(", "double", "length", ",",
         "double", "width", ")", "{", "MethodToken[RecordExample(double,double)]", "}");
   }
+
+  @Test
+  public void testStringTemplate() {
+
+    final String text = "class StringTemplate {" + //
+        "  void stringTemplate() {" + //
+        "    String name = \"Duke\";" + //
+        "    String info = STR.\"My name is \\{name}\";" + //
+        "    System.out.println(info);" + //
+        "  }" + //
+        "}";
+
+    final String path = "dir/StringTemplate.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+    final List<String> tokens = modules.getFirst()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(tokens).containsExactly("void", "stringTemplate", "(", ")", "{", "String", "name",
+        "=", "\"Duke\"", ";", "String", "info", "=", "STR", ".", "\"My name is \\{name}\"", ";",
+        "System", ".", "out", ".", "println", "(", "info", ")", ";");
+  }
 }
