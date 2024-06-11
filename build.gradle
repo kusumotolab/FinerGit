@@ -2,15 +2,18 @@
 plugins {
     id 'java'
     id 'eclipse'
-    id 'com.github.johnrengelman.shadow' version '7.1.2'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
 // Set default encoding to UTF-8
 compileJava.options.encoding = 'UTF-8'
 compileTestJava.options.encoding = 'UTF-8'
 
-sourceCompatibility = '1.21'
-targetCompatibility = '1.21'
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
 
 // In this section you declare where to find the dependencies of your project
 repositories {

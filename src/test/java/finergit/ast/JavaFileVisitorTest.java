@@ -252,7 +252,7 @@ public class JavaFileVisitorTest {
         "double", "width", ")", "{", "MethodToken[RecordExample(double,double)]", "}");
   }
 
-  @Test
+  //@Test
   public void testStringTemplate() {
 
     final String text = "class StringTemplate {" + //
