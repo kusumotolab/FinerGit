@@ -14,12 +14,12 @@ The second feature improves the trackability of Java methods.
 ## Quick start
 
 ### Check your environment
-First of all, please make sure that Java 11+ is installed in your environment.
+First of all, please make sure that Java 21+ is installed in your environment.
 ```shell-session
 $ java -version
-java version "11.0.6" 2020-01-14 LTS
-Java(TM) SE Runtime Environment 18.9 (build 11.0.6+8-LTS)
-Java HotSpot(TM) 64-Bit Server VM 18.9 (build 11.0.6+8-LTS, mixed mode)
+java version "21.0.3" 2024-04-16 LTS
+Java(TM) SE Runtime Environment (build 21.0.3+7-LTS-152)
+Java HotSpot(TM) 64-Bit Server VM (build 21.0.3+7-LTS-152, mixed mode, sharing)
 ```
 
 ### Build FinerGit

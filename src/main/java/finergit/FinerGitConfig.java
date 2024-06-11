@@ -13,7 +13,7 @@ public class FinerGitConfig {
   private Path srcPath = null;
   private Path desPath = null;
   private String headCommitId = null;
-  private JavaVersion javaVersion = JavaVersion.V1_17;
+  private JavaVersion javaVersion = JavaVersion.V1_21;
   private boolean isOriginalJavaIncluded = false;
   private boolean isOtherFilesIncluded = false;
   private boolean isTokenized = true;
@@ -84,7 +84,7 @@ public class FinerGitConfig {
     this.javaVersion = JavaVersion.get(versionText);
     if (null == this.javaVersion) {
       System.err.println("an invalid value is specified for option \"-j\".");
-      System.err.println("specify your Java version in \"1.4\" ~ \"1.13\".");
+      System.err.println("specify your Java version in \"1.4\" ~ \"1.21\".");
       exit(1);
     }
   }
