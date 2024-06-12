@@ -92,7 +92,7 @@ keywords = {Mining software repositories, Source code analysis, Tracking Java me
 
 ## At the end
 
-FinerGit is still under development. We mainly use MacOS + JDK11 + ~~Eclipse~~ IntelliJ IDEA in our FinerGit development.
+FinerGit is still under development. We mainly use MacOS + JDK21 + IntelliJ IDEA in our FinerGit development.
 We rarely test FinerGit on Windows environment.
 
 [cregit](https://github.com/cregit/cregit) and [git-stein](https://github.com/sh5i/git-stein) are other tools that convert/rewrite Git repositories.
@@ -197,7 +197,7 @@ keywords = {Mining software repositories, Source code analysis, Tracking Java me
 
 ## 最後に
 
-FinerGit は主に，Mac + JDK11 + ~~Eclipse~~ IntelliJ IDEA を用いて開発されています．
+FinerGit は主に，Mac + JDK21 + IntelliJ IDEA を用いて開発されています．
 Windows環境ではほとんど動作確認を行っていません．
 
 Gitリポジトリの変換／書換ツールとしては，他に[cregit](https://github.com/cregit/cregit)や[git-stein](https://github.com/sh5i/git-stein)があります．
