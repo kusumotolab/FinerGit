@@ -15,10 +15,6 @@ public class JavaFileVisitorExecutor {
 
   public static void main(final String[] args) {
 
-    final ch.qos.logback.classic.Logger rootLog =
-        (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-    rootLog.setLevel(Level.ERROR);
-
     final String path = args[0];
     String text = null;
     try {

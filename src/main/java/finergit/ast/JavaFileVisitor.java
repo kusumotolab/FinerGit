@@ -2425,7 +2425,7 @@ public class JavaFileVisitor extends ASTVisitor {
     return super.visit(node);
   }
 
-  // TODO テストできていない
+  // TODO テストできていない（JDK21ではプレビュー）
   @Override
   public boolean visit(EnhancedForWithRecordPattern node) {
     log.error("JavaFileVisitor#visit(EnhancedForWithRecordPattern) is not implemented yet.");
