@@ -197,6 +197,7 @@ import finergit.ast.token.VARIABLEDECLARATIONCOMMA;
 import finergit.ast.token.VARIABLEDECLARATIONSTATEMENTSEMICOLON;
 import finergit.ast.token.VARIABLENAME;
 import finergit.ast.token.VariableArity;
+import finergit.ast.token.WHEN;
 import finergit.ast.token.WHILE;
 import finergit.ast.token.YIELD;
 import finergit.ast.token.YIELDSTATEMENTSEMICOLON;
@@ -2436,11 +2437,17 @@ public class JavaFileVisitor extends ASTVisitor {
     return super.visit(node);
   }
 
-  // TODO テストできていない
   @Override
-  public boolean visit(GuardedPattern node) {
-    log.error("JavaFileVisitor#visit(GuardedPattern) is not implemented yet.");
-    return super.visit(node);
+  public boolean visit(final GuardedPattern node) {
+
+    final Pattern pattern = node.getPattern();
+    pattern.accept(this);
+
+    this.addToPeekModule(new WHEN());
+
+    final Expression expression = node.getExpression();
+    expression.accept(this);
+    return false;
   }
 
   // TODO テストできていない

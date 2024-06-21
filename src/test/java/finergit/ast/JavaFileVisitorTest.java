@@ -1,7 +1,9 @@
 package finergit.ast;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import java.util.Collection;
 import java.util.List;
+import java.util.Stack;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import finergit.FinerGitConfig;
@@ -287,14 +289,41 @@ public class JavaFileVisitorTest {
         ")", "->", "Math", ".", "PI", "*", "radius", "*", "radius", ";", "case", "Rectangle", "(",
         "var", "width", ",", "var", "height", ")", "->", "width", "*", "height", ";", "case",
         "Square", "(", "var", "side", ")", "->", "side", "*", "side", ";", "}", ";", "}");
+  }
 
-    final FinerJavaModule outerModule = modules.getFirst().outerModule;
-    final List<String> outerTokens = outerModule.getTokens()
+  @Test
+  public void testGuardedPattern() {
+
+    final String text = "import java.util.Stack;" + //
+        "import java.util.Collection;" + //
+        "public class GuardedPattern {" + //
+        "  static public Object get(Collection c) {" + //
+        "    return switch (c) {" + //
+        "      case Stack s when s.empty() -> s.push(\"first\");" + //
+        "      case Stack s2 -> s2.push(\"second\");" + //
+        "      default -> c;" + //
+        "    };" + //
+        "  }" + //
+        "}";
+
+    final String path = "dir/GuardedPattern.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+    final List<String> tokens = modules.getFirst()
+        .getTokens()
         .stream()
         .map(t -> t.value)
-        .toList();
-    //assertThat(outerTokens).containsExactly("record", "RecordExample", "(", "double", "length", ",",
-    //    "double", "width", ")", "{", "MethodToken[RecordExample(double,double)]", "}");
+        .collect(Collectors.toList());
+    assertThat(tokens).containsExactly("static", "public", "Object", "get", "(", "Collection", "c",
+        ")", "{", "return", "switch", "(", "c", ")", "{", "case", "Stack", "s", "when", "s", ".",
+        "empty", "(", ")", "->", "s", ".", "push", "(", "\"first\"", ")", ";", "case", "Stack",
+        "s2", "->", "s2", ".", "push", "(", "\"second\"", ")", ";", "default", "->", "c", ";", "}",
+        ";", "}");
   }
 
   //@Test
