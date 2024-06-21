@@ -252,6 +252,51 @@ public class JavaFileVisitorTest {
         "double", "width", ")", "{", "MethodToken[RecordExample(double,double)]", "}");
   }
 
+  @Test
+  public void testRecordPattern() {
+
+    final String text = "public class RecordPatternExample {" + //
+        "  public double getArea(Shape shape) {" + //
+        "    return switch (shape) {" + //
+        "      case Circle(var radius) -> Math.PI * radius * radius;" + //
+        "      case Rectangle(var width, var height) -> width * height;" + //
+        "      case Square(var side) -> side * side;" + //
+        "    };" + //
+        "  }" + //
+        "}" + //
+        "sealed interface Shape permits Circle, Rectangle, Square {}" + //
+        "record Circle(double radius) implements Shape {}" + //
+        "record Rectangle(double width, double height) implements Shape {}" + //
+        "record Square(double side) implements Shape {}";
+
+    final String path = "dir/RecordPattern.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+    final List<String> tokens = modules.getFirst()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(tokens).containsExactly("public", "double", "getArea", "(", "Shape", "shape", ")",
+        "{", "return", "switch", "(", "shape", ")", "{", "case", "Circle", "(", "var", "radius",
+        ")", "->", "Math", ".", "PI", "*", "radius", "*", "radius", ";", "case", "Rectangle", "(",
+        "var", "width", ",", "var", "height", ")", "->", "width", "*", "height", ";", "case",
+        "Square", "(", "var", "side", ")", "->", "side", "*", "side", ";", "}", ";", "}");
+
+    final FinerJavaModule outerModule = modules.getFirst().outerModule;
+    final List<String> outerTokens = outerModule.getTokens()
+        .stream()
+        .map(t -> t.value)
+        .toList();
+    //assertThat(outerTokens).containsExactly("record", "RecordExample", "(", "double", "length", ",",
+    //    "double", "width", ")", "{", "MethodToken[RecordExample(double,double)]", "}");
+  }
+
   //@Test
   public void testStringTemplate() {
 

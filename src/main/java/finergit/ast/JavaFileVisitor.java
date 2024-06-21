@@ -98,6 +98,7 @@ import finergit.ast.token.LEFTMETHODPAREN;
 import finergit.ast.token.LEFTPARENTHESIZEDEXPRESSIONPAREN;
 import finergit.ast.token.LEFTRECORDBRACKET;
 import finergit.ast.token.LEFTRECORDPAREN;
+import finergit.ast.token.LEFTRECORDPATTERNPAREN;
 import finergit.ast.token.LEFTSIMPLEBLOCKBRACKET;
 import finergit.ast.token.LEFTSQUAREBRACKET;
 import finergit.ast.token.LEFTSUPERCONSTRUCTORINVOCATIONPAREN;
@@ -162,6 +163,7 @@ import finergit.ast.token.RIGHTMETHODPAREN;
 import finergit.ast.token.RIGHTPARENTHESIZEDEXPRESSIONPAREN;
 import finergit.ast.token.RIGHTRECORDBRACKET;
 import finergit.ast.token.RIGHTRECORDPAREN;
+import finergit.ast.token.RIGHTRECORDPATTERNPAREN;
 import finergit.ast.token.RIGHTSIMPLEBLOCKBRACKET;
 import finergit.ast.token.RIGHTSQUAREBRACKET;
 import finergit.ast.token.RIGHTSUPERCONSTRUCTORINVOCATIONPAREN;
@@ -2408,7 +2410,9 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final YieldStatement node) {
 
-    this.addToPeekModule(new YIELD());
+    if(!node.isImplicit()) {
+      this.addToPeekModule(new YIELD());
+    }
 
     node.getExpression()
         .accept(this);
@@ -2460,11 +2464,25 @@ public class JavaFileVisitor extends ASTVisitor {
     return super.visit(node);
   }
 
-  // TODO テストできていない
   @Override
-  public boolean visit(RecordPattern node) {
-    log.error("JavaFileVisitor#visit(RecordPattern) is not implemented yet.");
-    return super.visit(node);
+  public boolean visit(final RecordPattern node) {
+    final Type patternType = node.getPatternType();
+    patternType.accept(this);
+
+    this.addToPeekModule(new LEFTRECORDPATTERNPAREN());
+
+    final List<?> patterns = node.patterns();
+    if(null != patterns && !patterns.isEmpty()) {
+      ((TypePattern) patterns.getFirst()).accept(this);
+      for (int index = 1; index < patterns.size(); index++) {
+        this.addToPeekModule(new VARIABLEDECLARATIONCOMMA());
+        ((TypePattern) patterns.get(index)).accept(this);
+      }
+    }
+
+    this.addToPeekModule(new RIGHTRECORDPATTERNPAREN());
+
+    return false;
   }
 
   // TODO テストできていない
@@ -2474,11 +2492,11 @@ public class JavaFileVisitor extends ASTVisitor {
     return super.visit(node);
   }
 
-  // TODO テストできていない
   @Override
-  public boolean visit(TypePattern node) {
-    log.error("JavaFileVisitor#visit(TypePattern) is not implemented yet.");
-    return super.visit(node);
+  public boolean visit(final TypePattern node) {
+    final SingleVariableDeclaration singleVariableDeclaration = node.getPatternVariable();
+    singleVariableDeclaration.accept(this);
+    return false;
   }
 
   // TODO テストできていない（JDK21ではプレビュー）
