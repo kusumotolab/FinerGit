@@ -14,12 +14,12 @@ The second feature improves the trackability of Java methods.
 ## Quick start
 
 ### Check your environment
-First of all, please make sure that Java 11+ is installed in your environment.
+First of all, please make sure that Java 21+ is installed in your environment.
 ```shell-session
 $ java -version
-java version "11.0.6" 2020-01-14 LTS
-Java(TM) SE Runtime Environment 18.9 (build 11.0.6+8-LTS)
-Java HotSpot(TM) 64-Bit Server VM 18.9 (build 11.0.6+8-LTS, mixed mode)
+java version "21.0.3" 2024-04-16 LTS
+Java(TM) SE Runtime Environment (build 21.0.3+7-LTS-152)
+Java HotSpot(TM) 64-Bit Server VM (build 21.0.3+7-LTS-152, mixed mode, sharing)
 ```
 
 ### Build FinerGit
@@ -92,7 +92,7 @@ keywords = {Mining software repositories, Source code analysis, Tracking Java me
 
 ## At the end
 
-FinerGit is still under development. We mainly use MacOS + JDK11 + ~~Eclipse~~ IntelliJ IDEA in our FinerGit development.
+FinerGit is still under development. We mainly use MacOS + JDK21 + IntelliJ IDEA in our FinerGit development.
 We rarely test FinerGit on Windows environment.
 
 [cregit](https://github.com/cregit/cregit) and [git-stein](https://github.com/sh5i/git-stein) are other tools that convert/rewrite Git repositories.
@@ -197,7 +197,7 @@ keywords = {Mining software repositories, Source code analysis, Tracking Java me
 
 ## 最後に
 
-FinerGit は主に，Mac + JDK11 + ~~Eclipse~~ IntelliJ IDEA を用いて開発されています．
+FinerGit は主に，Mac + JDK21 + IntelliJ IDEA を用いて開発されています．
 Windows環境ではほとんど動作確認を行っていません．
 
 Gitリポジトリの変換／書換ツールとしては，他に[cregit](https://github.com/cregit/cregit)や[git-stein](https://github.com/sh5i/git-stein)があります．

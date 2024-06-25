@@ -73,7 +73,7 @@ public class FinerJavaFileBuilder {
   }
 
   private ASTParser createNewParser() {
-    ASTParser parser = ASTParser.newParser(AST.JLS15);
+    ASTParser parser = ASTParser.newParser(AST.JLS21);
     final JavaVersion javaVersion = this.config.getJavaVersion();
     final Map<String, String> options = javaVersion.getOptions();
     parser.setCompilerOptions(options);

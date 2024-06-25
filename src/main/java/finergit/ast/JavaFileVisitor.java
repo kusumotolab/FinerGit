@@ -58,6 +58,7 @@ import finergit.ast.token.FORUPDATERCOMMA;
 import finergit.ast.token.FinerJavaClassToken;
 import finergit.ast.token.FinerJavaFieldToken;
 import finergit.ast.token.FinerJavaMethodToken;
+import finergit.ast.token.FinerJavaRecordToken;
 import finergit.ast.token.GREAT;
 import finergit.ast.token.IF;
 import finergit.ast.token.IMPLEMENTS;
@@ -95,6 +96,9 @@ import finergit.ast.token.LEFTMETHODBRACKET;
 import finergit.ast.token.LEFTMETHODINVOCATIONPAREN;
 import finergit.ast.token.LEFTMETHODPAREN;
 import finergit.ast.token.LEFTPARENTHESIZEDEXPRESSIONPAREN;
+import finergit.ast.token.LEFTRECORDBRACKET;
+import finergit.ast.token.LEFTRECORDPAREN;
+import finergit.ast.token.LEFTRECORDPATTERNPAREN;
 import finergit.ast.token.LEFTSIMPLEBLOCKBRACKET;
 import finergit.ast.token.LEFTSQUAREBRACKET;
 import finergit.ast.token.LEFTSUPERCONSTRUCTORINVOCATIONPAREN;
@@ -125,6 +129,9 @@ import finergit.ast.token.PACKAGENAME;
 import finergit.ast.token.PARAMETERIZEDTYPECOMMA;
 import finergit.ast.token.PrimitiveTypeFactory;
 import finergit.ast.token.QUESTION;
+import finergit.ast.token.RECORD;
+import finergit.ast.token.RECORDCOMPONENTCOMMA;
+import finergit.ast.token.RECORDNAME;
 import finergit.ast.token.RETURN;
 import finergit.ast.token.RETURNSTATEMENTSEMICOLON;
 import finergit.ast.token.RIGHTANNOTATIONBRACKET;
@@ -154,6 +161,9 @@ import finergit.ast.token.RIGHTMETHODBRACKET;
 import finergit.ast.token.RIGHTMETHODINVOCATIONPAREN;
 import finergit.ast.token.RIGHTMETHODPAREN;
 import finergit.ast.token.RIGHTPARENTHESIZEDEXPRESSIONPAREN;
+import finergit.ast.token.RIGHTRECORDBRACKET;
+import finergit.ast.token.RIGHTRECORDPAREN;
+import finergit.ast.token.RIGHTRECORDPATTERNPAREN;
 import finergit.ast.token.RIGHTSIMPLEBLOCKBRACKET;
 import finergit.ast.token.RIGHTSQUAREBRACKET;
 import finergit.ast.token.RIGHTSUPERCONSTRUCTORINVOCATIONPAREN;
@@ -187,6 +197,7 @@ import finergit.ast.token.VARIABLEDECLARATIONCOMMA;
 import finergit.ast.token.VARIABLEDECLARATIONSTATEMENTSEMICOLON;
 import finergit.ast.token.VARIABLENAME;
 import finergit.ast.token.VariableArity;
+import finergit.ast.token.WHEN;
 import finergit.ast.token.WHILE;
 import finergit.ast.token.YIELD;
 import finergit.ast.token.YIELDSTATEMENTSEMICOLON;
@@ -461,7 +472,7 @@ public class JavaFileVisitor extends ASTVisitor {
     } else if (SwitchStatement.class == parent.getClass()) {
       // switch文のときには，ここにくるのはswitch文内部のシンプルブロックのはず
       this.addToPeekModule(left ? new LEFTSIMPLEBLOCKBRACKET() : new RIGHTSIMPLEBLOCKBRACKET());
-    }else if (SwitchExpression.class == parent.getClass()){
+    } else if (SwitchExpression.class == parent.getClass()) {
       // switch式のときには，ここにくるのはswitch式内部のシンプルブロックのはず
       this.addToPeekModule(left ? new LEFTSIMPLEBLOCKBRACKET() : new RIGHTSIMPLEBLOCKBRACKET());
     } else if (TryStatement.class == parent.getClass()) {
@@ -1411,7 +1422,7 @@ public class JavaFileVisitor extends ASTVisitor {
     if (1 == this.classNestLevel) {
       final FinerJavaMethod finerJavaMethod = (FinerJavaMethod) this.moduleStack.pop();
       this.addToPeekModule(
-          new FinerJavaMethodToken("MetodToken[" + finerJavaMethod.name + "]", finerJavaMethod));
+          new FinerJavaMethodToken("MethodToken[" + finerJavaMethod.name + "]", finerJavaMethod));
     }
 
     return false;
@@ -1678,9 +1689,97 @@ public class JavaFileVisitor extends ASTVisitor {
 
 
   @Override
-  public boolean visit(RecordDeclaration node) {
-    log.error("JavaFileVisitor#visit(RecordDeclaration) is not implemented yet.");
-    return super.visit(node);
+  public boolean visit(final RecordDeclaration node) {
+
+    // インナークラスでない場合は，新しいクラスモジュールを作り，モジュールスタックにpush
+    if (0 == this.classNestLevel) {
+      final FinerJavaModule outerModule = this.moduleStack.peek();
+      final String recordName = node.getName()
+          .getIdentifier();
+      final FinerJavaRecord recordModule = new FinerJavaRecord(recordName, outerModule,
+          this.config);
+      this.moduleStack.push(recordModule);
+      this.moduleList.add(recordModule);
+    }
+
+    this.classNestLevel++;
+
+    final Javadoc javadoc = node.getJavadoc();
+    if (null != javadoc) {
+      this.addToPeekModule(
+          new JAVADOCCOMMENT(this.removeTerminalLineCharacter(javadoc.toString())));
+    }
+
+    // 修飾子の処理
+    for (final Object modifier : node.modifiers()) {
+      final JavaToken modifierToken = ModifierFactory.create(modifier.toString());
+      this.addToPeekModule(modifierToken);
+    }
+
+    // "record"の処理
+    this.addToPeekModule(new RECORD());
+
+    // レコード名の処理
+    this.contexts.push(RECORDNAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> nameContext = this.contexts.pop();
+    assert RECORDNAME.class == nameContext : "error happened at visit(RecordDeclaration)";
+
+    this.addToPeekModule(new LEFTRECORDPAREN());
+
+    // コンポーネントの処理
+    final List<?> components = node.recordComponents();
+    if(null != components && !components.isEmpty()){
+      ((SingleVariableDeclaration)components.getFirst()).accept(this);
+
+      for(int index = 1; index < components.size() ; index++){
+        this.addToPeekModule(new RECORDCOMPONENTCOMMA());
+        ((SingleVariableDeclaration)components.get(index)).accept(this);
+      }
+    }
+
+    this.addToPeekModule(new RIGHTRECORDPAREN());
+
+    // implements 節の処理
+    @SuppressWarnings("rawtypes")
+    final List interfaces = node.superInterfaceTypes();
+    if (null != interfaces && !interfaces.isEmpty()) {
+
+      this.contexts.push(TYPENAME.class);
+
+      this.addToPeekModule(new IMPLEMENTS());
+      ((Type) interfaces.get(0)).accept(this);
+
+      for (int index = 1; index < interfaces.size(); index++) {
+        this.addToPeekModule(new TYPEDECLARATIONCOMMA());
+        ((Type) interfaces.get(index)).accept(this);
+      }
+
+      final Class<?> implementsContext = this.contexts.pop();
+      assert TYPENAME.class == implementsContext : "error happened at visit(RecordDeclaration)";
+    }
+
+    this.addToPeekModule(new LEFTRECORDBRACKET());
+
+    // 中身の処理
+    for (final Object o : node.bodyDeclarations()) {
+      final BodyDeclaration bodyDeclaration = (BodyDeclaration) o;
+      bodyDeclaration.accept(this);
+    }
+
+    this.addToPeekModule(new RIGHTRECORDBRACKET());
+
+    this.classNestLevel--;
+
+    // インナーレコードでない場合は，モジュールスタックからレコードモジュールをポップし，外側のモジュールにレコードを表すトークンを追加する
+    if (0 == this.classNestLevel) {
+      final FinerJavaRecord finerJavaRecord = (FinerJavaRecord) this.moduleStack.pop();
+      this.addToPeekModule(
+          new FinerJavaRecordToken("RecordToken[" + finerJavaRecord.name + "]", finerJavaRecord));
+    }
+
+    return false;
   }
 
   // TODO テストできていない
@@ -1732,6 +1831,8 @@ public class JavaFileVisitor extends ASTVisitor {
       this.addToPeekModule(new IMPORTNAME(identifier));
     } else if (CLASSNAME.class == context) {
       this.addToPeekModule(new CLASSNAME(identifier));
+    } else if (RECORDNAME.class == context) {
+      this.addToPeekModule(new RECORDNAME(identifier));
     } else if (LABELNAME.class == context) {
       this.addToPeekModule(new LABELNAME(identifier));
     } else {
@@ -2310,7 +2411,9 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final YieldStatement node) {
 
-    this.addToPeekModule(new YIELD());
+    if(!node.isImplicit()) {
+      this.addToPeekModule(new YIELD());
+    }
 
     node.getExpression()
         .accept(this);
@@ -2318,6 +2421,110 @@ public class JavaFileVisitor extends ASTVisitor {
     this.addToPeekModule(new YIELDSTATEMENTSEMICOLON());
 
     return false;
+  }
+
+  // TODO テストできていない
+  @Override
+  public boolean visit(CaseDefaultExpression node) {
+    log.error("JavaFileVisitor#visit(CaseDefaultExpression) is not implemented yet.");
+    return super.visit(node);
+  }
+
+  // TODO テストできていない（JDK21ではプレビュー）
+  @Override
+  public boolean visit(EnhancedForWithRecordPattern node) {
+    log.error("JavaFileVisitor#visit(EnhancedForWithRecordPattern) is not implemented yet.");
+    return super.visit(node);
+  }
+
+  @Override
+  public boolean visit(final GuardedPattern node) {
+
+    final Pattern pattern = node.getPattern();
+    pattern.accept(this);
+
+    this.addToPeekModule(new WHEN());
+
+    final Expression expression = node.getExpression();
+    expression.accept(this);
+    return false;
+  }
+
+  // TODO テストできていない
+  @Override
+  public boolean visit(JavaDocRegion node) {
+    log.error("JavaFileVisitor#visit(JavaDocRegion) is not implemented yet.");
+    return super.visit(node);
+  }
+
+  // TODO テストできていない
+  @Override
+  public boolean visit(JavaDocTextElement node) {
+    log.error("JavaFileVisitor#visit(JavaDocTextElement) is not implemented yet.");
+    return super.visit(node);
+  }
+
+  // TODO テストできていない
+  @Override
+  public boolean visit(NullPattern node) {
+    log.error("JavaFileVisitor#visit(NullPattern) is not implemented yet.");
+    return super.visit(node);
+  }
+
+  @Override
+  public boolean visit(final RecordPattern node) {
+    final Type patternType = node.getPatternType();
+    patternType.accept(this);
+
+    this.addToPeekModule(new LEFTRECORDPATTERNPAREN());
+
+    final List<?> patterns = node.patterns();
+    if(null != patterns && !patterns.isEmpty()) {
+      ((TypePattern) patterns.getFirst()).accept(this);
+      for (int index = 1; index < patterns.size(); index++) {
+        this.addToPeekModule(new VARIABLEDECLARATIONCOMMA());
+        ((TypePattern) patterns.get(index)).accept(this);
+      }
+    }
+
+    this.addToPeekModule(new RIGHTRECORDPATTERNPAREN());
+
+    return false;
+  }
+
+  // TODO テストできていない
+  @Override
+  public boolean visit(TagProperty node) {
+    log.error("JavaFileVisitor#visit(TagProperty) is not implemented yet.");
+    return super.visit(node);
+  }
+
+  @Override
+  public boolean visit(final TypePattern node) {
+    final SingleVariableDeclaration singleVariableDeclaration = node.getPatternVariable();
+    singleVariableDeclaration.accept(this);
+    return false;
+  }
+
+  // TODO テストできていない（JDK21ではプレビュー）
+  @Override
+  public boolean visit(StringTemplateExpression node) {
+    log.error("JavaFileVisitor#visit(StringTemplateExpression) is not implemented yet.");
+    return super.visit(node);
+  }
+
+  // TODO テストできていない（JDK21ではプレビュー）
+  @Override
+  public boolean visit(StringFragment node) {
+    log.error("JavaFileVisitor#visit(StringFragment) is not implemented yet.");
+    return super.visit(node);
+  }
+
+  // TODO テストできていない
+  @Override
+  public boolean visit(StringTemplateComponent node) {
+    log.error("JavaFileVisitor#visit(StringTemplateComponent) is not implemented yet.");
+    return super.visit(node);
   }
 
   private String removeTerminalLineCharacter(final String text) {
