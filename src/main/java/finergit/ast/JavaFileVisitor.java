@@ -113,7 +113,7 @@ import finergit.ast.token.LEFTWHILEPAREN;
 import finergit.ast.token.LESS;
 import finergit.ast.token.LINECOMMENT;
 import finergit.ast.token.LineToken;
-import finergit.ast.token.METHODDECLARAIONPARAMETERCOMMA;
+import finergit.ast.token.METHODDECLARATIONPARAMETERCOMMA;
 import finergit.ast.token.METHODDECLARATIONSEMICOLON;
 import finergit.ast.token.METHODDECLARATIONTHROWSCOMMA;
 import finergit.ast.token.METHODINVOCATIONCOMMA;
@@ -1267,7 +1267,7 @@ public class JavaFileVisitor extends ASTVisitor {
       this.addToPeekModule(new LESS());
       ((TypeParameter) typeParameters.get(0)).accept(this);
       for (int index = 1; index < typeParameters.size(); index++) {
-        this.addToPeekModule(new METHODDECLARAIONPARAMETERCOMMA());
+        this.addToPeekModule(new METHODDECLARATIONPARAMETERCOMMA());
         ((TypeParameter) typeParameters.get(index)).accept(this);
       }
       this.addToPeekModule(new GREAT());
@@ -1298,7 +1298,7 @@ public class JavaFileVisitor extends ASTVisitor {
     if (null != parameters && !parameters.isEmpty()) {
       ((SingleVariableDeclaration) parameters.get(0)).accept(this);
       for (int index = 1; index < parameters.size(); index++) {
-        this.addToPeekModule(new METHODDECLARAIONPARAMETERCOMMA());
+        this.addToPeekModule(new METHODDECLARATIONPARAMETERCOMMA());
         ((SingleVariableDeclaration) parameters.get(index)).accept(this);
       }
     }
