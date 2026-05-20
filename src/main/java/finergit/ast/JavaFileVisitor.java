@@ -2430,13 +2430,6 @@ public class JavaFileVisitor extends ASTVisitor {
     return super.visit(node);
   }
 
-  // TODO テストできていない（JDK21ではプレビュー）
-  @Override
-  public boolean visit(EnhancedForWithRecordPattern node) {
-    log.error("JavaFileVisitor#visit(EnhancedForWithRecordPattern) is not implemented yet.");
-    return super.visit(node);
-  }
-
   @Override
   public boolean visit(final GuardedPattern node) {
 
@@ -2501,30 +2494,9 @@ public class JavaFileVisitor extends ASTVisitor {
 
   @Override
   public boolean visit(final TypePattern node) {
-    final SingleVariableDeclaration singleVariableDeclaration = node.getPatternVariable();
-    singleVariableDeclaration.accept(this);
+    final VariableDeclaration variableDeclaration = node.getPatternVariable2();
+    variableDeclaration.accept(this);
     return false;
-  }
-
-  // TODO テストできていない（JDK21ではプレビュー）
-  @Override
-  public boolean visit(StringTemplateExpression node) {
-    log.error("JavaFileVisitor#visit(StringTemplateExpression) is not implemented yet.");
-    return super.visit(node);
-  }
-
-  // TODO テストできていない（JDK21ではプレビュー）
-  @Override
-  public boolean visit(StringFragment node) {
-    log.error("JavaFileVisitor#visit(StringFragment) is not implemented yet.");
-    return super.visit(node);
-  }
-
-  // TODO テストできていない
-  @Override
-  public boolean visit(StringTemplateComponent node) {
-    log.error("JavaFileVisitor#visit(StringTemplateComponent) is not implemented yet.");
-    return super.visit(node);
   }
 
   private String removeTerminalLineCharacter(final String text) {

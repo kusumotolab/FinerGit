@@ -96,6 +96,26 @@ public enum JavaVersion {
     protected String getJavaCore() {
       return JavaCore.VERSION_21;
     }
+  }, V1_22 {
+    @Override
+    protected String getJavaCore() {
+      return JavaCore.VERSION_22;
+    }
+  }, V1_23 {
+    @Override
+    protected String getJavaCore() {
+      return JavaCore.VERSION_23;
+    }
+  }, V1_24 {
+    @Override
+    protected String getJavaCore() {
+      return JavaCore.VERSION_24;
+    }
+  }, V1_25 {
+    @Override
+    protected String getJavaCore() {
+      return JavaCore.VERSION_25;
+    }
   };
 
   static public JavaVersion get(final String versionText) {
@@ -110,32 +130,57 @@ public enum JavaVersion {
         return V1_7;
       case "1.8":
         return V1_8;
+      case "9":
       case "1.9":
         return V1_9;
+      case "10":
       case "1.10":
         return V1_10;
+      case "11":
       case "1.11":
         return V1_11;
+      case "12":
       case "1.12":
         return V1_12;
+      case "13":
       case "1.13":
         return V1_13;
+      case "14":
       case "1.14":
         return V1_14;
+      case "15":
       case "1.15":
         return V1_15;
+      case "16":
       case "1.16":
         return V1_16;
+      case "17":
       case "1.17":
         return V1_17;
+      case "18":
       case "1.18":
         return V1_18;
+      case "19":
       case "1.19":
         return V1_19;
+      case "20":
       case "1.20":
         return V1_20;
+      case "21":
       case "1.21":
         return V1_21;
+      case "22":
+      case "1.22":
+        return V1_22;
+      case "23":
+      case "1.23":
+        return V1_23;
+      case "24":
+      case "1.24":
+        return V1_24;
+      case "25":
+      case "1.25":
+        return V1_25;
       default:
         return null;
     }

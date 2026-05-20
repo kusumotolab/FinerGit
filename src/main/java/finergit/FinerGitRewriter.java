@@ -9,10 +9,9 @@ import finergit.ast.FinerJavaFileBuilder;
 import finergit.ast.FinerJavaModule;
 import finergit.util.RevCommitUtil;
 import jp.ac.titech.c.se.stein.core.Context;
-import jp.ac.titech.c.se.stein.core.EntrySet;
-import jp.ac.titech.c.se.stein.core.EntrySet.Entry;
-import jp.ac.titech.c.se.stein.core.EntrySet.EntryList;
-import jp.ac.titech.c.se.stein.core.RepositoryRewriter;
+import jp.ac.titech.c.se.stein.entry.AnyColdEntry;
+import jp.ac.titech.c.se.stein.entry.Entry;
+import jp.ac.titech.c.se.stein.rewriter.RepositoryRewriter;
 
 public class FinerGitRewriter extends RepositoryRewriter {
 
@@ -25,7 +24,10 @@ public class FinerGitRewriter extends RepositoryRewriter {
   public FinerGitRewriter(final FinerGitConfig config) {
     this.config = config;
     this.builder = new FinerJavaFileBuilder(config);
-    this.nthreads = config.getNumberOfThreads();
+    final jp.ac.titech.c.se.stein.Application.Config steinConfig =
+        new jp.ac.titech.c.se.stein.Application.Config();
+    steinConfig.nthreads = config.getNumberOfThreads();
+    setConfig(steinConfig);
     this.isPathSensitive = true;
   }
 
@@ -35,18 +37,18 @@ public class FinerGitRewriter extends RepositoryRewriter {
   }
 
   @Override
-  public EntrySet rewriteEntry(final Entry entry, final Context c) {
+  protected AnyColdEntry rewriteEntry(final Entry entry, final Context c) {
     if (entry.isTree()) {
       return super.rewriteEntry(entry, c);
     }
 
     // Treats non-java files
     if (!entry.name.endsWith(".java")) {
-      return config.isOtherFilesIncluded() ? super.rewriteEntry(entry, c) : Entry.EMPTY;
+      return config.isOtherFilesIncluded() ? super.rewriteEntry(entry, c) : AnyColdEntry.empty();
     }
 
     // Convert to finer modules
-    final EntryList result = new EntryList();
+    final AnyColdEntry.Set result = AnyColdEntry.set();
     if (config.isOriginalJavaIncluded()) {
       log.debug("Keep original file: {} {}", entry, c);
       result.add(entry);
@@ -57,14 +59,14 @@ public class FinerGitRewriter extends RepositoryRewriter {
       final ObjectId newId = target.writeBlob(finerSource.getBytes(StandardCharsets.UTF_8), c);
       final String name = m.getFileName();
       log.debug("Generate finer module: {} -> {} {} {}", entry, name, newId.name(), c);
-      result.add(new Entry(entry.mode, name, newId, entry.directory));
+      result.add(Entry.of(entry.mode, name, newId, entry.directory));
     }
     return result;
   }
 
   protected List<FinerJavaModule> extractFinerModules(final Entry entry, final Context c) {
     final String base = entry.directory + "/" + entry.name;
-    final String body = new String(source.readBlob(entry.id, c), StandardCharsets.UTF_8);
+    final String body = new String(source.readBlob(entry.id), StandardCharsets.UTF_8);
     return builder.getFinerJavaModules(base, body);
   }
 }
