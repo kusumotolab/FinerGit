@@ -326,6 +326,60 @@ public class JavaFileVisitorTest {
         ";", "}");
   }
 
+  @Test
+  public void testEitherOrMultiPattern() {
+
+    final String text = "public class EitherOrMultiPatternExample {" + //
+        "  public int get(Object value) {" + //
+        "    return switch (value) {" + //
+        "      case String _, Integer _ when true -> 1;" + //
+        "      default -> 0;" + //
+        "    };" + //
+        "  }" + //
+        "}";
+
+    final String path = "dir/EitherOrMultiPattern.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+    final List<String> tokens = modules.getFirst()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(tokens).containsExactly("public", "int", "get", "(", "Object", "value", ")", "{",
+        "return", "switch", "(", "value", ")", "{", "case", "String", "_", ",", "Integer", "_",
+        "when", "true", "->", "1", ";", "default", "->", "0", ";", "}", ";", "}");
+  }
+
+  @Test
+  public void testImplicitTypeDeclaration() {
+
+    final String text = "void main() {" + //
+        "  System.out.println(\"hi\");" + //
+        "}";
+
+    final String path = "dir/ImplicitTypeDeclaration.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+    final List<String> tokens = modules.getFirst()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(tokens).containsExactly("void", "main", "(", ")", "{", "System", ".", "out", ".",
+        "println", "(", "\"hi\"", ")", ";", "}");
+  }
+
   //@Test
   public void testStringTemplate() {
 

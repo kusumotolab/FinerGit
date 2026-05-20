@@ -2431,6 +2431,23 @@ public class JavaFileVisitor extends ASTVisitor {
   }
 
   @Override
+  public boolean visit(final EitherOrMultiPattern node) {
+
+    final List<?> patterns = node.patterns();
+
+    if (null != patterns && !patterns.isEmpty()) {
+      ((Pattern) patterns.get(0)).accept(this);
+
+      for (int index = 1; index < patterns.size(); index++) {
+        this.addToPeekModule(new SWITCHCASECOMMA());
+        ((Pattern) patterns.get(index)).accept(this);
+      }
+    }
+
+    return false;
+  }
+
+  @Override
   public boolean visit(final GuardedPattern node) {
 
     final Pattern pattern = node.getPattern();
@@ -2440,6 +2457,32 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final Expression expression = node.getExpression();
     expression.accept(this);
+    return false;
+  }
+
+  @Override
+  public boolean visit(final ImplicitTypeDeclaration node) {
+
+    this.classNestLevel++;
+
+    final Javadoc javadoc = node.getJavadoc();
+    if (null != javadoc) {
+      this.addToPeekModule(
+          new JAVADOCCOMMENT(this.removeTerminalLineCharacter(javadoc.toString())));
+    }
+
+    for (final Object modifier : node.modifiers()) {
+      final JavaToken modifierToken = ModifierFactory.create(modifier.toString());
+      this.addToPeekModule(modifierToken);
+    }
+
+    for (final Object o : node.bodyDeclarations()) {
+      final BodyDeclaration bodyDeclaration = (BodyDeclaration) o;
+      bodyDeclaration.accept(this);
+    }
+
+    this.classNestLevel--;
+
     return false;
   }
 
@@ -2459,9 +2502,9 @@ public class JavaFileVisitor extends ASTVisitor {
 
   // TODO テストできていない
   @Override
-  public boolean visit(NullPattern node) {
-    log.error("JavaFileVisitor#visit(NullPattern) is not implemented yet.");
-    return super.visit(node);
+  public boolean visit(final NullPattern node) {
+    this.addToPeekModule(new NULL());
+    return false;
   }
 
   @Override
@@ -2472,11 +2515,11 @@ public class JavaFileVisitor extends ASTVisitor {
     this.addToPeekModule(new LEFTRECORDPATTERNPAREN());
 
     final List<?> patterns = node.patterns();
-    if(null != patterns && !patterns.isEmpty()) {
-      ((TypePattern) patterns.getFirst()).accept(this);
+    if (null != patterns && !patterns.isEmpty()) {
+      ((Pattern) patterns.get(0)).accept(this);
       for (int index = 1; index < patterns.size(); index++) {
         this.addToPeekModule(new VARIABLEDECLARATIONCOMMA());
-        ((TypePattern) patterns.get(index)).accept(this);
+        ((Pattern) patterns.get(index)).accept(this);
       }
     }
 
