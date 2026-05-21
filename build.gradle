@@ -53,7 +53,11 @@ jar {
 }
 
 shadowJar {
-    minimize()
+    mergeServiceFiles()
+    minimize {
+        exclude(dependency('ch.qos.logback:logback-classic:.*'))
+        exclude(dependency('ch.qos.logback:logback-core:.*'))
+    }
 }
 
 wrapper {
