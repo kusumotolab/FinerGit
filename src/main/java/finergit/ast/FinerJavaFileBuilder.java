@@ -58,6 +58,7 @@ public class FinerJavaFileBuilder {
 
   public List<FinerJavaModule> getFinerJavaModules(final String path, final String text) {
     final ASTParser parser = createNewParser();
+    parser.setUnitName(path);
     parser.setSource(text.toCharArray());
     final CompilationUnit ast = (CompilationUnit) parser.createAST(null);
 

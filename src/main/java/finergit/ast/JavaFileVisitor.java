@@ -31,6 +31,7 @@ import finergit.ast.token.CLASS;
 import finergit.ast.token.CLASSINSTANCECREATIONCOMMA;
 import finergit.ast.token.CLASSNAME;
 import finergit.ast.token.COLON;
+import finergit.ast.token.COMMA;
 import finergit.ast.token.CONSTRUCTORINVOCATIONCOMMA;
 import finergit.ast.token.CONSTRUCTORINVOCATIONSEMICOLON;
 import finergit.ast.token.CONTINUE;
@@ -47,6 +48,7 @@ import finergit.ast.token.ENUM;
 import finergit.ast.token.ENUMCOMMA;
 import finergit.ast.token.EXPRESSIONSTATEMENTSEMICOLON;
 import finergit.ast.token.EXTENDS;
+import finergit.ast.token.EXPORTS;
 import finergit.ast.token.FIELDDECLARATIONCOMMA;
 import finergit.ast.token.FIELDDECLARATIONSEMICOLON;
 import finergit.ast.token.FINALLY;
@@ -74,6 +76,7 @@ import finergit.ast.token.LEFTANNOTATIONBRACKET;
 import finergit.ast.token.LEFTANNOTATIONPAREN;
 import finergit.ast.token.LEFTANONYMOUSCLASSBRACKET;
 import finergit.ast.token.LEFTARRAYINITIALIZERBRACKET;
+import finergit.ast.token.LEFTBRACKET;
 import finergit.ast.token.LEFTCASTPAREN;
 import finergit.ast.token.LEFTCATCHCLAUSEBRACKET;
 import finergit.ast.token.LEFTCATCHCLAUSEPAREN;
@@ -118,20 +121,25 @@ import finergit.ast.token.METHODDECLARATIONSEMICOLON;
 import finergit.ast.token.METHODDECLARATIONTHROWSCOMMA;
 import finergit.ast.token.METHODINVOCATIONCOMMA;
 import finergit.ast.token.METHODREFERENCE;
+import finergit.ast.token.MODULE;
 import finergit.ast.token.ModifierFactory;
 import finergit.ast.token.NEW;
 import finergit.ast.token.NULL;
 import finergit.ast.token.NUMBERLITERAL;
+import finergit.ast.token.OPEN;
+import finergit.ast.token.OPENS;
 import finergit.ast.token.OR;
 import finergit.ast.token.OperatorFactory;
 import finergit.ast.token.PACKAGE;
 import finergit.ast.token.PACKAGENAME;
 import finergit.ast.token.PARAMETERIZEDTYPECOMMA;
 import finergit.ast.token.PrimitiveTypeFactory;
+import finergit.ast.token.PROVIDES;
 import finergit.ast.token.QUESTION;
 import finergit.ast.token.RECORD;
 import finergit.ast.token.RECORDCOMPONENTCOMMA;
 import finergit.ast.token.RECORDNAME;
+import finergit.ast.token.REQUIRES;
 import finergit.ast.token.RETURN;
 import finergit.ast.token.RETURNSTATEMENTSEMICOLON;
 import finergit.ast.token.RIGHTANNOTATIONBRACKET;
@@ -139,6 +147,7 @@ import finergit.ast.token.RIGHTANNOTATIONPAREN;
 import finergit.ast.token.RIGHTANONYMOUSCLASSBRACKET;
 import finergit.ast.token.RIGHTARRAYINITIALIZERBRACKET;
 import finergit.ast.token.RIGHTARROW;
+import finergit.ast.token.RIGHTBRACKET;
 import finergit.ast.token.RIGHTCASTPAREN;
 import finergit.ast.token.RIGHTCATCHCLAUSEBRACKET;
 import finergit.ast.token.RIGHTCATCHCLAUSEPAREN;
@@ -175,6 +184,8 @@ import finergit.ast.token.RIGHTTRYBRACKET;
 import finergit.ast.token.RIGHTTRYPAREN;
 import finergit.ast.token.RIGHTWHILEBRACKET;
 import finergit.ast.token.RIGHTWHILEPAREN;
+import finergit.ast.token.SEMICOLON;
+import finergit.ast.token.SHARP;
 import finergit.ast.token.STATIC;
 import finergit.ast.token.STRINGLITERAL;
 import finergit.ast.token.SUPER;
@@ -188,16 +199,20 @@ import finergit.ast.token.THIS;
 import finergit.ast.token.THROW;
 import finergit.ast.token.THROWS;
 import finergit.ast.token.THROWSTATEMENTSEMICOLON;
+import finergit.ast.token.TO;
+import finergit.ast.token.TRANSITIVE;
 import finergit.ast.token.TRY;
 import finergit.ast.token.TRYRESOURCESEMICOLON;
 import finergit.ast.token.TYPEDECLARATIONCOMMA;
 import finergit.ast.token.TYPENAME;
 import finergit.ast.token.TYPEPARAMETERNAME;
+import finergit.ast.token.USES;
 import finergit.ast.token.VARIABLEDECLARATIONCOMMA;
 import finergit.ast.token.VARIABLEDECLARATIONSTATEMENTSEMICOLON;
 import finergit.ast.token.VARIABLENAME;
 import finergit.ast.token.VariableArity;
 import finergit.ast.token.WHEN;
+import finergit.ast.token.WITH;
 import finergit.ast.token.WHILE;
 import finergit.ast.token.YIELD;
 import finergit.ast.token.YIELDSTATEMENTSEMICOLON;
@@ -837,11 +852,20 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(final ExportsDirective node) {
-    log.error("JavaFileVisitor#visit(ExportsDirective) is not implemented yet.");
-    return super.visit(node);
+    this.addToPeekModule(new EXPORTS());
+
+    this.contexts.push(PACKAGENAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> nameContext = this.contexts.pop();
+    assert PACKAGENAME.class == nameContext : "error happened at visit(ExportsDirective)";
+
+    this.addTargetModules(node.modules());
+    this.addToPeekModule(new SEMICOLON());
+
+    return false;
   }
 
   @Override
@@ -1204,11 +1228,25 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(final MemberRef node) {
-    log.error("JavaFileVisitor#visit(MemberRef) is not implemented yet.");
-    return super.visit(node);
+    final Name qualifier = node.getQualifier();
+    if (null != qualifier) {
+      this.contexts.push(TYPENAME.class);
+      qualifier.accept(this);
+      final Class<?> qualifierContext = this.contexts.pop();
+      assert TYPENAME.class == qualifierContext : "error happened at visit(MemberRef)";
+    }
+
+    this.addToPeekModule(new SHARP());
+
+    this.contexts.push(VARIABLENAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> nameContext = this.contexts.pop();
+    assert VARIABLENAME.class == nameContext : "error happened at visit(MemberRef)";
+
+    return false;
   }
 
   @Override
@@ -1223,18 +1261,58 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(final MethodRef node) {
-    log.error("JavaFileVisitor#visit(MemberRef) is not implemented yet.");
-    return super.visit(node);
+    final Name qualifier = node.getQualifier();
+    if (null != qualifier) {
+      this.contexts.push(TYPENAME.class);
+      qualifier.accept(this);
+      final Class<?> qualifierContext = this.contexts.pop();
+      assert TYPENAME.class == qualifierContext : "error happened at visit(MethodRef)";
+    }
+
+    this.addToPeekModule(new SHARP());
+
+    this.contexts.push(INVOKEDMETHODNAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> nameContext = this.contexts.pop();
+    assert INVOKEDMETHODNAME.class == nameContext : "error happened at visit(MethodRef)";
+
+    this.addToPeekModule(new LEFTMETHODPAREN());
+
+    final List<?> parameters = node.parameters();
+    if (null != parameters && !parameters.isEmpty()) {
+      ((MethodRefParameter) parameters.get(0)).accept(this);
+      for (int index = 1; index < parameters.size(); index++) {
+        this.addToPeekModule(new COMMA());
+        ((MethodRefParameter) parameters.get(index)).accept(this);
+      }
+    }
+
+    this.addToPeekModule(new RIGHTMETHODPAREN());
+
+    return false;
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(final MethodRefParameter node) {
-    log.error("JavaFileVisitor#visit(MethodRefParameter) is not implemented yet.");
-    return super.visit(node);
+    node.getType()
+        .accept(this);
+
+    if (node.isVarargs()) {
+      this.addToPeekModule(new VariableArity());
+    }
+
+    final SimpleName name = node.getName();
+    if (null != name) {
+      this.contexts.push(VARIABLENAME.class);
+      name.accept(this);
+      final Class<?> nameContext = this.contexts.pop();
+      assert VARIABLENAME.class == nameContext : "error happened at visit(MethodRefParameter)";
+    }
+
+    return false;
   }
 
   @Override
@@ -1465,18 +1543,54 @@ public class JavaFileVisitor extends ASTVisitor {
     return super.visit(node);
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(final ModuleDeclaration node) {
-    log.error("JavaFileVisitor#visit(ModuleDeclaration) is not implemented yet.");
-    return super.visit(node);
+    final Javadoc javadoc = node.getJavadoc();
+    if (null != javadoc) {
+      this.addToPeekModule(
+          new JAVADOCCOMMENT(this.removeTerminalLineCharacter(javadoc.toString())));
+    }
+
+    for (final Object annotation : node.annotations()) {
+      ((Annotation) annotation).accept(this);
+    }
+
+    if (node.isOpen()) {
+      this.addToPeekModule(new OPEN());
+    }
+
+    this.addToPeekModule(new MODULE());
+
+    this.contexts.push(PACKAGENAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> nameContext = this.contexts.pop();
+    assert PACKAGENAME.class == nameContext : "error happened at visit(ModuleDeclaration)";
+
+    this.addToPeekModule(new LEFTBRACKET());
+
+    for (final Object directive : node.moduleStatements()) {
+      ((ModuleDirective) directive).accept(this);
+    }
+
+    this.addToPeekModule(new RIGHTBRACKET());
+
+    return false;
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(final ModuleModifier node) {
-    log.error("JavaFileVisitor#visit(ModuleModifier) is not implemented yet.");
-    return super.visit(node);
+    final String keyword = node.getKeyword()
+        .toString();
+    if ("static".equals(keyword)) {
+      this.addToPeekModule(new STATIC());
+    } else if ("transitive".equals(keyword)) {
+      this.addToPeekModule(new TRANSITIVE());
+    } else {
+      this.addToPeekModule(new VARIABLENAME(keyword));
+    }
+
+    return false;
   }
 
   @Override
@@ -1545,11 +1659,20 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(final OpensDirective node) {
-    log.error("JavaFileVisitor#visit(OpensDirective) is not implemented yet.");
-    return super.visit(node);
+    this.addToPeekModule(new OPENS());
+
+    this.contexts.push(PACKAGENAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> nameContext = this.contexts.pop();
+    assert PACKAGENAME.class == nameContext : "error happened at visit(OpensDirective)";
+
+    this.addTargetModules(node.modules());
+    this.addToPeekModule(new SEMICOLON());
+
+    return false;
   }
 
   @Override
@@ -1634,11 +1757,33 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(final ProvidesDirective node) {
-    log.error("JavaFileVisitor#visit(ProvidesDirective) is not implemented yet.");
-    return super.visit(node);
+    this.addToPeekModule(new PROVIDES());
+
+    this.contexts.push(TYPENAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> nameContext = this.contexts.pop();
+    assert TYPENAME.class == nameContext : "error happened at visit(ProvidesDirective)";
+
+    this.addToPeekModule(new WITH());
+
+    final List<?> implementations = node.implementations();
+    if (null != implementations && !implementations.isEmpty()) {
+      this.contexts.push(TYPENAME.class);
+      ((Name) implementations.get(0)).accept(this);
+      for (int index = 1; index < implementations.size(); index++) {
+        this.addToPeekModule(new COMMA());
+        ((Name) implementations.get(index)).accept(this);
+      }
+      final Class<?> implementationContext = this.contexts.pop();
+      assert TYPENAME.class == implementationContext : "error happened at visit(ProvidesDirective)";
+    }
+
+    this.addToPeekModule(new SEMICOLON());
+
+    return false;
   }
 
   @Override
@@ -1782,11 +1927,23 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(final RequiresDirective node) {
-    log.error("JavaFileVisitor#visit(RequiresDirective) is not implemented yet.");
-    return super.visit(node);
+    this.addToPeekModule(new REQUIRES());
+
+    for (final Object modifier : node.modifiers()) {
+      ((ModuleModifier) modifier).accept(this);
+    }
+
+    this.contexts.push(PACKAGENAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> nameContext = this.contexts.pop();
+    assert PACKAGENAME.class == nameContext : "error happened at visit(RequiresDirective)";
+
+    this.addToPeekModule(new SEMICOLON());
+
+    return false;
   }
 
   @Override
@@ -1936,7 +2093,6 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO node.getQualifier が null でない場合はテストできていない
   @Override
   public boolean visit(final SuperMethodInvocation node) {
 
@@ -1972,9 +2128,17 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(final SuperMethodReference node) {
+
+    final Name qualifier = node.getQualifier();
+    if (null != qualifier) {
+      this.contexts.push(TYPENAME.class);
+      qualifier.accept(this);
+      final Class<?> qualifierContext = this.contexts.pop();
+      assert TYPENAME.class == qualifierContext : "error happened at visit(SuperMethodReference)";
+      this.addToPeekModule(new DOT());
+    }
 
     this.addToPeekModule(new SUPER(), new METHODREFERENCE());
 
@@ -2074,11 +2238,30 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(final TagElement node) {
-    log.error("JavaFileVisitor#visit(TagElement) is not implemented yet.");
-    return super.visit(node);
+    if (node.isNested()) {
+      this.addToPeekModule(new LEFTBRACKET());
+    }
+
+    final String tagName = node.getTagName();
+    if (null != tagName) {
+      this.addToPeekModule(new ANNOTATION(tagName));
+    }
+
+    for (final Object fragment : node.fragments()) {
+      ((ASTNode) fragment).accept(this);
+    }
+
+    for (final Object property : node.tagProperties()) {
+      ((TagProperty) property).accept(this);
+    }
+
+    if (node.isNested()) {
+      this.addToPeekModule(new RIGHTBRACKET());
+    }
+
+    return false;
   }
 
 
@@ -2088,11 +2271,10 @@ public class JavaFileVisitor extends ASTVisitor {
     return super.visit(node);
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(final TextElement node) {
-    log.error("JavaFileVisitor#visit(TextElement) is not implemented yet.");
-    return super.visit(node);
+    this.addToPeekModule(new JAVADOCCOMMENT(node.getText()));
+    return false;
   }
 
   @Override
@@ -2273,9 +2455,17 @@ public class JavaFileVisitor extends ASTVisitor {
     return super.visit(node);
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(final TypeParameter node) {
+
+    for (final Object modifier : node.modifiers()) {
+      if (modifier instanceof Annotation) {
+        ((Annotation) modifier).accept(this);
+      } else {
+        final JavaToken modifierToken = ModifierFactory.create(modifier.toString());
+        this.addToPeekModule(modifierToken);
+      }
+    }
 
     this.contexts.push(TYPEPARAMETERNAME.class);
     node.getName()
@@ -2311,11 +2501,19 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(final UsesDirective node) {
-    log.error("JavaFileVisitor#visit(UsesDirective) is not implemented yet.");
-    return super.visit(node);
+    this.addToPeekModule(new USES());
+
+    this.contexts.push(TYPENAME.class);
+    node.getName()
+        .accept(this);
+    final Class<?> nameContext = this.contexts.pop();
+    assert TYPENAME.class == nameContext : "error happened at visit(UsesDirective)";
+
+    this.addToPeekModule(new SEMICOLON());
+
+    return false;
   }
 
   @Override
@@ -2423,11 +2621,10 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(CaseDefaultExpression node) {
-    log.error("JavaFileVisitor#visit(CaseDefaultExpression) is not implemented yet.");
-    return super.visit(node);
+    this.addToPeekModule(new DEFAULT());
+    return false;
   }
 
   @Override
@@ -2486,21 +2683,30 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(JavaDocRegion node) {
-    log.error("JavaFileVisitor#visit(JavaDocRegion) is not implemented yet.");
-    return super.visit(node);
+    final String tagName = node.getTagName();
+    if (null != tagName) {
+      this.addToPeekModule(new ANNOTATION(tagName));
+    }
+
+    for (final Object tag : node.tags()) {
+      ((TagElement) tag).accept(this);
+    }
+
+    for (final Object fragment : node.fragments()) {
+      ((ASTNode) fragment).accept(this);
+    }
+
+    return false;
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(JavaDocTextElement node) {
-    log.error("JavaFileVisitor#visit(JavaDocTextElement) is not implemented yet.");
-    return super.visit(node);
+    this.addToPeekModule(new JAVADOCCOMMENT(node.getText()));
+    return false;
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(final NullPattern node) {
     this.addToPeekModule(new NULL());
@@ -2528,11 +2734,23 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // TODO テストできていない
   @Override
   public boolean visit(TagProperty node) {
-    log.error("JavaFileVisitor#visit(TagProperty) is not implemented yet.");
-    return super.visit(node);
+    final String name = node.getName();
+    if (null != name) {
+      this.addToPeekModule(new VARIABLENAME(name));
+    }
+
+    final String stringValue = node.getStringValue();
+    final ASTNode nodeValue = node.getNodeValue();
+    if (null != stringValue) {
+      this.addToPeekModule(new ASSIGN(), new STRINGLITERAL(stringValue));
+    } else if (null != nodeValue) {
+      this.addToPeekModule(new ASSIGN());
+      nodeValue.accept(this);
+    }
+
+    return false;
   }
 
   @Override
@@ -2540,6 +2758,23 @@ public class JavaFileVisitor extends ASTVisitor {
     final VariableDeclaration variableDeclaration = node.getPatternVariable2();
     variableDeclaration.accept(this);
     return false;
+  }
+
+  private void addTargetModules(final List<?> modules) {
+    if (null == modules || modules.isEmpty()) {
+      return;
+    }
+
+    this.addToPeekModule(new TO());
+
+    this.contexts.push(PACKAGENAME.class);
+    ((Name) modules.get(0)).accept(this);
+    for (int index = 1; index < modules.size(); index++) {
+      this.addToPeekModule(new COMMA());
+      ((Name) modules.get(index)).accept(this);
+    }
+    final Class<?> moduleContext = this.contexts.pop();
+    assert PACKAGENAME.class == moduleContext : "error happened at addTargetModules";
   }
 
   private String removeTerminalLineCharacter(final String text) {

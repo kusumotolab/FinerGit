@@ -1,10 +1,13 @@
 package finergit.ast;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.Stack;
 import java.util.stream.Collectors;
+import org.eclipse.jdt.core.dom.AST;
+import org.eclipse.jdt.core.dom.TagElement;
 import org.junit.Test;
 import finergit.FinerGitConfig;
 
@@ -378,6 +381,249 @@ public class JavaFileVisitorTest {
         .collect(Collectors.toList());
     assertThat(tokens).containsExactly("void", "main", "(", ")", "{", "System", ".", "out", ".",
         "println", "(", "\"hi\"", ")", ";", "}");
+  }
+
+  @Test
+  public void testModuleDeclaration() {
+
+    final String text = "@Deprecated open module com.example.app {" + //
+        "  requires static transitive java.logging;" + //
+        "  exports com.example.api to other.module, second.module;" + //
+        "  opens com.example.internal to test.module;" + //
+        "  uses com.example.Service;" + //
+        "  provides com.example.Service with com.example.impl.ServiceImpl, com.example.impl.OtherService;" + //
+        "}";
+
+    final String path = "module-info.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("true");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("false");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+    final List<String> tokens = modules.getFirst()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(tokens).containsExactly("@Deprecated", "open", "module", "com", ".", "example", ".",
+        "app", "{", "requires", "static", "transitive", "java", ".", "logging", ";", "exports",
+        "com", ".", "example", ".", "api", "to", "other", ".", "module", ",", "second", ".",
+        "module", ";", "opens", "com", ".", "example", ".", "internal", "to", "test", ".",
+        "module", ";", "uses", "com", ".", "example", ".", "Service", ";", "provides", "com",
+        ".", "example", ".", "Service", "with", "com", ".", "example", ".", "impl", ".",
+        "ServiceImpl", ",", "com", ".", "example", ".", "impl", ".", "OtherService", ";", "}");
+  }
+
+  @Test
+  public void testJavadocReferences() {
+
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("true");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("false");
+    config.setFieldFileGenerated("false");
+
+    final AST ast = AST.newAST(AST.JLS25);
+    final TagElement seeField = ast.newTagElement();
+    seeField.setTagName(TagElement.TAG_SEE);
+    final var memberRef = ast.newMemberRef();
+    memberRef.setName(ast.newSimpleName("field"));
+    seeField.fragments()
+        .add(memberRef);
+
+    final TagElement seeMethod = ast.newTagElement();
+    seeMethod.setTagName(TagElement.TAG_SEE);
+    final var methodRef = ast.newMethodRef();
+    methodRef.setName(ast.newSimpleName("method"));
+    final var parameter = ast.newMethodRefParameter();
+    parameter.setType(ast.newSimpleType(ast.newSimpleName("String")));
+    parameter.setVarargs(true);
+    parameter.setName(ast.newSimpleName("value"));
+    methodRef.parameters()
+        .add(parameter);
+    seeMethod.fragments()
+        .add(methodRef);
+    final var textElement = ast.newTextElement();
+    textElement.setText(" description");
+    seeMethod.fragments()
+        .add(textElement);
+
+    final var region = ast.newJavaDocRegion();
+    region.setTagName(TagElement.TAG_SNIPPET);
+    final var javaDocText = ast.newJavaDocTextElement();
+    javaDocText.setText("class Example {}");
+    region.fragments()
+        .add(javaDocText);
+    final TagElement highlight = ast.newTagElement();
+    highlight.setTagName(TagElement.TAG_HIGHLIGHT);
+    final var property = ast.newTagProperty();
+    property.setName("substring");
+    property.setStringValue("Example");
+    highlight.tagProperties()
+        .add(property);
+    region.tags()
+        .add(highlight);
+
+    final JavaFileVisitor visitor = new JavaFileVisitor(Paths.get("dir/Javadocs.java"), config);
+    seeField.accept(visitor);
+    seeMethod.accept(visitor);
+    region.accept(visitor);
+
+    final List<String> tokens = visitor.getFinerJavaModules()
+        .getFirst()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(tokens).containsExactly("@see", "#", "field", "@see", "#", "method", "(", "String",
+        "...", "value", ")", " description", "@snippet", "{", "@highlight", "substring", "=",
+        "Example", "}", "class Example {}");
+  }
+
+  @Test
+  public void testSuperMethodReferenceAndTypeParameter() {
+
+    final String text = "import java.util.function.Supplier;" + //
+        "class SuperMethodReferenceExample {" + //
+        "  <T extends Number & Comparable<T>> T identity(T value) {" + //
+        "    return value;" + //
+        "  }" + //
+        "  Supplier<String> ref() {" + //
+        "    return super::toString;" + //
+        "  }" + //
+        "}";
+
+    final String path = "dir/SuperMethodReferenceExample.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+
+    final List<String> identityTokens = modules.stream()
+        .filter(module -> "[T-extends-Number-&-Comparable[T]]_T_identity(T)".equals(module.name))
+        .findFirst()
+        .orElseThrow()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(identityTokens).containsExactly("<", "T", "extends", "Number", "&", "Comparable",
+        "<", "T", ">", ">", "T", "identity", "(", "T", "value", ")", "{", "return", "value",
+        ";", "}");
+
+    final List<String> refTokens = modules.stream()
+        .filter(module -> "Supplier[String]_ref()".equals(module.name))
+        .findFirst()
+        .orElseThrow()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(refTokens).containsExactly("Supplier", "<", "String", ">", "ref", "(", ")", "{",
+        "return", "super", "::", "toString", ";", "}");
+  }
+
+  @Test
+  public void testQualifiedSuperMethodInvocation() {
+
+    final String text = "class Outer extends Base {" + //
+        "  class Inner {" + //
+        "    String call() {" + //
+        "      return Outer.super.name(\"value\");" + //
+        "    }" + //
+        "  }" + //
+        "}" + //
+        "class Base {" + //
+        "  String name(String value) {" + //
+        "    return value;" + //
+        "  }" + //
+        "}";
+
+    final String path = "dir/Outer.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("false");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+
+    final List<String> tokens = modules.stream()
+        .filter(module -> "Outer".equals(module.name))
+        .findFirst()
+        .orElseThrow()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(tokens).containsExactly("class", "Outer", "extends", "Base", "{", "class", "Inner",
+        "{", "String", "call", "(", ")", "{", "return", "Outer", ".", "super", ".", "name", "(",
+        "\"value\"", ")", ";", "}", "}", "}");
+  }
+
+  @Test
+  public void testCaseDefaultExpression() {
+
+    final String text = "class CaseDefaultExpressionExample {" + //
+        "  int get(String s) {" + //
+        "    return switch (s) {" + //
+        "      case null, default -> 0;" + //
+        "      case \"a\" -> 1;" + //
+        "    };" + //
+        "  }" + //
+        "}";
+
+    final String path = "dir/CaseDefaultExpressionExample.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+    final List<String> tokens = modules.getFirst()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(tokens).containsExactly("int", "get", "(", "String", "s", ")", "{", "return",
+        "switch", "(", "s", ")", "{", "case", "null", ",", "default", "->", "0", ";", "case",
+        "\"a\"", "->", "1", ";", "}", ";", "}");
+  }
+
+  @Test
+  public void testNullPattern() {
+
+    final String text = "class NullPatternExample {" + //
+        "  Object get(String s) {" + //
+        "    return switch (s) {" + //
+        "      case null -> \"empty\";" + //
+        "      default -> s;" + //
+        "    };" + //
+        "  }" + //
+        "}";
+
+    final String path = "dir/NullPatternExample.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+    final List<String> tokens = modules.getFirst()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(tokens).containsExactly("Object", "get", "(", "String", "s", ")", "{", "return",
+        "switch", "(", "s", ")", "{", "case", "null", "->", "\"empty\"", ";", "default", "->",
+        "s", ";", "}", ";", "}");
   }
 
   //@Test
