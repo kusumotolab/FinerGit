@@ -385,7 +385,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final List<?> expressions = node.expressions();
     if (null != expressions && !expressions.isEmpty()) {
-      ((Expression) expressions.get(0)).accept(this);
+      ((Expression) expressions.getFirst()).accept(this);
       for (int index = 1; index < expressions.size(); index++) {
         this.addToPeekModule(new ARRAYINITIALIZERCOMMA());
         ((Expression) expressions.get(index)).accept(this);
@@ -456,8 +456,8 @@ public class JavaFileVisitor extends ASTVisitor {
   /**
    * ブラケット"{"もしくは"}"を追加するためのメソッド．第一引数はコンテキスト情報（親ノード情報）．第二引数は"{"か"}"の選択のためのboolean型．
    *
-   * @param parent
-   * @param left
+   * @param parent ブラケットの種類を判断するための親ASTノード
+   * @param left trueの場合は左ブラケット"{", falseの場合は右ブラケット"}"を追加する
    */
   private void addBracket(final ASTNode parent, final boolean left) {
     if (TypeDeclaration.class == parent.getClass()) {
@@ -527,7 +527,7 @@ public class JavaFileVisitor extends ASTVisitor {
       this.contexts.push(LABELNAME.class);
       label.accept(this);
       final Class<?> context = this.contexts.pop();
-      assert LABELNAME.class == context : "error happend at visit(BreakStatement)";
+      assert LABELNAME.class == context : "error happened at visit(BreakStatement)";
     }
 
     this.addToPeekModule(new BREAKSTATEMENTSEMICOLON());
@@ -594,7 +594,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final List<?> arguments = node.arguments();
     if (null != arguments && !arguments.isEmpty()) {
-      ((Expression) arguments.get(0)).accept(this);
+      ((Expression) arguments.getFirst()).accept(this);
       for (int index = 1; index < arguments.size(); index++) {
         this.addToPeekModule(new CLASSINSTANCECREATIONCOMMA());
         ((Expression) arguments.get(index)).accept(this);
@@ -643,7 +643,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final List<?> arguments = node.arguments();
     if (null != arguments && !arguments.isEmpty()) {
-      ((Expression) arguments.get(0)).accept(this);
+      ((Expression) arguments.getFirst()).accept(this);
       for (int index = 1; index < arguments.size(); index++) {
         this.addToPeekModule(new CONSTRUCTORINVOCATIONCOMMA());
         ((Expression) arguments.get(index)).accept(this);
@@ -666,7 +666,7 @@ public class JavaFileVisitor extends ASTVisitor {
       this.contexts.push(LABELNAME.class);
       label.accept(this);
       final Class<?> context = this.contexts.pop();
-      assert LABELNAME.class == context : "error happend at visit(ContinueStatement)";
+      assert LABELNAME.class == context : "error happened at visit(ContinueStatement)";
     }
 
     this.addToPeekModule(new CONTINUESTATEMENTSEMICOLON());
@@ -692,7 +692,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final List<?> annotations = node.annotations();
     if (null != annotations && !annotations.isEmpty()) {
-      ((Annotation) annotations.get(0)).accept(this);
+      ((Annotation) annotations.getFirst()).accept(this);
       for (int index = 1; index < annotations.size(); index++) {
         this.addToPeekModule(new DIMENSIONCOMMA());
         ((Annotation) annotations.get(index)).accept(this);
@@ -770,14 +770,14 @@ public class JavaFileVisitor extends ASTVisitor {
         .accept(this);
     final Class<?> context = this.contexts.pop();
     assert CLASSNAME.class
-        == context : "error happend at JavaFileVisitor#visit(EnumConstantDeclaration)";
+        == context : "error happened at JavaFileVisitor#visit(EnumConstantDeclaration)";
 
     final List<?> arguments = node.arguments();
     if (null != arguments && !arguments.isEmpty()) {
 
       this.addToPeekModule(new LEFTENUMPAREN());
 
-      ((Expression) arguments.get(0)).accept(this);
+      ((Expression) arguments.getFirst()).accept(this);
       for (int index = 1; index < arguments.size(); index++) {
         this.addToPeekModule(new ENUMCOMMA());
         ((Expression) arguments.get(index)).accept(this);
@@ -829,7 +829,7 @@ public class JavaFileVisitor extends ASTVisitor {
     node.getName()
         .accept(this);
     final Class<?> context = this.contexts.pop();
-    assert CLASSNAME.class == context : "error happend at JavaFileVisitor#visit(EnumDeclaration)";
+    assert CLASSNAME.class == context : "error happened at JavaFileVisitor#visit(EnumDeclaration)";
 
     this.addToPeekModule(new LEFTCLASSBRACKET());
 
@@ -943,7 +943,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     // フィールド名の処理
     final List<?> fragments = node.fragments();
-    ((VariableDeclarationFragment) fragments.get(0)).accept(this);
+    ((VariableDeclarationFragment) fragments.getFirst()).accept(this);
     for (int index = 1; index < fragments.size(); index++) {
       this.addToPeekModule(new FIELDDECLARATIONCOMMA());
       ((VariableDeclarationFragment) fragments.get(index)).accept(this);
@@ -972,7 +972,7 @@ public class JavaFileVisitor extends ASTVisitor {
         .replace('>', ']'); // for window's file system
     fieldFileName.append(type);
     fieldFileName.append("_");
-    fieldFileName.append(((VariableDeclarationFragment) fragments.get(0)).getName());
+    fieldFileName.append(((VariableDeclarationFragment) fragments.getFirst()).getName());
     for (int index = 1; index < fragments.size(); index++) {
       fieldFileName.append("_");
       fieldFileName.append(((VariableDeclarationFragment) fragments.get(index)).getName());
@@ -1014,7 +1014,7 @@ public class JavaFileVisitor extends ASTVisitor {
     // 初期化子の処理
     final List<?> initializers = node.initializers();
     if (null != initializers && !initializers.isEmpty()) {
-      ((Expression) initializers.get(0)).accept(this);
+      ((Expression) initializers.getFirst()).accept(this);
       for (int index = 1; index < initializers.size(); index++) {
         this.addToPeekModule(new FORINITIALIZERCOMMA());
         ((Expression) initializers.get(index)).accept(this);
@@ -1034,7 +1034,7 @@ public class JavaFileVisitor extends ASTVisitor {
     // 更新子の処理
     final List<?> updaters = node.updaters();
     if (null != updaters && !updaters.isEmpty()) {
-      ((Expression) updaters.get(0)).accept(this);
+      ((Expression) updaters.getFirst()).accept(this);
       for (int index = 1; index < updaters.size(); index++) {
         this.addToPeekModule(new FORUPDATERCOMMA());
         ((Expression) updaters.get(index)).accept(this);
@@ -1155,7 +1155,7 @@ public class JavaFileVisitor extends ASTVisitor {
   public boolean visit(final IntersectionType node) {
 
     final List<?> types = node.types();
-    ((Type) types.get(0)).accept(this);
+    ((Type) types.getFirst()).accept(this);
 
     for (int index = 1; index < types.size(); index++) {
       this.addToPeekModule(new AND());
@@ -1197,7 +1197,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final List<?> parameters = node.parameters();
     if (null != parameters && !parameters.isEmpty()) {
-      ((VariableDeclaration) parameters.get(0)).accept(this);
+      ((VariableDeclaration) parameters.getFirst()).accept(this);
       for (int index = 1; index < parameters.size(); index++) {
         this.addToPeekModule(new LAMBDAEXPRESSIONCOMMA());
         ((VariableDeclaration) parameters.get(index)).accept(this);
@@ -1283,7 +1283,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final List<?> parameters = node.parameters();
     if (null != parameters && !parameters.isEmpty()) {
-      ((MethodRefParameter) parameters.get(0)).accept(this);
+      ((MethodRefParameter) parameters.getFirst()).accept(this);
       for (int index = 1; index < parameters.size(); index++) {
         this.addToPeekModule(new COMMA());
         ((MethodRefParameter) parameters.get(index)).accept(this);
@@ -1343,7 +1343,7 @@ public class JavaFileVisitor extends ASTVisitor {
     final List typeParameters = node.typeParameters();
     if (null != typeParameters && !typeParameters.isEmpty()) {
       this.addToPeekModule(new LESS());
-      ((TypeParameter) typeParameters.get(0)).accept(this);
+      ((TypeParameter) typeParameters.getFirst()).accept(this);
       for (int index = 1; index < typeParameters.size(); index++) {
         this.addToPeekModule(new METHODDECLARATIONPARAMETERCOMMA());
         ((TypeParameter) typeParameters.get(index)).accept(this);
@@ -1357,7 +1357,7 @@ public class JavaFileVisitor extends ASTVisitor {
       this.contexts.push(TYPENAME.class);
       returnType.accept(this);
       final Class<?> context = this.contexts.pop();
-      assert TYPENAME.class == context : "error happend at visit(MethodDeclaration)";
+      assert TYPENAME.class == context : "error happened at visit(MethodDeclaration)";
     }
 
     {// メソッド名の処理（ダミーメソッドに追加）
@@ -1365,7 +1365,7 @@ public class JavaFileVisitor extends ASTVisitor {
       node.getName()
           .accept(this);
       final Class<?> context = this.contexts.pop();
-      assert DECLAREDMETHODNAME.class == context : "error happend at visit(MethodDeclaration)";
+      assert DECLAREDMETHODNAME.class == context : "error happened at visit(MethodDeclaration)";
     }
 
     // "(" の処理（ダミーメソッドに追加）
@@ -1374,7 +1374,7 @@ public class JavaFileVisitor extends ASTVisitor {
     // 引数の処理（ダミーメソッドに追加）
     final List<?> parameters = node.parameters();
     if (null != parameters && !parameters.isEmpty()) {
-      ((SingleVariableDeclaration) parameters.get(0)).accept(this);
+      ((SingleVariableDeclaration) parameters.getFirst()).accept(this);
       for (int index = 1; index < parameters.size(); index++) {
         this.addToPeekModule(new METHODDECLARATIONPARAMETERCOMMA());
         ((SingleVariableDeclaration) parameters.get(index)).accept(this);
@@ -1389,7 +1389,7 @@ public class JavaFileVisitor extends ASTVisitor {
     if (null != exceptions && !exceptions.isEmpty()) {
       this.addToPeekModule(new THROWS());
       this.contexts.push(TYPENAME.class);
-      ((Type) exceptions.get(0)).accept(this);
+      ((Type) exceptions.getFirst()).accept(this);
       for (int index = 1; index < exceptions.size(); index++) {
         this.addToPeekModule(new METHODDECLARATIONTHROWSCOMMA());
         ((Type) exceptions.get(index)).accept(this);
@@ -1448,7 +1448,7 @@ public class JavaFileVisitor extends ASTVisitor {
       final StringBuilder typeText = new StringBuilder();
       typeText.append(svd.getType());
       // "int a[]"のような表記に対応するため
-      typeText.append("[]".repeat(Math.max(0, svd.getExtraDimensions())));
+      typeText.repeat("[]", Math.max(0, svd.getExtraDimensions()));
       if (svd.isVarargs()) {
         typeText.append("...");
       }
@@ -1525,7 +1525,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final List<?> arguments = node.arguments();
     if (null != arguments && !arguments.isEmpty()) {
-      ((Expression) arguments.get(0)).accept(this);
+      ((Expression) arguments.getFirst()).accept(this);
       for (int index = 1; index < arguments.size(); index++) {
         this.addToPeekModule(new METHODINVOCATIONCOMMA());
         ((Expression) arguments.get(index)).accept(this);
@@ -1633,7 +1633,7 @@ public class JavaFileVisitor extends ASTVisitor {
     @SuppressWarnings("unchecked")
     final List<MemberValuePair> nodes = node.values();
     if (null != nodes && !nodes.isEmpty()) {
-      nodes.get(0)
+      nodes.getFirst()
           .accept(this);
       for (int index = 1; index < nodes.size(); index++) {
         this.addToPeekModule(new ANNOTATIONCOMMA());
@@ -1700,7 +1700,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final List<?> typeArguments = node.typeArguments();
     if (null != typeArguments && !typeArguments.isEmpty()) {
-      ((Type) typeArguments.get(0)).accept(this);
+      ((Type) typeArguments.getFirst()).accept(this);
       for (int index = 1; index < typeArguments.size(); index++) {
         this.addToPeekModule(new PARAMETERIZEDTYPECOMMA());
         ((Type) typeArguments.get(index)).accept(this);
@@ -1772,7 +1772,7 @@ public class JavaFileVisitor extends ASTVisitor {
     final List<?> implementations = node.implementations();
     if (null != implementations && !implementations.isEmpty()) {
       this.contexts.push(TYPENAME.class);
-      ((Name) implementations.get(0)).accept(this);
+      ((Name) implementations.getFirst()).accept(this);
       for (int index = 1; index < implementations.size(); index++) {
         this.addToPeekModule(new COMMA());
         ((Name) implementations.get(index)).accept(this);
@@ -1894,7 +1894,7 @@ public class JavaFileVisitor extends ASTVisitor {
       this.contexts.push(TYPENAME.class);
 
       this.addToPeekModule(new IMPLEMENTS());
-      ((Type) interfaces.get(0)).accept(this);
+      ((Type) interfaces.getFirst()).accept(this);
 
       for (int index = 1; index < interfaces.size(); index++) {
         this.addToPeekModule(new TYPEDECLARATIONCOMMA());
@@ -2005,7 +2005,7 @@ public class JavaFileVisitor extends ASTVisitor {
     node.getName()
         .accept(this);
     final Class<?> context = this.contexts.pop();
-    assert TYPENAME.class == context : "error happend at visit(SimpleType)";
+    assert TYPENAME.class == context : "error happened at visit(SimpleType)";
 
     return false;
   }
@@ -2040,7 +2040,7 @@ public class JavaFileVisitor extends ASTVisitor {
       node.getName()
           .accept(this);
       final Class<?> context = this.contexts.pop();
-      assert VARIABLENAME.class == context : "error happend at visit(SingleVariableDeclaration";
+      assert VARIABLENAME.class == context : "error happened at visit(SingleVariableDeclaration";
     }
 
     return false;
@@ -2066,7 +2066,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final List<?> arguments = node.arguments();
     if (null != arguments && !arguments.isEmpty()) {
-      ((Expression) arguments.get(0)).accept(this);
+      ((Expression) arguments.getFirst()).accept(this);
       for (int index = 1; index < arguments.size(); index++) {
         this.addToPeekModule(new SUPERCONSTRUCTORINVOCATIONCOMMA());
         ((Expression) arguments.get(index)).accept(this);
@@ -2088,7 +2088,7 @@ public class JavaFileVisitor extends ASTVisitor {
     node.getName()
         .accept(this);
     final Class<?> context = this.contexts.pop();
-    assert VARIABLENAME.class == context : "error happend at visit(SuperFieldAccess";
+    assert VARIABLENAME.class == context : "error happened at visit(SuperFieldAccess";
 
     return false;
   }
@@ -2110,13 +2110,13 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final Class<?> context = this.contexts.pop();
     assert INVOKEDMETHODNAME.class
-        == context : "error happend at JavaFileVisitor#visit(SuperMethodInvocation)";
+        == context : "error happened at JavaFileVisitor#visit(SuperMethodInvocation)";
 
     this.addToPeekModule(new LEFTMETHODINVOCATIONPAREN());
 
     final List<?> arguments = node.arguments();
     if (null != arguments && !arguments.isEmpty()) {
-      ((Expression) arguments.get(0)).accept(this);
+      ((Expression) arguments.getFirst()).accept(this);
       for (int index = 1; index < arguments.size(); index++) {
         this.addToPeekModule(new METHODINVOCATIONCOMMA());
         ((Expression) arguments.get(index)).accept(this);
@@ -2164,7 +2164,7 @@ public class JavaFileVisitor extends ASTVisitor {
       this.addToPeekModule(new CASE());
 
       final List<?> expressions = node.expressions();
-      ((Expression) expressions.get(0)).accept(this);
+      ((Expression) expressions.getFirst()).accept(this);
 
       for (int index = 1; index < expressions.size(); index++) {
         this.addToPeekModule(new SWITCHCASECOMMA());
@@ -2305,7 +2305,7 @@ public class JavaFileVisitor extends ASTVisitor {
     if (null != resources && !resources.isEmpty()) {
       this.addToPeekModule(new LEFTTRYPAREN());
 
-      ((Expression) resources.get(0)).accept(this);
+      ((Expression) resources.getFirst()).accept(this);
 
       for (int index = 1; index < resources.size(); index++) {
         this.addToPeekModule(new TRYRESOURCESEMICOLON());
@@ -2388,7 +2388,7 @@ public class JavaFileVisitor extends ASTVisitor {
       this.contexts.push(TYPENAME.class);
 
       this.addToPeekModule(new IMPLEMENTS());
-      ((Type) interfaces.get(0)).accept(this);
+      ((Type) interfaces.getFirst()).accept(this);
 
       for (int index = 1; index < interfaces.size(); index++) {
         this.addToPeekModule(new TYPEDECLARATIONCOMMA());
@@ -2477,7 +2477,7 @@ public class JavaFileVisitor extends ASTVisitor {
     List typeBounds = node.typeBounds();
     if (null != typeBounds && !typeBounds.isEmpty()) {
       this.addToPeekModule(new EXTENDS());
-      ((Type) typeBounds.get(0)).accept(this);
+      ((Type) typeBounds.getFirst()).accept(this);
       for (int index = 1; index < typeBounds.size(); index++) {
         this.addToPeekModule(new AND());
         ((Type) typeBounds.get(index)).accept(this);
@@ -2491,7 +2491,7 @@ public class JavaFileVisitor extends ASTVisitor {
   public boolean visit(final UnionType node) {
 
     final List<?> types = node.types();
-    ((Type) types.get(0)).accept(this);
+    ((Type) types.getFirst()).accept(this);
 
     for (int index = 1; index < types.size(); index++) {
       this.addToPeekModule(new OR());
@@ -2529,7 +2529,7 @@ public class JavaFileVisitor extends ASTVisitor {
         .accept(this);
 
     final List<?> fragments = node.fragments();
-    ((VariableDeclarationFragment) fragments.get(0)).accept(this);
+    ((VariableDeclarationFragment) fragments.getFirst()).accept(this);
     for (int index = 1; index < fragments.size(); index++) {
       this.addToPeekModule(new VARIABLEDECLARATIONCOMMA());
       ((VariableDeclarationFragment) fragments.get(index)).accept(this);
@@ -2551,7 +2551,7 @@ public class JavaFileVisitor extends ASTVisitor {
         .accept(this);
 
     final List<?> fragments = node.fragments();
-    ((VariableDeclarationFragment) fragments.get(0)).accept(this);
+    ((VariableDeclarationFragment) fragments.getFirst()).accept(this);
     for (int index = 1; index < fragments.size(); index++) {
       this.addToPeekModule(new VARIABLEDECLARATIONCOMMA());
       ((VariableDeclarationFragment) fragments.get(index)).accept(this);
@@ -2633,7 +2633,7 @@ public class JavaFileVisitor extends ASTVisitor {
     final List<?> patterns = node.patterns();
 
     if (null != patterns && !patterns.isEmpty()) {
-      ((Pattern) patterns.get(0)).accept(this);
+      ((Pattern) patterns.getFirst()).accept(this);
 
       for (int index = 1; index < patterns.size(); index++) {
         this.addToPeekModule(new SWITCHCASECOMMA());
@@ -2722,7 +2722,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final List<?> patterns = node.patterns();
     if (null != patterns && !patterns.isEmpty()) {
-      ((Pattern) patterns.get(0)).accept(this);
+      ((Pattern) patterns.getFirst()).accept(this);
       for (int index = 1; index < patterns.size(); index++) {
         this.addToPeekModule(new VARIABLEDECLARATIONCOMMA());
         ((Pattern) patterns.get(index)).accept(this);
@@ -2768,7 +2768,7 @@ public class JavaFileVisitor extends ASTVisitor {
     this.addToPeekModule(new TO());
 
     this.contexts.push(PACKAGENAME.class);
-    ((Name) modules.get(0)).accept(this);
+    ((Name) modules.getFirst()).accept(this);
     for (int index = 1; index < modules.size(); index++) {
       this.addToPeekModule(new COMMA());
       ((Name) modules.get(index)).accept(this);
