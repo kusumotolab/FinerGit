@@ -7,6 +7,12 @@
     </encoder>
   </appender>
 
+  <!-- 複数のスレッドが同じ内容のオブジェクトを同時に書き込むと，Windows では jgit が
+       AccessDeniedException を ERROR で記録する（eclipse-jgit/jgit#288）．
+       FinerGitRewriter が再実行して復旧するため，この記録はノイズにしかならない．
+       復旧できなかった場合は ObjectWritingException が送出されるので見落とすことはない． -->
+  <logger name="org.eclipse.jgit.internal.storage.file.LooseObjects" level="OFF"/>
+
   <root level="INFO">
     <appender-ref ref="STDOUT"/>
   </root>
