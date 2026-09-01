@@ -30,6 +30,7 @@ public class FinerGitConfig {
   private boolean isFieldFileGenerated = false;
   private int maxFileNameLength = 255;
   private int hashLength = 7;
+  private boolean isHelpRequested = false;
 
   public FinerGitConfig() {
     final int cpu = Runtime.getRuntime()
@@ -225,7 +226,7 @@ public class FinerGitConfig {
   public void setMaxFileNameLength(final int maxFileNameLength) {
     if (maxFileNameLength < 13 || 255 < maxFileNameLength) {
       System.err.println("option \"--max-file-name-length\" must be between 13 and 255");
-      exit(0);
+      exit(1);
     }
     this.maxFileNameLength = maxFileNameLength;
   }
@@ -240,7 +241,7 @@ public class FinerGitConfig {
   public void setHashLength(final int hashLength) {
     if (hashLength < 7 || 40 < hashLength) {
       System.err.println("option \"--hash-length\" must be between 7 and 40");
-      exit(0);
+      exit(1);
     }
     this.hashLength = hashLength;
   }
@@ -327,9 +328,20 @@ public class FinerGitConfig {
       }
       default: {
         System.err.println("inappropriate value for \"-l\" option");
-        exit(0);
+        exit(1);
       }
     }
+  }
+
+  // ===== "-h" =====
+
+  public boolean isHelpRequested() {
+    return this.isHelpRequested;
+  }
+
+  @Option(name = "-h", aliases = "--help", usage = "print the option list and exit")
+  public void setHelpRequested(final boolean helpRequested) {
+    this.isHelpRequested = helpRequested;
   }
 
   private boolean getBooleanValue(final String flag, final String message) {
@@ -342,7 +354,7 @@ public class FinerGitConfig {
       }
       default: {
         System.err.println(message);
-        exit(0);
+        exit(1);
       }
     }
     return false;
@@ -353,7 +365,7 @@ public class FinerGitConfig {
       return Integer.valueOf(stringValue);
     } catch (final NumberFormatException e) {
       System.err.println(message);
-      exit(0);
+      exit(1);
       return 0;
     }
   }

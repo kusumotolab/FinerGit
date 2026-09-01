@@ -56,7 +56,7 @@ FinerGit has several options for converting repositories.
 The options are printed with the following command.
 
 ```shell-session
-$ java -jar build/libs/FinerGit-all.jar create
+$ java -jar build/libs/FinerGit-all.jar create --help
 ```
 
 ### Main Options
@@ -73,6 +73,7 @@ Input and repository options:
 - `-p`, `--otherfiles <true|false>`: include non-Java files. The default is `false`.
 - `--nthreads <num>`: number of threads used for repository rewriting. The default is one less than the number of available processors, or `1` if only one processor is available.
 - `-l`, `--log-level <level>`: log level. Supported values are `trace`, `debug`, `info`, `warn`, and `error`.
+- `-h`, `--help`: print the option list and exit.
 
 Generated file options:
 
@@ -91,6 +92,18 @@ Token and file-name options:
 - `--method-token-included <true|false>`: include method boundary tokens in generated method files. The default is `true`.
 - `--max-file-name-length <num>`: maximum generated file name length. The value must be between `13` and `255`. The default is `255`.
 - `--hash-length <num>`: length of the hash value attached to shortened file names. The value must be between `7` and `40`. The default is `7`.
+
+### Exit Status
+
+FinerGit returns `0` when a conversion finished successfully.
+If a conversion was aborted, or if an invalid command line was given, FinerGit prints the reason and returns `1`.
+
+```shell-session
+$ java -jar build/libs/FinerGit-all.jar create --src /path/to/repoA --des /path/to/repoB || echo "conversion failed"
+```
+
+Note that an aborted conversion leaves an incomplete copy of the input repository in the output path.
+Such a repository is not a FinerGit repository, and thus it should be removed before retrying the conversion.
 
 ### See Change Histories of Java Methods in a FinerGit Repository
 
@@ -216,7 +229,7 @@ FinerGit は変換のオプションをいくつか備えています．
 オプション一覧は以下のコマンドにより確認できます．
 
 ```shell-session
-$ java -jar build/libs/FinerGit-all.jar create
+$ java -jar build/libs/FinerGit-all.jar create --help
 ```
 
 ### 主なオプション
@@ -233,6 +246,7 @@ $ java -jar build/libs/FinerGit-all.jar create
 - `-p`, `--otherfiles <true|false>`: Java 以外のファイルを出力リポジトリに含めるかどうか．デフォルトは `false` です．
 - `--nthreads <num>`: リポジトリ書き換えに利用するスレッド数．デフォルトは利用可能なプロセッサ数から1を引いた値です．プロセッサ数が1の場合は `1` です．
 - `-l`, `--log-level <level>`: ログレベル．`trace`，`debug`，`info`，`warn`，`error` を指定できます．
+- `-h`, `--help`: オプション一覧を表示して終了します．
 
 生成ファイルに関するオプション:
 
@@ -251,6 +265,18 @@ $ java -jar build/libs/FinerGit-all.jar create
 - `--method-token-included <true|false>`: 生成されるメソッドファイルにメソッド境界トークンを含めるかどうか．デフォルトは `true` です．
 - `--max-file-name-length <num>`: 生成されるファイル名の最大長．`13` から `255` の範囲で指定できます．デフォルトは `255` です．
 - `--hash-length <num>`: 短縮されたファイル名に付与するハッシュ値の長さ．`7` から `40` の範囲で指定できます．デフォルトは `7` です．
+
+### 終了コード
+
+FinerGit は，変換が正常に終了した場合に `0` を返します．
+変換が中断された場合や，コマンドラインの指定に誤りがある場合には，その理由を出力して `1` を返します．
+
+```shell-session
+$ java -jar build/libs/FinerGit-all.jar create --src /path/to/repoA --des /path/to/repoB || echo "変換に失敗しました"
+```
+
+変換が中断された場合，出力先には入力リポジトリの不完全な複製が残ることに注意してください．
+そのようなリポジトリは FinerGit リポジトリではないため，再実行する前に削除してください．
 
 ### FinerGit リポジトリを使って Java メソッドの変更履歴を確認する
 

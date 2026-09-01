@@ -3,6 +3,8 @@ package finergit;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
+import java.util.TreeMap;
 import org.eclipse.jgit.api.CleanCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand;
@@ -15,6 +17,8 @@ import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.AnyObjectId;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.lib.RefDatabase;
 import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
@@ -167,5 +171,26 @@ public class GitRepo {
       e.printStackTrace();
       return false;
     }
+  }
+
+  /**
+   * リポジトリに含まれるブランチ（refs/heads/以下の参照）の名前と，そのブランチが指すオブジェクトIDの
+   * 対応を返す．
+   *
+   * @return ブランチ名とオブジェクトIDの対応
+   * @throws IOException 参照を読み込めなかった場合
+   */
+  public Map<String, ObjectId> getBranches() throws IOException {
+    log.trace("enter getBranches()");
+
+    final RefDatabase refDatabase = this.repository.getRefDatabase();
+    // 書き換えられた後の参照を読み込むために，jgitが保持しているキャッシュを更新する
+    refDatabase.refresh();
+
+    final Map<String, ObjectId> branches = new TreeMap<>();
+    for (final Ref ref : refDatabase.getRefsByPrefix(Constants.R_HEADS)) {
+      branches.put(ref.getName(), ref.getObjectId());
+    }
+    return branches;
   }
 }
