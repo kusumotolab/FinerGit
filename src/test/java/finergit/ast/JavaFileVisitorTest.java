@@ -395,8 +395,15 @@ public class JavaFileVisitorTest {
     config.setFieldFileGenerated("false");
     final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
     final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
-    final List<String> tokens = modules.getFirst()
-        .getTokens()
+
+    // クラスファイル生成が有効なときは，レコードモジュール（.rjava）も生成される
+    // （ファイル名 Record とレコード名 RecordExample が異なるので "[Record]" が付く）
+    assertThat(modules.stream()
+        .map(FinerJavaModule::getFileName)).containsExactly("[Record]RecordExample.rjava",
+            "[Record]RecordExample#RecordExample(double,double).mjava");
+
+    final FinerJavaModule methodModule = modules.get(1);
+    final List<String> tokens = methodModule.getTokens()
         .stream()
         .map(t -> t.value)
         .collect(Collectors.toList());
@@ -404,7 +411,8 @@ public class JavaFileVisitorTest {
         "width", ")", "{", "this", ".", "length", "=", "length", ";", "this", ".", "width", "=",
         "width", ";", "}");
 
-    final FinerJavaModule outerModule = modules.getFirst().outerModule;
+    final FinerJavaModule outerModule = methodModule.outerModule;
+    assertThat(outerModule).isSameAs(modules.getFirst());
     final List<String> outerTokens = outerModule.getTokens()
         .stream()
         .map(t -> t.value)

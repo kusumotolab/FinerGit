@@ -664,4 +664,37 @@ public class FinerJavaFileBuilderTest {
     assertThat(modules.getFirst()
         .getPathName()).isEqualTo("src/what?/x*y/Foo.pjava");
   }
+
+  /**
+   * "--class-file-generated" が有効なときは，トップレベルのレコードに対して .rjava ファイルが生成される．
+   */
+  @Test
+  public void getFinerJavaModulesRecordTest() throws Exception {
+    final Path targetPath = Paths.get("src/test/resources/finergit/ast/Record.java");
+    final String text = String.join(System.lineSeparator(), Files.readAllLines(targetPath));
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("true");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(targetPath.toString(), text);
+
+    final List<String> moduleNames = modules.stream()
+        .map(m -> m.getFileName())
+        .collect(Collectors.toList());
+    // ファイル名（Record）とレコード名（RecordExample）が異なるので，ファイル名が "[Record]" として付く
+    assertThat(moduleNames).containsExactlyInAnyOrder("[Record]RecordExample.rjava",
+        "[Record]RecordExample#public_RecordExample(double,double).mjava");
+
+    // クラスファイル生成が無効なときは，レコードモジュールは生成されない
+    config.setClassFileGenerated("false");
+    final List<String> moduleNamesWithoutClassFiles =
+        new FinerJavaFileBuilder(config).getFinerJavaModules(targetPath.toString(), text)
+            .stream()
+            .map(m -> m.getFileName())
+            .collect(Collectors.toList());
+    assertThat(moduleNamesWithoutClassFiles)
+        .containsExactly("[Record]RecordExample#public_RecordExample(double,double).mjava");
+  }
 }
