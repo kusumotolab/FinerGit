@@ -195,6 +195,7 @@ import finergit.ast.token.SWITCH;
 import finergit.ast.token.SWITCHCASEARROW;
 import finergit.ast.token.SWITCHCASECOMMA;
 import finergit.ast.token.SYNCHRONIZED;
+import finergit.ast.token.TEXTBLOCK;
 import finergit.ast.token.THIS;
 import finergit.ast.token.THROW;
 import finergit.ast.token.THROWS;
@@ -2266,9 +2267,16 @@ public class JavaFileVisitor extends ASTVisitor {
 
 
   @Override
-  public boolean visit(TextBlock node) {
-    log.error("JavaFileVisitor#visit(TextBlock) is not implemented yet.");
-    return super.visit(node);
+  public boolean visit(final TextBlock node) {
+
+    // テキストブロックは複数行にわたるので，1行1トークンを保つために改行を "\n" にエスケープして1行にする
+    final String literal = node.getEscapedValue()
+        .replace("\r\n", "\n")
+        .replace("\r", "\n")
+        .replace("\n", "\\n");
+    this.addToPeekModule(new TEXTBLOCK(literal));
+
+    return false;
   }
 
   @Override

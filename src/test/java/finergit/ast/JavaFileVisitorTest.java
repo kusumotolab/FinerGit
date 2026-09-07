@@ -654,4 +654,34 @@ public class JavaFileVisitorTest {
         "=", "\"Duke\"", ";", "String", "info", "=", "STR", ".", "\"My name is \\{name}\"", ";",
         "System", ".", "out", ".", "println", "(", "info", ")", ";");
   }
+
+  @Test
+  public void testTextBlock() {
+
+    final String text = "class TextBlock {" + //
+        "  String textBlock() {" + //
+        "    return \"\"\"\n" + //
+        "        hello\n" + //
+        "        world\"\"\";" + //
+        "  }" + //
+        "}";
+
+    final String path = "dir/TextBlock.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+    final List<String> tokens = modules.getFirst()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    // テキストブロック内の改行は "\n" にエスケープされ，トークンは1行に収まる
+    assertThat(tokens).containsExactly("String", "textBlock", "(", ")", "{", "return",
+        "\"\"\"\\n        hello\\n        world\"\"\"", ";", "}");
+    assertThat(tokens).allSatisfy(token -> assertThat(token).doesNotContain("\n"));
+  }
 }
