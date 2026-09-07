@@ -80,7 +80,7 @@ Input and repository options:
 Generated file options:
 
 - `--method-file-generated <true|false>`: generate method files. The default is `true`.
-- `--class-file-generated <true|false>`: generate class files. The default is `false`.
+- `--class-file-generated <true|false>`: generate class files (`.cjava`) and record files (`.rjava`). The default is `false`.
 - `--field-file-generated <true|false>`: generate field files. The default is `false`.
 - `--peripheral-file-generated <true|false>`: generate files for peripheral tokens outside generated class, method, and field files. The default is `false`.
 
@@ -114,10 +114,11 @@ Such a repository is not a FinerGit repository, and thus it should be removed be
 ### See Change Histories of Java Methods in a FinerGit Repository
 
 By default, FinerGit repositories contain `.mjava` files.
-Depending on generation options, they can also contain `.cjava`, `.fjava`, and `.pjava` files.
+Depending on generation options, they can also contain `.cjava`, `.rjava`, `.fjava`, and `.pjava` files.
 
 - Extension `.mjava` means that the file represents a Java method or constructor.
 - Extension `.cjava` means that the file represents Java class-level tokens. Method bodies are replaced with method tokens, and method files are generated when `--method-file-generated` is `true`.
+- Extension `.rjava` means that the file represents Java record-level tokens. It is generated together with `.cjava` files when `--class-file-generated` is `true`.
 - Extension `.fjava` means that the file represents a Java field declaration.
 - Extension `.pjava` means that the file represents peripheral tokens from the original Java file.
 
@@ -257,7 +258,7 @@ $ java -jar build/libs/FinerGit-all.jar create --help
 生成ファイルに関するオプション:
 
 - `--method-file-generated <true|false>`: メソッドファイルを生成するかどうか．デフォルトは `true` です．
-- `--class-file-generated <true|false>`: クラスファイルを生成するかどうか．デフォルトは `false` です．
+- `--class-file-generated <true|false>`: クラスファイル（`.cjava`）とレコードファイル（`.rjava`）を生成するかどうか．デフォルトは `false` です．
 - `--field-file-generated <true|false>`: フィールドファイルを生成するかどうか．デフォルトは `false` です．
 - `--peripheral-file-generated <true|false>`: 生成されたクラス，メソッド，フィールドファイルの外側にある周辺トークンのファイルを生成するかどうか．デフォルトは `false` です．
 
@@ -291,10 +292,11 @@ FinerGit はコピーを始める前にパスを検証します．
 ### FinerGit リポジトリを使って Java メソッドの変更履歴を確認する
 
 デフォルトでは，FinerGit リポジトリには `.mjava` ファイルが含まれます．
-生成オプションによっては，`.cjava`，`.fjava`，`.pjava` ファイルも含まれます．
+生成オプションによっては，`.cjava`，`.rjava`，`.fjava`，`.pjava` ファイルも含まれます．
 
 - 拡張子が `.mjava` のファイルは，Java のメソッドまたはコンストラクタを表します．
 - 拡張子が `.cjava` のファイルは，Java クラスレベルのトークンを表します．メソッド本体はメソッドトークンに置き換えられ，`--method-file-generated` が `true` の場合はメソッドファイルも生成されます．
+- 拡張子が `.rjava` のファイルは，Java レコードレベルのトークンを表します．`--class-file-generated` が `true` の場合に `.cjava` ファイルとともに生成されます．
 - 拡張子が `.fjava` のファイルは，Java のフィールド宣言を表します．
 - 拡張子が `.pjava` のファイルは，元の Java ファイルに含まれる周辺トークンを表します．
 
