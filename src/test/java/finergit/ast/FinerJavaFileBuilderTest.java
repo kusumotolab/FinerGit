@@ -569,4 +569,41 @@ public class FinerJavaFileBuilderTest {
     assertThat(moduleNames).containsExactlyInAnyOrder("EscapeRout.cjava",
         "EscapeRout#public_void_main(String[]).mjava");
   }
+
+  /**
+   * UTF-8 の BOM で始まるファイルも解析できる．
+   */
+  @Test
+  public void getFinerJavaModulesWithByteOrderMarkTest() {
+    final String text = Character.toString(0xFEFF) + //
+        "public class Bom {" + //
+        "  public void foo() { int x = 1; }" + //
+        "}";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules("dir/Bom.java", text);
+
+    final List<String> moduleNames = modules.stream()
+        .map(m -> m.getFileName())
+        .collect(Collectors.toList());
+    assertThat(moduleNames).containsExactlyInAnyOrder("Bom.cjava", "Bom#public_void_foo().mjava");
+  }
+
+  /**
+   * 構文エラーがあるファイルは読み飛ばされ，空のリストが返される．
+   */
+  @Test
+  public void getFinerJavaModulesWithSyntaxErrorTest() {
+    final String text = "public class Broken {" + //
+        "  public void foo( { }" + //
+        "}";
+    final FinerGitConfig config = new FinerGitConfig();
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules("dir/Broken.java", text);
+    assertThat(modules).isEmpty();
+  }
 }
