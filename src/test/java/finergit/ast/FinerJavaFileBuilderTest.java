@@ -74,10 +74,12 @@ public class FinerJavaFileBuilderTest {
         case "void_method01()":
           break;
         case "void_method02()":
-          assertThat(tokens).containsExactly("void", "method02", "(", ")", "{", "new", "String",
-              "(", ")", ";", "@SuppressWarnings(\"unused\")", "class", "InnerClass01", "{",
-              "InnerClass01", "(", ")", "{", "new", "String", "(", ")", ";", "}", "void",
-              "method03", "(", ")", "{", "new", "String", "(", ")", ";", "}", "}", "}");
+          // メソッドに先行する行コメントと，メソッド内の行コメントもトークンとして含まれる
+          assertThat(tokens).containsExactly("// 抽出されるはず", "void", "method02", "(", ")", "{",
+              "new", "String", "(", ")", ";", "// 抽出されないはず", "@SuppressWarnings(\"unused\")",
+              "class", "InnerClass01", "{", "// 抽出されないはず", "InnerClass01", "(", ")", "{",
+              "new", "String", "(", ")", ";", "}", "void", "method03", "(", ")", "{", "new",
+              "String", "(", ")", ";", "}", "}", "}");
           break;
         default:
           assertThat(true).isEqualTo(false);
@@ -121,13 +123,14 @@ public class FinerJavaFileBuilderTest {
         case "NestedClass":
           break;
         case "void_method01()":
-          assertThat(tokens).containsExactly("void", "method01", "(", ")", "{", "new", "Runnable",
-              "(", ")", "{", "@Override", "public", "void", "run", "(", ")", "{", "}", "}", ";",
-              "}");
+          assertThat(tokens).containsExactly("// 抽出されるはず", "void", "method01", "(", ")", "{",
+              "// 抽出されないはず", "new", "Runnable", "(", ")", "{", "@Override", "public", "void",
+              "run", "(", ")", "{", "}", "}", ";", "}");
           break;
         case "void_method02()":
-          assertThat(tokens).containsExactly("void", "method02", "(", ")", "{",
-              "@SuppressWarnings(\"unused\")", "class", "InnerClass02", "{", "}", "}");
+          assertThat(tokens).containsExactly("// 抽出されるはず", "void", "method02", "(", ")", "{",
+              "// 抽出されないはず", "@SuppressWarnings(\"unused\")", "class", "InnerClass02", "{",
+              "}", "}");
           break;
         default:
           assertThat(true).isEqualTo(false);
@@ -720,5 +723,34 @@ public class FinerJavaFileBuilderTest {
         .map(m -> m.getFileName())
         .collect(Collectors.toList());
     assertThat(moduleNames).containsExactlyInAnyOrder("R#R(int,String).mjava", "R#R().mjava");
+  }
+
+  /**
+   * BOM 付きのソースでもコメントの文字列がずれずに取り出される．パーサと visitor に同じ（BOM を除去した）
+   * 文字列を渡しているためで，元の文字列を visitor に渡すとすべてのコメントの位置が1文字ずれる．
+   */
+  @Test
+  public void getFinerJavaModulesWithByteOrderMarkAndCommentsTest() {
+    final String text = Character.toString(0xFEFF) + String.join("\n", //
+        "public class Bom {", //
+        "  // leading comment", //
+        "  public void foo() {} // trailing comment", //
+        "}", //
+        "");
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules("dir/Bom.java", text);
+
+    final List<String> tokens = modules.getFirst()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(tokens).containsExactly("// leading comment", "public", "void", "foo", "(", ")",
+        "{", "}", "// trailing comment");
   }
 }

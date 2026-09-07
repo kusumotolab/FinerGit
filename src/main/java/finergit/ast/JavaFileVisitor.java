@@ -1,7 +1,9 @@
 package finergit.ast;
 
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.Stack;
 import java.util.stream.Collectors;
@@ -232,6 +234,23 @@ public class JavaFileVisitor extends ASTVisitor {
   private int classNestLevel;
 
   /**
+   * 解析対象のソースコード．コメントの文字列を取り出すために使う（コメントは AST の子ノードではなく，
+   * Comment ノードは位置情報しか持たない）．null の場合は行コメントとブロックコメントを出力しない．
+   * パーサに渡した文字列と同じものでなければならない（そうでないとコメントの位置がずれる）．
+   */
+  private final String source;
+
+  /**
+   * 訪問中のコンパイル単位（コメントを含めたノードの拡張範囲を得るために使う）
+   */
+  private CompilationUnit compilationUnit;
+
+  /**
+   * まだ出力していないコメント（開始位置の昇順）
+   */
+  private final Deque<Comment> pendingComments;
+
+  /**
    * @param path 解析対象ファイルのパス
    * @param config 設定
    * @deprecated リポジトリ内のパスには実行環境で使えない文字が含まれうるため，Path を作ること自体が
@@ -244,6 +263,8 @@ public class JavaFileVisitor extends ASTVisitor {
   }
 
   /**
+   * ソースコードを与えないコンストラクタ．行コメントとブロックコメントは出力されない．
+   *
    * @param directory 解析対象ファイルが置かれているディレクトリ（リポジトリ内のパス，ルートの場合は空文字列）．
    *        リポジトリ内のパスには実行環境で使えない文字が含まれうるので，java.nio.file.Path にはしない．
    * @param fileName 解析対象ファイルのベースネーム（拡張子を除いたファイル名）
@@ -251,12 +272,28 @@ public class JavaFileVisitor extends ASTVisitor {
    */
   public JavaFileVisitor(final String directory, final String fileName,
       final FinerGitConfig config) {
+    this(directory, fileName, config, null);
+  }
+
+  /**
+   * @param directory 解析対象ファイルが置かれているディレクトリ（リポジトリ内のパス，ルートの場合は空文字列）．
+   *        リポジトリ内のパスには実行環境で使えない文字が含まれうるので，java.nio.file.Path にはしない．
+   * @param fileName 解析対象ファイルのベースネーム（拡張子を除いたファイル名）
+   * @param config 設定
+   * @param source 解析対象のソースコード（パーサに渡したものと同じ文字列）．与えられた場合は行コメントと
+   *        ブロックコメントも出力する．
+   */
+  public JavaFileVisitor(final String directory, final String fileName,
+      final FinerGitConfig config, final String source) {
 
     this.config = config;
     this.moduleStack = new Stack<>();
     this.moduleList = new ArrayList<>();
     this.contexts = new Stack<>();
     this.classNestLevel = 0;
+    this.source = source;
+    this.compilationUnit = null;
+    this.pendingComments = new ArrayDeque<>();
 
     final FinerJavaFile finerJavaFile = new FinerJavaFile(directory, fileName, config);
     this.moduleStack.push(finerJavaFile);
@@ -277,6 +314,9 @@ public class JavaFileVisitor extends ASTVisitor {
   public boolean visit(final AnnotationTypeDeclaration node) {
 
     this.classNestLevel++;
+
+    // 宣言に先行するコメント（Javadoc より前にある行コメントなど）をこの型のモジュールに入れる
+    this.addCommentsBefore(node.getStartPosition());
 
     final Javadoc javadoc = node.getJavadoc();
     if (null != javadoc) {
@@ -304,9 +344,13 @@ public class JavaFileVisitor extends ASTVisitor {
       body.accept(this);
     }
 
+    this.addCommentsInside(node);
     this.addToPeekModule(new RIGHTANNOTATIONBRACKET());
 
     this.classNestLevel--;
+
+    // 型宣言の末尾行にあるコメント（"} // end of Marker" など）をこの型の宣言に続けて出力する
+    this.addCommentsBefore(this.endOfLine(node));
 
     return false;
   }
@@ -359,6 +403,7 @@ public class JavaFileVisitor extends ASTVisitor {
       body.accept(this);
     }
 
+    this.addCommentsInside(node);
     this.addToPeekModule(new RIGHTANONYMOUSCLASSBRACKET());
 
     this.classNestLevel--;
@@ -488,6 +533,9 @@ public class JavaFileVisitor extends ASTVisitor {
       statement.accept(this);
     }
 
+    // 最後の文の後，"}" の前にあるコメントの処理
+    this.addCommentsInside(node);
+
     this.addBracket(parent, false);
 
     return false;
@@ -547,7 +595,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
   @Override
   public boolean visit(final BlockComment node) {
-    this.addToPeekModule(new BLOCKCOMMENT(node.toString()));
+    this.addComment(node);
     return false;
   }
 
@@ -654,10 +702,30 @@ public class JavaFileVisitor extends ASTVisitor {
     return false;
   }
 
-  // 変更の必要なし
   @Override
   public boolean visit(final CompilationUnit node) {
+
+    // コメントは AST の子ノードではなく CompilationUnit にまとめて保持されているので，
+    // ここで集めておき，各ノードの訪問時に位置に応じて出力する（preVisit と addCommentsInside を参照）
+    this.compilationUnit = node;
+    if (null != this.source) {
+      for (final Object o : node.getCommentList()) {
+        final Comment comment = (Comment) o;
+        // 宣言に付随する Javadoc はその宣言の訪問時に出力するので，ここでは扱わない
+        if (comment.isDocComment() && null != comment.getParent()) {
+          continue;
+        }
+        this.pendingComments.add(comment);
+      }
+    }
+
     return super.visit(node);
+  }
+
+  @Override
+  public void endVisit(final CompilationUnit node) {
+    // ファイル末尾のコメントなど，まだ出力していないコメントをすべて出力する
+    this.addCommentsBefore(Integer.MAX_VALUE);
   }
 
   @Override
@@ -856,6 +924,9 @@ public class JavaFileVisitor extends ASTVisitor {
 
     this.classNestLevel++;
 
+    // 宣言に先行するコメント（Javadoc より前にある行コメントなど）をこの型のモジュールに入れる
+    this.addCommentsBefore(node.getStartPosition());
+
     // Javadoc コメントの処理
     final Javadoc javadoc = node.getJavadoc();
     if (null != javadoc) {
@@ -918,9 +989,13 @@ public class JavaFileVisitor extends ASTVisitor {
       body.accept(this);
     }
 
+    this.addCommentsInside(node);
     this.addToPeekModule(new RIGHTCLASSBRACKET());
 
     this.classNestLevel--;
+
+    // 型宣言の末尾行にあるコメント（"} // end of Foo" など）をこの型のモジュールに入れる
+    this.addCommentsBefore(this.endOfLine(node));
 
     // インナークラスでない場合は，モジュールスタックからクラスモジュールをポップし，外側のモジュールにクラスを表すトークンを追加する
     if (0 == this.classNestLevel) {
@@ -1000,10 +1075,18 @@ public class JavaFileVisitor extends ASTVisitor {
   public boolean visit(final FieldDeclaration node) {
 
     // 内部クラスのフィールドでない場合は，ダミーフィールドを生成し，モジュールスタックに追加
+    int leadingCommentCount = 0;
     if (1 == this.classNestLevel) {
       final FinerJavaModule outerModule = this.moduleStack.peek();
       final FinerJavaField dummyField = new FinerJavaField("DummyField", outerModule, null);
       this.moduleStack.push(dummyField);
+
+      // 宣言に先行するコメント（Javadoc より前にある行コメントなど）をこのフィールドのモジュールに入れる．
+      // ここまでにダミーフィールドに入ったトークンはすべて先行コメントなので，トークン化しない場合に
+      // 引き継ぐためにその数を覚えておく（内部クラスのフィールドの先行コメントは preVisit で出力済み）
+      this.addCommentsBefore(node.getStartPosition());
+      leadingCommentCount = dummyField.getTokens()
+          .size();
     }
 
     // Javadoc コメントの処理
@@ -1075,13 +1158,27 @@ public class JavaFileVisitor extends ASTVisitor {
             new FinerJavaFieldToken("FieldToken[" + javaField.name + "]", javaField));
       }
 
-      // 一行一トークンでない場合は，,フィールドの文字列表現からトークンを作り出し，それらをフィールドモジュールに追加し，処理を終了する
+      // 一行一トークンでない場合は，フィールドの文字列表現からトークンを作り出し，それらをフィールドモジュールに追加する
       else {
+        // 宣言に先行するコメントは文字列表現に含まれないので，ダミーフィールドから引き継ぐ
+        dummyField.getTokens()
+            .subList(0, leadingCommentCount)
+            .forEach(javaField::addToken);
         Stream.of(node.toString()
                 .split("(\\r\\n|\\r|\\n)"))
             .map(LineToken::new)
             .forEach(javaField::addToken);
+        // 宣言の範囲内にあるコメントは文字列表現に含まれているので，別途出力しないように捨てる
+        this.discardCommentsBefore(node.getStartPosition() + node.getLength());
       }
+
+      // フィールド宣言の後ろの同じ行にあるコメント（"int x; // count" など）をこのフィールドのモジュールに入れる
+      this.moduleStack.push(javaField);
+      this.addCommentsBefore(this.endOfLine(node));
+      this.moduleStack.pop();
+    } else {
+      // 内部クラスのフィールドの場合は，宣言の後ろの同じ行にあるコメントも現在のモジュールに入れる
+      this.addCommentsBefore(this.endOfLine(node));
     }
 
     return false;
@@ -1312,7 +1409,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
   @Override
   public boolean visit(final LineComment node) {
-    this.addToPeekModule(new LINECOMMENT(node.toString()));
+    this.addComment(node);
     return false;
   }
 
@@ -1413,10 +1510,18 @@ public class JavaFileVisitor extends ASTVisitor {
   public boolean visit(final MethodDeclaration node) {
 
     // 内部クラスのメソッドでない場合は，ダミーメソッドを生成し，モジュールスタックに追加
+    int leadingCommentCount = 0;
     if (1 == this.classNestLevel) {
       final FinerJavaModule outerModule = this.moduleStack.peek();
       final FinerJavaMethod dummyMethod = new FinerJavaMethod("DummyMethod", outerModule, null);
       this.moduleStack.push(dummyMethod);
+
+      // 宣言に先行するコメント（Javadoc より前にある行コメントなど）をこのメソッドのモジュールに入れる．
+      // ここまでにダミーメソッドに入ったトークンはすべて先行コメントなので，トークン化しない場合に
+      // 引き継ぐためにその数を覚えておく（内部クラスのメソッドの先行コメントは preVisit で出力済み）
+      this.addCommentsBefore(node.getStartPosition());
+      leadingCommentCount = dummyMethod.getTokens()
+          .size();
     }
 
     // Javadoc コメントの処理
@@ -1579,10 +1684,18 @@ public class JavaFileVisitor extends ASTVisitor {
 
       // 一行一トークンでない場合は，メソッドの文字列表現からトークンを作り出し，それらをメソッドモジュールに追加し，処理を終了する
       else {
+        // 宣言に先行するコメントは文字列表現に含まれないので，ダミーメソッドから引き継ぐ
+        dummyMethod.getTokens()
+            .subList(0, leadingCommentCount)
+            .forEach(javaMethod::addToken);
         Stream.of(node.toString()
                 .split("(\\r\\n|\\r|\\n)"))
             .map(LineToken::new)
             .forEach(javaMethod::addToken);
+        // 宣言の範囲内にあるコメントは文字列表現に含まれているので，別途出力しないように捨てる．
+        // 宣言の後ろの同じ行にあるコメント（"} // end of m" など）は文字列表現に含まれないので出力する
+        this.discardCommentsBefore(node.getStartPosition() + node.getLength());
+        this.addCommentsBefore(this.endOfLine(node));
         this.moduleStack.pop();
         return false;
       }
@@ -1595,6 +1708,9 @@ public class JavaFileVisitor extends ASTVisitor {
     } else {
       this.addToPeekModule(new METHODDECLARATIONSEMICOLON());
     }
+
+    // メソッドの末尾行にあるコメント（"} // end of m" など）をこのメソッドのモジュールに入れる
+    this.addCommentsBefore(this.endOfLine(node));
 
     // 内部クラス内のメソッドではない場合は，メソッドモジュールをスタックから取り出す
     if (1 == this.classNestLevel) {
@@ -1675,6 +1791,7 @@ public class JavaFileVisitor extends ASTVisitor {
       ((ModuleDirective) directive).accept(this);
     }
 
+    this.addCommentsInside(node);
     this.addToPeekModule(new RIGHTBRACKET());
 
     return false;
@@ -1960,6 +2077,9 @@ public class JavaFileVisitor extends ASTVisitor {
 
     this.classNestLevel++;
 
+    // 宣言に先行するコメント（Javadoc より前にある行コメントなど）をこの型のモジュールに入れる
+    this.addCommentsBefore(node.getStartPosition());
+
     final Javadoc javadoc = node.getJavadoc();
     if (null != javadoc) {
       this.addJavadoc(javadoc);
@@ -2026,9 +2146,13 @@ public class JavaFileVisitor extends ASTVisitor {
       bodyDeclaration.accept(this);
     }
 
+    this.addCommentsInside(node);
     this.addToPeekModule(new RIGHTRECORDBRACKET());
 
     this.classNestLevel--;
+
+    // 型宣言の末尾行にあるコメントをこのレコードのモジュールに入れる
+    this.addCommentsBefore(this.endOfLine(node));
 
     // インナーレコードでない場合は，モジュールスタックからレコードモジュールをポップし，外側のモジュールにレコードを表すトークンを追加する
     if (0 == this.classNestLevel) {
@@ -2329,6 +2453,7 @@ public class JavaFileVisitor extends ASTVisitor {
       statement.accept(this);
     }
 
+    this.addCommentsInside(node);
     this.addToPeekModule(new RIGHTSWITCHBRACKET());
 
     return false;
@@ -2349,6 +2474,7 @@ public class JavaFileVisitor extends ASTVisitor {
       statement.accept(this);
     }
 
+    this.addCommentsInside(node);
     this.addToPeekModule(new RIGHTSWITCHBRACKET());
 
     return false;
@@ -2502,6 +2628,9 @@ public class JavaFileVisitor extends ASTVisitor {
 
     this.classNestLevel++;
 
+    // 宣言に先行するコメント（Javadoc より前にある行コメントなど）をこの型のモジュールに入れる
+    this.addCommentsBefore(node.getStartPosition());
+
     final Javadoc javadoc = node.getJavadoc();
     if (null != javadoc) {
       this.addJavadoc(javadoc);
@@ -2581,9 +2710,13 @@ public class JavaFileVisitor extends ASTVisitor {
       bodyDeclaration.accept(this);
     }
 
+    this.addCommentsInside(node);
     this.addToPeekModule(new RIGHTCLASSBRACKET());
 
     this.classNestLevel--;
+
+    // 型宣言の末尾行にあるコメント（"} // end of Foo" など）をこの型のモジュールに入れる
+    this.addCommentsBefore(this.endOfLine(node));
 
     // インナークラスでない場合は，モジュールスタックからクラスモジュールをポップし，外側のモジュールにクラスを表すトークンを追加する
     if (0 == this.classNestLevel) {
@@ -2855,6 +2988,9 @@ public class JavaFileVisitor extends ASTVisitor {
 
     this.classNestLevel++;
 
+    // 宣言に先行するコメント（Javadoc より前にある行コメントなど）をこの型のモジュールに入れる
+    this.addCommentsBefore(node.getStartPosition());
+
     final Javadoc javadoc = node.getJavadoc();
     if (null != javadoc) {
       this.addJavadoc(javadoc);
@@ -2870,7 +3006,12 @@ public class JavaFileVisitor extends ASTVisitor {
       bodyDeclaration.accept(this);
     }
 
+    this.addCommentsInside(node);
+
     this.classNestLevel--;
+
+    // 暗黙クラスの最後の宣言と同じ行にあるコメントを，この型の宣言に続けて出力する
+    this.addCommentsBefore(this.endOfLine(node));
 
     return false;
   }
@@ -3045,5 +3186,111 @@ public class JavaFileVisitor extends ASTVisitor {
     final FinerJavaModule peekModule = this.moduleStack.peek();
     Stream.of(tokens)
         .forEach(peekModule::addToken);
+  }
+
+  // ===== コメントの処理 =====
+
+  /**
+   * 訪問するノードより前に始まるコメントを，そのノードのトークンより先に出力する．ただし，新しいモジュールを
+   * 作る宣言（トップレベルの型，メソッド，フィールド）に先行するコメントは，その宣言のモジュールに入れたいので，
+   * ここでは宣言の拡張範囲（先行コメントを含む範囲）より前のコメントだけを出力する．
+   */
+  @Override
+  public void preVisit(final ASTNode node) {
+    if (this.pendingComments.isEmpty()) {
+      return;
+    }
+    final int position = this.startsNewModule(node)
+        ? this.compilationUnit.getExtendedStartPosition(node)
+        : node.getStartPosition();
+    this.addCommentsBefore(position);
+  }
+
+  /**
+   * 先行するコメントをそのノードの宣言側で出力する（preVisit では出力しない）ノードかどうかを返す．
+   * トップレベルの型（クラス・列挙・レコード・注釈型・暗黙クラス）と，トップレベルの型に直接属する
+   * メソッドとフィールドが対象である．注釈型と暗黙クラスは独自のモジュールを作らないが，コメントの
+   * 帰属の判断を他の型宣言と同じにするために含めている．
+   */
+  private boolean startsNewModule(final ASTNode node) {
+    if (node instanceof MethodDeclaration || node instanceof FieldDeclaration) {
+      return 1 == this.classNestLevel;
+    }
+    if (node instanceof AbstractTypeDeclaration || node instanceof ImplicitTypeDeclaration) {
+      return 0 == this.classNestLevel;
+    }
+    return false;
+  }
+
+  /**
+   * 指定された位置より前に始まる未出力のコメントをすべて出力する．
+   */
+  private void addCommentsBefore(final int position) {
+    while (!this.pendingComments.isEmpty() && this.pendingComments.peekFirst()
+        .getStartPosition() < position) {
+      this.addComment(this.pendingComments.pollFirst());
+    }
+  }
+
+  /**
+   * 指定された位置より前に始まる未出力のコメントを，出力せずに捨てる．
+   */
+  private void discardCommentsBefore(final int position) {
+    while (!this.pendingComments.isEmpty() && this.pendingComments.peekFirst()
+        .getStartPosition() < position) {
+      this.pendingComments.pollFirst();
+    }
+  }
+
+  /**
+   * ノードの内側（閉じ括弧より前）にある未出力のコメントを出力する．
+   */
+  private void addCommentsInside(final ASTNode node) {
+    this.addCommentsBefore(node.getStartPosition() + node.getLength() - 1);
+  }
+
+  /**
+   * ノードが終わる行の終端位置を返す．ノードの後ろの同じ行にあるコメント（"int x; // count" の
+   * "// count"）はそのノードに属するものとして扱うために使う．次の行以降のコメントは，次に訪問するノードや
+   * 囲んでいるブロックのものとして扱う．
+   */
+  private int endOfLine(final ASTNode node) {
+    int position = node.getStartPosition() + node.getLength();
+    if (null == this.source) {
+      return position;
+    }
+    while (position < this.source.length()) {
+      final char c = this.source.charAt(position);
+      if ('\r' == c || '\n' == c) {
+        break;
+      }
+      position++;
+    }
+    return position;
+  }
+
+  /**
+   * コメントをトークンとして追加する．複数行のコメントは「1行1トークン」を保つために行ごとに分割し，
+   * 各行の前後の空白は取り除く．
+   */
+  private void addComment(final Comment comment) {
+    final int start = comment.getStartPosition();
+    final String text = null != this.source
+        ? this.source.substring(start, start + comment.getLength())
+        : comment.toString();
+    for (final String line : this.removeTerminalLineCharacter(text)
+        .split("\r\n|\r|\n")) {
+      final String value = line.strip();
+      if (value.isEmpty()) {
+        continue;
+      }
+      if (comment.isLineComment()) {
+        this.addToPeekModule(new LINECOMMENT(value));
+      } else if (comment.isDocComment()) {
+        this.addToPeekModule(new JAVADOCCOMMENT(value));
+      } else {
+        this.addToPeekModule(new BLOCKCOMMENT(value));
+      }
+    }
   }
 }

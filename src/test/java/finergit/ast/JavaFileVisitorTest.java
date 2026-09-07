@@ -1023,6 +1023,163 @@ public class JavaFileVisitorTest {
   }
 
   @Test
+  public void testComments() {
+
+    final String text = String.join("\n", //
+        "// file header", //
+        "", //
+        "class CommentExample {", //
+        "  // leading comment of field", //
+        "  int x; // trailing comment of field", //
+        "  /* block comment", //
+        "     spanning two lines */", //
+        "  void m() {", //
+        "    int a = 1; // trailing comment of statement", //
+        "    // comment before return", //
+        "    return;", //
+        "    // comment at end of block", //
+        "  } // trailing comment of method", //
+        "  // comment at end of class", //
+        "}", //
+        "// comment at end of file", //
+        "");
+
+    final String path = "dir/CommentExample.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("true");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("true");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+
+    final List<String> fileTokens = tokensOf(modules, FinerJavaFile.class);
+    assertThat(fileTokens).containsExactly("// file header", "ClassToken[CommentExample]",
+        "// comment at end of file");
+
+    final List<String> classTokens = tokensOf(modules, FinerJavaClass.class);
+    assertThat(classTokens).containsExactly("class", "CommentExample", "{", "FieldToken[int_x]",
+        "MethodToken[void_m()]", "// comment at end of class", "}");
+
+    final List<String> fieldTokens = tokensOf(modules, FinerJavaField.class);
+    assertThat(fieldTokens).containsExactly("// leading comment of field", "int", "x", ";",
+        "// trailing comment of field");
+
+    final List<String> methodTokens = tokensOf(modules, FinerJavaMethod.class);
+    assertThat(methodTokens).containsExactly("/* block comment", "spanning two lines */",
+        "void", "m", "(", ")", "{", "int", "a", "=", "1", ";",
+        "// trailing comment of statement", "// comment before return", "return", ";",
+        "// comment at end of block", "}", "// trailing comment of method");
+  }
+
+  private static List<String> tokensOf(final List<FinerJavaModule> modules,
+      final Class<? extends FinerJavaModule> moduleClass) {
+    return modules.stream()
+        .filter(moduleClass::isInstance)
+        .findFirst()
+        .orElseThrow()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+  }
+
+  @Test
+  public void testCommentsWithoutTokenization() {
+
+    final String text = String.join("\n", //
+        "class NoTokenize {", //
+        "  // leading comment of field", //
+        "  int x; // trailing comment of field", //
+        "  // leading comment of method", //
+        "  void m() {", //
+        "    // comment inside method", //
+        "    return;", //
+        "  } // trailing comment of method", //
+        "}", //
+        "");
+
+    final String path = "dir/NoTokenize.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setTokenized("false");
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("true");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+
+    // フィールド：先行コメント，宣言の文字列表現，同じ行の末尾コメントの順に並ぶ
+    final List<String> fieldTokens = tokensOf(modules, FinerJavaField.class);
+    assertThat(fieldTokens).hasSize(3);
+    assertThat(fieldTokens.get(0)).isEqualTo("// leading comment of field");
+    assertThat(fieldTokens.get(1)).startsWith("int x;");
+    assertThat(fieldTokens.get(2)).isEqualTo("// trailing comment of field");
+
+    // メソッド：宣言の範囲外にある先行コメントと末尾コメントは保持される．
+    // 本体内のコメントはメソッドの文字列表現に含まれないので出力されない（トークン化しない場合の従来どおりの挙動）
+    final List<String> methodTokens = tokensOf(modules, FinerJavaMethod.class);
+    assertThat(methodTokens.getFirst()).isEqualTo("// leading comment of method");
+    assertThat(methodTokens.getLast()).isEqualTo("// trailing comment of method");
+    assertThat(methodTokens).anyMatch(token -> token.startsWith("void m("));
+    assertThat(methodTokens).noneMatch(token -> token.contains("comment inside method"));
+  }
+
+  @Test
+  public void testCommentsAroundAnnotationTypeDeclaration() {
+
+    // 注釈型は独自のモジュールを作らないので，先行コメント・末尾コメントとも周辺ファイルに宣言と同じ順序で入る
+    final String text = String.join("\n", //
+        "// leading comment of annotation type", //
+        "@interface Marker { String value(); } // trailing comment of annotation type", //
+        "// comment at end of file", //
+        "");
+
+    final String path = "dir/Marker.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("true");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+
+    assertThat(modules).hasSize(1);
+    final List<String> fileTokens = tokensOf(modules, FinerJavaFile.class);
+    assertThat(fileTokens).containsExactly("// leading comment of annotation type", "Marker", "{",
+        "String", "value", ";", "}", "// trailing comment of annotation type",
+        "// comment at end of file");
+  }
+
+  @Test
+  public void testCommentsAroundImplicitTypeDeclaration() {
+
+    // 暗黙クラス（compact source file）の先行コメントは周辺ファイルに，メソッドの末尾コメントはメソッドファイルに入る
+    final String text = String.join("\n", //
+        "// leading comment of implicit class", //
+        "void main() {} // trailing comment of method", //
+        "// comment at end of file", //
+        "");
+
+    final String path = "dir/Main.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("true");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+
+    final List<String> fileTokens = tokensOf(modules, FinerJavaFile.class);
+    assertThat(fileTokens).containsExactly("// leading comment of implicit class",
+        "MethodToken[void_main()]", "// comment at end of file");
+
+    final List<String> methodTokens = tokensOf(modules, FinerJavaMethod.class);
+    assertThat(methodTokens).containsExactly("void", "main", "(", ")", "{", "}",
+        "// trailing comment of method");
+  }
+
+  @Test
   public void testNullPattern() {
 
     final String text = "class NullPatternExample {" + //
