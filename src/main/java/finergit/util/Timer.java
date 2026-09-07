@@ -5,11 +5,18 @@ import org.apache.commons.lang3.time.StopWatch;
 
 public class Timer extends StopWatch {
 
+  /**
+   * 計測を開始する．一時停止中であれば計測を再開し，すでに計測中であれば何もしない．
+   *
+   * StopWatch#isStarted() は計測中（RUNNING）でも一時停止中（SUSPENDED）でも true を返し，
+   * StopWatch#resume() は一時停止中でなければ IllegalStateException を投げるので，
+   * 一時停止中かどうかは isSuspended() で判定する必要がある．
+   */
   @Override
   public void start() {
-    if (super.isStarted()) {
+    if (super.isSuspended()) {
       super.resume();
-    } else {
+    } else if (!super.isStarted()) {
       super.start();
     }
   }
