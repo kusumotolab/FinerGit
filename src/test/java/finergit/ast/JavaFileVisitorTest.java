@@ -599,6 +599,133 @@ public class JavaFileVisitorTest {
   }
 
   @Test
+  public void testExplicitTypeArguments() {
+
+    final String text = "import java.util.function.Function;" + //
+        "class TypeArgs {" + //
+        "  <T> TypeArgs(T t) {}" + //
+        "  TypeArgs() { <String>this(\"x\"); }" + //
+        "  static <T> T id(T t) { return t; }" + //
+        "  void m() {" + //
+        "    String s = TypeArgs.<String>id(\"a\");" + //
+        "    Object o = new <String>TypeArgs(\"b\");" + //
+        "    Function<String, String> f = TypeArgs::<String>id;" + //
+        "  }" + //
+        "}";
+
+    final String path = "dir/TypeArgs.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+
+    final List<String> constructorTokens = modules.stream()
+        .filter(module -> "TypeArgs()".equals(module.name))
+        .findFirst()
+        .orElseThrow()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(constructorTokens).containsExactly("TypeArgs", "(", ")", "{", "<", "String", ">",
+        "this", "(", "\"x\"", ")", ";", "}");
+
+    final List<String> methodTokens = modules.stream()
+        .filter(module -> "void_m()".equals(module.name))
+        .findFirst()
+        .orElseThrow()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(methodTokens).containsExactly("void", "m", "(", ")", "{", //
+        "String", "s", "=", "TypeArgs", ".", "<", "String", ">", "id", "(", "\"a\"", ")", ";", //
+        "Object", "o", "=", "new", "<", "String", ">", "TypeArgs", "(", "\"b\"", ")", ";", //
+        "Function", "<", "String", ",", "String", ">", "f", "=", "TypeArgs", "::", "<", "String",
+        ">", "id", ";", //
+        "}");
+  }
+
+  @Test
+  public void testQualifiedThisAndSuper() {
+
+    final String text = "class Base { int x; }" + //
+        "class Outer extends Base {" + //
+        "  int y;" + //
+        "  class Inner {" + //
+        "    int sum() { return Outer.this.y + Outer.super.x; }" + //
+        "  }" + //
+        "}";
+
+    final String path = "dir/Outer.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("false");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+    final List<String> tokens = modules.stream()
+        .filter(module -> "Outer".equals(module.name))
+        .findFirst()
+        .orElseThrow()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(tokens).containsExactly("class", "Outer", "extends", "Base", "{",
+        "FieldToken[int_y]", "class", "Inner", "{", "int", "sum", "(", ")", "{", "return",
+        "Outer", ".", "this", ".", "y", "+", "Outer", ".", "super", ".", "x", ";", "}", "}", "}");
+  }
+
+  @Test
+  public void testExtraDimensionsAndImports() {
+
+    final String text = "import java.util.*;" + //
+        "import static java.util.Collections.emptyList;" + //
+        "import module java.base;" + //
+        "class Dims {" + //
+        "  void m(int a[], int b[][]) { int c[] = null; }" + //
+        "}";
+
+    final String path = "dir/Dims.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("true");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+
+    final List<String> peripheralTokens = modules.stream()
+        .filter(module -> module instanceof FinerJavaFile)
+        .findFirst()
+        .orElseThrow()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(peripheralTokens).containsExactly("import", "java", ".", "util", ".", "*", //
+        "import", "static", "java", ".", "util", ".", "Collections", ".", "emptyList", //
+        "import", "module", "java", ".", "base", //
+        "ClassToken[Dims]");
+
+    final List<String> methodTokens = modules.stream()
+        .filter(module -> module instanceof FinerJavaMethod)
+        .findFirst()
+        .orElseThrow()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(methodTokens).containsExactly("void", "m", "(", "int", "a", "[", "]", ",", "int",
+        "b", "[", "]", "[", "]", ")", "{", "int", "c", "[", "]", "=", "null", ";", "}");
+  }
+
+  @Test
   public void testJavadocReferences() {
 
     final FinerGitConfig config = new FinerGitConfig();
