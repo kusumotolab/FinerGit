@@ -429,7 +429,11 @@ public class JavaFileVisitor extends ASTVisitor {
     node.getLeftHandSide()
         .accept(this);
 
-    this.addToPeekModule(new ASSIGN());
+    // 単純代入 "=" 以外（"+=" や "|=" などの複合代入）は演算子ごとのトークンにする
+    final String operator = node.getOperator()
+        .toString();
+    this.addToPeekModule(
+        "=".equals(operator) ? new ASSIGN() : OperatorFactory.create(operator));
 
     node.getRightHandSide()
         .accept(this);
