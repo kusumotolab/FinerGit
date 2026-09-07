@@ -2601,7 +2601,20 @@ public class JavaFileVisitor extends ASTVisitor {
 
   @Override
   public boolean visit(final WildcardType node) {
+
+    for (final Object o : node.annotations()) {
+      ((Annotation) o).accept(this);
+    }
+
     this.addToPeekModule(new QUESTION());
+
+    // 境界（"? extends X" や "? super X"）の処理
+    final Type bound = node.getBound();
+    if (null != bound) {
+      this.addToPeekModule(node.isUpperBound() ? new EXTENDS() : new SUPER());
+      bound.accept(this);
+    }
+
     return false;
   }
 

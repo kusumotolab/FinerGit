@@ -144,6 +144,33 @@ public class JavaFileVisitorTest {
   }
 
   @Test
+  public void testWildcardType() {
+
+    final String text = "import java.util.List;" + //
+        "class WildcardType{" + //
+        "  void wildcardType(List<? extends Number> a, List<? super Integer> b, List<?> c){" + //
+        "  }" + //
+        "}";
+    final String path = "dir/WildcardType.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+    final List<String> tokens = modules.get(0)
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(tokens).containsExactly("void", "wildcardType", "(", //
+        "List", "<", "?", "extends", "Number", ">", "a", ",", //
+        "List", "<", "?", "super", "Integer", ">", "b", ",", //
+        "List", "<", "?", ">", "c", ")", "{", "}");
+  }
+
+  @Test
   public void testSwitchStatement() {
 
     final String text = "class SwitchStatement{" + //
