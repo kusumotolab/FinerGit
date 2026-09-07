@@ -697,4 +697,28 @@ public class FinerJavaFileBuilderTest {
     assertThat(moduleNamesWithoutClassFiles)
         .containsExactly("[Record]RecordExample#public_RecordExample(double,double).mjava");
   }
+
+  /**
+   * コンパクトコンストラクタのファイル名にはレコードのコンポーネントが引数として含まれ，
+   * 明示的な引数なしコンストラクタと衝突しない．
+   */
+  @Test
+  public void getFinerJavaModulesCompactConstructorTest() {
+    final String text = "record R(int x, String y) {" + //
+        "  R { }" + //
+        "  R() { this(0, \"\"); }" + //
+        "}";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules("dir/R.java", text);
+
+    final List<String> moduleNames = modules.stream()
+        .map(m -> m.getFileName())
+        .collect(Collectors.toList());
+    assertThat(moduleNames).containsExactlyInAnyOrder("R#R(int,String).mjava", "R#R().mjava");
+  }
 }

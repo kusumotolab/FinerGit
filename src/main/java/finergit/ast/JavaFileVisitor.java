@@ -1536,7 +1536,14 @@ public class JavaFileVisitor extends ASTVisitor {
     methodFileName.append(methodName);
     methodFileName.append("(");
     final List<String> types = new ArrayList<>();
-    for (final Object parameter : node.parameters()) {
+    // コンパクトコンストラクタ（"record R(int x) { R { ... } }"）は AST 上は引数を持たないが，
+    // 実際にはレコードのコンポーネントを引数とする正準コンストラクタなので，コンポーネントを引数として扱う．
+    // そうしないと，明示的に宣言された引数なしコンストラクタ "R()" と同じファイル名になってしまう．
+    final List<?> parameterDeclarations =
+        node.isCompactConstructor() && node.getParent() instanceof RecordDeclaration
+            ? ((RecordDeclaration) node.getParent()).recordComponents()
+            : node.parameters();
+    for (final Object parameter : parameterDeclarations) {
       final SingleVariableDeclaration svd = (SingleVariableDeclaration) parameter;
       final StringBuilder typeText = new StringBuilder();
       typeText.append(svd.getType());
