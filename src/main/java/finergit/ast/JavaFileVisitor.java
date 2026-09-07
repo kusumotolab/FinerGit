@@ -2452,7 +2452,8 @@ public class JavaFileVisitor extends ASTVisitor {
     final Class<?> context = this.contexts.pop();
     assert INVOKEDMETHODNAME.class == context : "error happened at visit(TypeMethodReference)";
 
-    return super.visit(node);
+    // 子ノードはすべて上で処理済みなので，二重に訪問されないように false を返す
+    return false;
   }
 
   @Override
