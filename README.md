@@ -10,7 +10,7 @@ By default, the generated repository has the following features.
 
 - Each Java method or constructor is extracted as a single `.mjava` file.
 - Each line of an extracted Java method file contains only one token.
-- Comments (Javadoc, block, and line comments) are kept. A multi-line comment is split into one token per line.
+- Comments (Javadoc, block, and line comments) are kept. A multi-line comment is split into one token per line. (Exception: with `--tokenize false`, the comments inside a method or field are not kept; see the option below.)
 
 Optional settings can also keep original Java files, keep non-Java files, and generate class, field, or peripheral token files.
 
@@ -87,7 +87,7 @@ Generated file options:
 
 Token and file-name options:
 
-- `-t`, `--tokenize <true|false>`: tokenize generated Java method and field files. The default is `true`.
+- `-t`, `--tokenize <true|false>`: tokenize generated Java method and field files. The default is `true`. With `false`, each method or field file contains the source text of the declaration as printed by the parser, so the comments inside the declaration are not kept (its Javadoc is); the comments directly before the declaration and on the same line after it are still kept.
 - `--access-modifier-included <true|false>`: include access modifiers in generated method and field file names. The default is `true`.
 - `--method-type-erasure-included <true|false>`: include method type parameters in generated method file names. The default is `true`.
 - `--return-type-included <true|false>`: include return types in generated method file names. The default is `true`.
@@ -188,7 +188,7 @@ FinerGit はそのリポジトリを，より細粒度なファイル構成を�
 
 - 各 Java メソッドまたはコンストラクタが1つの `.mjava` ファイルとして抽出されている．
 - 抽出された各 Java メソッドファイルの各行は1つの字句のみを含む．
-- コメント（Javadoc，ブロックコメント，行コメント）も保持される．複数行のコメントは1行1字句に分割される．
+- コメント（Javadoc，ブロックコメント，行コメント）も保持される．複数行のコメントは1行1字句に分割される．（例外：`--tokenize false` の場合，メソッドやフィールドの内部にあるコメントは保持されない．後述のオプションの説明を参照．）
 
 オプションにより，元の Java ファイルや Java 以外のファイルを残したり，クラス，フィールド，周辺トークンのファイルを生成したりできます．
 
@@ -266,7 +266,7 @@ $ java -jar build/libs/FinerGit-all.jar create --help
 
 字句化とファイル名に関するオプション:
 
-- `-t`, `--tokenize <true|false>`: 生成される Java メソッドファイルおよびフィールドファイルを字句化するかどうか．デフォルトは `true` です．
+- `-t`, `--tokenize <true|false>`: 生成される Java メソッドファイルおよびフィールドファイルを字句化するかどうか．デフォルトは `true` です．`false` の場合，メソッドファイルとフィールドファイルにはパーサが出力する宣言のソーステキストが入るため，宣言の内部にあるコメントは保持されません（Javadoc は保持されます）．宣言の直前のコメントと，宣言の後ろの同じ行にあるコメントは保持されます．
 - `--access-modifier-included <true|false>`: 生成されるメソッドファイル名およびフィールドファイル名にアクセス修飾子を含めるかどうか．デフォルトは `true` です．
 - `--method-type-erasure-included <true|false>`: 生成されるメソッドファイル名にメソッド型パラメータを含めるかどうか．デフォルトは `true` です．
 - `--return-type-included <true|false>`: 生成されるメソッドファイル名に戻り値型を含めるかどうか．デフォルトは `true` です．

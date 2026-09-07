@@ -349,6 +349,9 @@ public class JavaFileVisitor extends ASTVisitor {
 
     this.classNestLevel--;
 
+    // 型宣言の末尾行にあるコメント（"} // end of Marker" など）をこの型の宣言に続けて出力する
+    this.addCommentsBefore(this.endOfLine(node));
+
     return false;
   }
 
@@ -3007,6 +3010,9 @@ public class JavaFileVisitor extends ASTVisitor {
 
     this.classNestLevel--;
 
+    // 暗黙クラスの最後の宣言と同じ行にあるコメントを，この型の宣言に続けて出力する
+    this.addCommentsBefore(this.endOfLine(node));
+
     return false;
   }
 
@@ -3200,12 +3206,17 @@ public class JavaFileVisitor extends ASTVisitor {
     this.addCommentsBefore(position);
   }
 
+  /**
+   * 先行するコメントをそのノードの宣言側で出力する（preVisit では出力しない）ノードかどうかを返す．
+   * トップレベルの型（クラス・列挙・レコード・注釈型・暗黙クラス）と，トップレベルの型に直接属する
+   * メソッドとフィールドが対象である．注釈型と暗黙クラスは独自のモジュールを作らないが，コメントの
+   * 帰属の判断を他の型宣言と同じにするために含めている．
+   */
   private boolean startsNewModule(final ASTNode node) {
     if (node instanceof MethodDeclaration || node instanceof FieldDeclaration) {
       return 1 == this.classNestLevel;
     }
-    if (node instanceof TypeDeclaration || node instanceof EnumDeclaration
-        || node instanceof RecordDeclaration) {
+    if (node instanceof AbstractTypeDeclaration || node instanceof ImplicitTypeDeclaration) {
       return 0 == this.classNestLevel;
     }
     return false;
