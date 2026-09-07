@@ -1,6 +1,7 @@
 package finergit.ast;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.Stack;
@@ -466,6 +467,19 @@ public class JavaFileVisitorTest {
         .add(highlight);
 
     final JavaFileVisitor visitor = new JavaFileVisitor("dir", "Javadocs", config);
+    assertThat(visitor.getFinerJavaModules()
+        .getFirst()
+        .getDirectoryName()).isEqualTo("dir");
+
+    // 非推奨の Path を受け取るコンストラクタも同じモジュールを作る
+    @SuppressWarnings("deprecation")
+    final JavaFileVisitor deprecatedVisitor =
+        new JavaFileVisitor(Paths.get("dir/Javadocs.java"), config);
+    final FinerJavaModule deprecatedModule = deprecatedVisitor.getFinerJavaModules()
+        .getFirst();
+    assertThat(deprecatedModule.getDirectoryName()).isEqualTo("dir");
+    assertThat(deprecatedModule.getFileName()).isEqualTo("Javadocs.pjava");
+    assertThat(deprecatedModule.getPathName()).isEqualTo("dir/Javadocs.pjava");
     seeField.accept(visitor);
     seeMethod.accept(visitor);
     region.accept(visitor);

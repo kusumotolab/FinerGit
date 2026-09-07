@@ -13,8 +13,8 @@ public class FinerJavaMethod extends FinerJavaModule {
   }
 
   @Override
-  public String getDirectory() {
-    return this.outerModule.getDirectory();
+  public String getDirectoryName() {
+    return this.outerModule.getDirectoryName();
   }
 
   @Override

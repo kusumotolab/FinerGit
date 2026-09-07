@@ -8,12 +8,16 @@ public class FinerJavaFile extends FinerJavaModule {
 
   private static final String FILE_EXTENSION = ".pjava";
 
-  public final String directory;
+  /**
+   * このファイルが置かれているディレクトリ（リポジトリ内のパス，ルートの場合は空文字列）
+   */
+  public final String directoryName;
   private final List<FinerJavaModule> innerJavaModules;
 
-  public FinerJavaFile(final String directory, final String name, final FinerGitConfig config) {
+  public FinerJavaFile(final String directoryName, final String name,
+      final FinerGitConfig config) {
     super(name, null, config);
-    this.directory = directory;
+    this.directoryName = directoryName;
     this.innerJavaModules = new ArrayList<>();
   }
 
@@ -26,8 +30,8 @@ public class FinerJavaFile extends FinerJavaModule {
   }
 
   @Override
-  public String getDirectory() {
-    return this.directory;
+  public String getDirectoryName() {
+    return this.directoryName;
   }
 
   @Override

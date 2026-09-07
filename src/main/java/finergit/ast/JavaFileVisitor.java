@@ -1,10 +1,12 @@
 package finergit.ast;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.io.FilenameUtils;
 import org.eclipse.jdt.core.dom.*;
 import org.eclipse.jdt.core.dom.InfixExpression.Operator;
 import org.slf4j.Logger;
@@ -224,6 +226,18 @@ public class JavaFileVisitor extends ASTVisitor {
   private final List<FinerJavaModule> moduleList;
   private final Stack<Class<?>> contexts;
   private int classNestLevel;
+
+  /**
+   * @param path 解析対象ファイルのパス
+   * @param config 設定
+   * @deprecated リポジトリ内のパスには実行環境で使えない文字が含まれうるため，Path を作ること自体が
+   *             失敗しうる．代わりに {@link #JavaFileVisitor(String, String, FinerGitConfig)} を使うこと．
+   */
+  @Deprecated
+  public JavaFileVisitor(final Path path, final FinerGitConfig config) {
+    this(null == path.getParent() ? "" : path.getParent()
+        .toString(), FilenameUtils.getBaseName(path.toString()), config);
+  }
 
   /**
    * @param directory 解析対象ファイルが置かれているディレクトリ（リポジトリ内のパス，ルートの場合は空文字列）．

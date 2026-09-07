@@ -659,8 +659,9 @@ public class FinerJavaFileBuilderTest {
         .collect(Collectors.toList());
     assertThat(moduleNames).containsExactlyInAnyOrder("Foo.pjava", "Foo.cjava",
         "Foo#public_void_bar().mjava");
-    assertThat(modules).allSatisfy(m -> assertThat(m.getDirectory()).isEqualTo("src/what?/x*y"));
+    assertThat(modules)
+        .allSatisfy(m -> assertThat(m.getDirectoryName()).isEqualTo("src/what?/x*y"));
     assertThat(modules.getFirst()
-        .getPath()).isEqualTo("src/what?/x*y/Foo.pjava");
+        .getPathName()).isEqualTo("src/what?/x*y/Foo.pjava");
   }
 }
