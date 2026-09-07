@@ -1118,23 +1118,9 @@ public class JavaFileVisitor extends ASTVisitor {
 
     // フィールドモジュールの名前を生成
     final StringBuilder fieldFileName = new StringBuilder();
-    if (this.config.isAccessModifierIncluded()) { // アクセス修飾子を名前に入れる場合
-      final int modifiers = node.getModifiers();
-      if (Modifier.isPublic(modifiers)) {
-        fieldFileName.append("public_");
-      } else if (Modifier.isProtected(modifiers)) {
-        fieldFileName.append("protected_");
-      } else if (Modifier.isPrivate(modifiers)) {
-        fieldFileName.append("private_");
-      }
-    }
-    final String type = node.getType()
-        .toString()
-        .replace(' ', '-') // avoiding space existences
-        .replace('?', '#') // for window's file system
-        .replace('<', '[') // for window's file system
-        .replace('>', ']'); // for window's file system
-    fieldFileName.append(type);
+    fieldFileName.append(this.accessModifierPrefix(node.getModifiers()));
+    fieldFileName.append(toFileNameSafeType(node.getType()
+        .toString()));
     fieldFileName.append("_");
     fieldFileName.append(((VariableDeclarationFragment) fragments.getFirst()).getName());
     for (int index = 1; index < fragments.size(); index++) {
@@ -1601,28 +1587,14 @@ public class JavaFileVisitor extends ASTVisitor {
 
     // メソッドモジュールの名前を生成
     final StringBuilder methodFileName = new StringBuilder();
-    if (this.config.isAccessModifierIncluded()) { // アクセス修飾子を名前に入れる場合
-      final int modifiers = node.getModifiers();
-      if (Modifier.isPublic(modifiers)) {
-        methodFileName.append("public_");
-      } else if (Modifier.isProtected(modifiers)) {
-        methodFileName.append("protected_");
-      } else if (Modifier.isPrivate(modifiers)) {
-        methodFileName.append("private_");
-      }
-    }
+    methodFileName.append(this.accessModifierPrefix(node.getModifiers()));
     if (this.config.isMethodTypeErasureIncluded()) { // Erasure を名前に入れる場合
       if (null != typeParameters && !typeParameters.isEmpty()) {
         methodFileName.append("[");
         final List<String> erasures = new ArrayList<>();
         for (final Object o : node.typeParameters()) {
           final TypeParameter typeParameter = (TypeParameter) o;
-          final String type = typeParameter.toString()
-              .replace(' ', '-') // avoiding space existences
-              .replace('?', '#') // for window's file system
-              .replace('<', '[') // for window's file system
-              .replace('>', ']'); // for window's file system
-          erasures.add(type);
+          erasures.add(toFileNameSafeType(typeParameter.toString()));
         }
         methodFileName.append(String.join(",", erasures));
         methodFileName.append("]_");
@@ -1630,12 +1602,7 @@ public class JavaFileVisitor extends ASTVisitor {
     }
     if (this.config.isReturnTypeIncluded()) { // 返り値の型を名前に入れる場合
       if (null != returnType) {
-        final String type = returnType.toString()
-            .replace(' ', '-') // avoiding space existences
-            .replace('?', '#') // for window's file system
-            .replace('<', '[') // for window's file system
-            .replace('>', ']'); // for window's file system
-        methodFileName.append(type);
+        methodFileName.append(toFileNameSafeType(returnType.toString()));
         methodFileName.append("_");
       }
     }
@@ -1660,12 +1627,7 @@ public class JavaFileVisitor extends ASTVisitor {
       if (svd.isVarargs()) {
         typeText.append("...");
       }
-      final String type = typeText.toString()
-          .replace(' ', '-') // avoiding space existences
-          .replace('?', '#') // for window's file system
-          .replace('<', '[') // for window's file system
-          .replace('>', ']'); // for window's file system
-      types.add(type);
+      types.add(toFileNameSafeType(typeText.toString()));
     }
     methodFileName.append(String.join(",", types));
     methodFileName.append(")");
@@ -3192,6 +3154,45 @@ public class JavaFileVisitor extends ASTVisitor {
     final FinerJavaModule peekModule = this.moduleStack.peek();
     Stream.of(tokens)
         .forEach(peekModule::addToken);
+  }
+
+  // ===== ファイル名の生成 =====
+
+  /**
+   * ファイル名に含めるアクセス修飾子の接頭辞（"public_"，"protected_"，"private_"）を返す．
+   * 設定でアクセス修飾子を含めない場合や，パッケージプライベートの場合は空文字列を返す．
+   *
+   * @param modifiers 宣言の修飾子（{@link BodyDeclaration#getModifiers()} の値）
+   * @return 接頭辞
+   */
+  private String accessModifierPrefix(final int modifiers) {
+    if (!this.config.isAccessModifierIncluded()) {
+      return "";
+    }
+    if (Modifier.isPublic(modifiers)) {
+      return "public_";
+    }
+    if (Modifier.isProtected(modifiers)) {
+      return "protected_";
+    }
+    if (Modifier.isPrivate(modifiers)) {
+      return "private_";
+    }
+    return "";
+  }
+
+  /**
+   * 型の文字列表現をファイル名に使える形に変換する．空白は "-" に置き換え，Windows のファイルシステムで
+   * 使えない "?"，"&lt;"，"&gt;" はそれぞれ "#"，"["，"]" に置き換える．
+   *
+   * @param type 型の文字列表現（型パラメータ，戻り値型，引数型，フィールドの型）
+   * @return ファイル名に使える文字列
+   */
+  private static String toFileNameSafeType(final String type) {
+    return type.replace(' ', '-')
+        .replace('?', '#')
+        .replace('<', '[')
+        .replace('>', ']');
   }
 
   // ===== コメントの処理 =====
