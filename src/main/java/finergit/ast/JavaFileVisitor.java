@@ -67,6 +67,7 @@ import finergit.ast.token.IMPLEMENTS;
 import finergit.ast.token.IMPORT;
 import finergit.ast.token.IMPORTNAME;
 import finergit.ast.token.INSTANCEOF;
+import finergit.ast.token.INTERFACE;
 import finergit.ast.token.INVOKEDMETHODNAME;
 import finergit.ast.token.JAVADOCCOMMENT;
 import finergit.ast.token.JavaToken;
@@ -133,6 +134,7 @@ import finergit.ast.token.OperatorFactory;
 import finergit.ast.token.PACKAGE;
 import finergit.ast.token.PACKAGENAME;
 import finergit.ast.token.PARAMETERIZEDTYPECOMMA;
+import finergit.ast.token.PERMITS;
 import finergit.ast.token.PrimitiveTypeFactory;
 import finergit.ast.token.PROVIDES;
 import finergit.ast.token.QUESTION;
@@ -1952,6 +1954,9 @@ public class JavaFileVisitor extends ASTVisitor {
     final Class<?> nameContext = this.contexts.pop();
     assert RECORDNAME.class == nameContext : "error happened at visit(RecordDeclaration)";
 
+    // 型パラメータの処理
+    this.addTypeParameters(node.typeParameters());
+
     this.addToPeekModule(new LEFTRECORDPAREN());
 
     // コンポーネントの処理
@@ -2452,8 +2457,8 @@ public class JavaFileVisitor extends ASTVisitor {
       this.addToPeekModule(modifierToken);
     }
 
-    // "class"の処理
-    this.addToPeekModule(new CLASS());
+    // "class" もしくは "interface" の処理
+    this.addToPeekModule(node.isInterface() ? new INTERFACE() : new CLASS());
 
     // クラス名の処理
     this.contexts.push(CLASSNAME.class);
@@ -2461,6 +2466,9 @@ public class JavaFileVisitor extends ASTVisitor {
         .accept(this);
     final Class<?> nameContext = this.contexts.pop();
     assert CLASSNAME.class == nameContext : "error happened at visit(TypeDeclaration)";
+
+    // 型パラメータの処理
+    this.addTypeParameters(node.typeParameters());
 
     // extends 節の処理
     final Type superType = node.getSuperclassType();
@@ -2472,14 +2480,14 @@ public class JavaFileVisitor extends ASTVisitor {
       assert TYPENAME.class == extendsContext : "error happened at visit(TypeDeclaration)";
     }
 
-    // implements 節の処理
+    // implements 節の処理（インタフェース宣言の場合は extends 節）
     @SuppressWarnings("rawtypes")
     final List interfaces = node.superInterfaceTypes();
     if (null != interfaces && !interfaces.isEmpty()) {
 
       this.contexts.push(TYPENAME.class);
 
-      this.addToPeekModule(new IMPLEMENTS());
+      this.addToPeekModule(node.isInterface() ? new EXTENDS() : new IMPLEMENTS());
       ((Type) interfaces.getFirst()).accept(this);
 
       for (int index = 1; index < interfaces.size(); index++) {
@@ -2489,6 +2497,24 @@ public class JavaFileVisitor extends ASTVisitor {
 
       final Class<?> implementsContext = this.contexts.pop();
       assert TYPENAME.class == implementsContext : "error happened at visit(TypeDeclaration)";
+    }
+
+    // permits 節の処理
+    final List<?> permittedTypes = node.permittedTypes();
+    if (null != permittedTypes && !permittedTypes.isEmpty()) {
+
+      this.contexts.push(TYPENAME.class);
+
+      this.addToPeekModule(new PERMITS());
+      ((Type) permittedTypes.getFirst()).accept(this);
+
+      for (int index = 1; index < permittedTypes.size(); index++) {
+        this.addToPeekModule(new TYPEDECLARATIONCOMMA());
+        ((Type) permittedTypes.get(index)).accept(this);
+      }
+
+      final Class<?> permitsContext = this.contexts.pop();
+      assert TYPENAME.class == permitsContext : "error happened at visit(TypeDeclaration)";
     }
 
     this.addToPeekModule(new LEFTCLASSBRACKET());
@@ -2864,6 +2890,25 @@ public class JavaFileVisitor extends ASTVisitor {
     final VariableDeclaration variableDeclaration = node.getPatternVariable2();
     variableDeclaration.accept(this);
     return false;
+  }
+
+  /**
+   * 型宣言（クラス，インタフェース，レコード）の型パラメータリストを "&lt;" と "&gt;" で囲んで追加する．
+   *
+   * @param typeParameters 型パラメータのリスト（空の場合は何も追加しない）
+   */
+  private void addTypeParameters(final List<?> typeParameters) {
+    if (null == typeParameters || typeParameters.isEmpty()) {
+      return;
+    }
+
+    this.addToPeekModule(new LESS());
+    ((TypeParameter) typeParameters.getFirst()).accept(this);
+    for (int index = 1; index < typeParameters.size(); index++) {
+      this.addToPeekModule(new TYPEDECLARATIONCOMMA());
+      ((TypeParameter) typeParameters.get(index)).accept(this);
+    }
+    this.addToPeekModule(new GREAT());
   }
 
   private void addTargetModules(final List<?> modules) {
