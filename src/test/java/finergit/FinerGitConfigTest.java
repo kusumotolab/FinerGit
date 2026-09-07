@@ -123,4 +123,28 @@ public class FinerGitConfigTest {
     config.setJavaVersion("25");
     assertThat(config.getJavaVersion()).isEqualTo(JavaVersion.V1_25);
   }
+
+  /**
+   * ファイル名の最大長は，ハッシュ値の長さ + 8（"_"，ベースネーム1文字，拡張子6文字）以上でなければならない．
+   */
+  @Test
+  public void testValidateMaxFileNameLengthAgainstHashLength() {
+    final FinerGitConfig config = new FinerGitConfig();
+    assertThat(config.validate()).isNull();
+
+    // デフォルトのハッシュ値の長さ（7）に対する最小値
+    config.setMaxFileNameLength(FinerGitConfig.MINIMUM_FILE_NAME_LENGTH);
+    assertThat(config.validate()).isNull();
+
+    // ハッシュ値を長くすると，同じファイル名の最大長では足りなくなる
+    config.setHashLength(40);
+    assertThat(config.validate()).contains("--max-file-name-length")
+        .contains("48");
+
+    config.setMaxFileNameLength(47);
+    assertThat(config.validate()).isNotNull();
+
+    config.setMaxFileNameLength(48);
+    assertThat(config.validate()).isNull();
+  }
 }

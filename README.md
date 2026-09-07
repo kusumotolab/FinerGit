@@ -92,7 +92,7 @@ Token and file-name options:
 - `--return-type-included <true|false>`: include return types in generated method file names. The default is `true`.
 - `--token-type-included <true|false>`: append token type names to tokenized lines. The default is `false`.
 - `--method-token-included <true|false>`: include method boundary tokens in generated method files. The default is `true`.
-- `--max-file-name-length <num>`: maximum generated file name length. The value must be between `13` and `255`. The default is `255`.
+- `--max-file-name-length <num>`: maximum generated file name length. The value must be between `15` and `255`, and at least `--hash-length` + 8 so that a shortened name keeps at least one character of the original name. The default is `255`.
 - `--hash-length <num>`: length of the hash value attached to shortened file names. The value must be between `7` and `40`. The default is `7`.
 
 ### Exit Status
@@ -269,7 +269,7 @@ $ java -jar build/libs/FinerGit-all.jar create --help
 - `--return-type-included <true|false>`: 生成されるメソッドファイル名に戻り値型を含めるかどうか．デフォルトは `true` です．
 - `--token-type-included <true|false>`: 字句化された各行に字句の種類を付加するかどうか．デフォルトは `false` です．
 - `--method-token-included <true|false>`: 生成されるメソッドファイルにメソッド境界トークンを含めるかどうか．デフォルトは `true` です．
-- `--max-file-name-length <num>`: 生成されるファイル名の最大長．`13` から `255` の範囲で指定できます．デフォルトは `255` です．
+- `--max-file-name-length <num>`: 生成されるファイル名の最大長．`15` から `255` の範囲で，かつ `--hash-length` + 8 以上の値を指定できます（短縮後のファイル名に元の名前が1文字以上残るようにするためです）．デフォルトは `255` です．
 - `--hash-length <num>`: 短縮されたファイル名に付与するハッシュ値の長さ．`7` から `40` の範囲で指定できます．デフォルトは `7` です．
 
 ### 終了コード

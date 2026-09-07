@@ -117,6 +117,21 @@ public class FinerGitMainTest {
   }
 
   /**
+   * "--max-file-name-length" が "--hash-length" に対して短すぎる場合には，変換を始めずに異常終了する．
+   */
+  @Test
+  public void testRunWithTooShortMaxFileNameLength() throws Exception {
+    final Path srcPath = createRepository();
+    final Path desPath = getPathInTemporaryFolder("des");
+
+    final int status = FinerGitMain.run(new String[] {"-s", srcPath.toString(), "-d",
+        desPath.toString(), "--max-file-name-length", "20", "--hash-length", "40"});
+
+    assertThat(status).isEqualTo(FinerGitMain.EXIT_FAILURE);
+    assertThat(desPath).doesNotExist();
+  }
+
+  /**
    * 出力先が空でない既存ディレクトリの場合には，その内容を変更せずに異常終了する．
    */
   @Test
@@ -141,6 +156,28 @@ public class FinerGitMainTest {
 
     assertThat(run(srcPath, desPath)).isEqualTo(FinerGitMain.EXIT_SUCCESS);
     assertThat(getFileNames(desPath)).anyMatch(name -> name.endsWith(".mjava"));
+  }
+
+  /**
+   * "--max-file-name-length" に最小値を指定しても変換でき，生成されるファイル名はその長さに収まる．
+   */
+  @Test
+  public void testRunWithMinimumMaxFileNameLength() throws Exception {
+    final Path srcPath = createRepository();
+    final Path desPath = getPathInTemporaryFolder("des");
+
+    final int status = FinerGitMain.run(new String[] {"-s", srcPath.toString(), "-d",
+        desPath.toString(), "--max-file-name-length",
+        String.valueOf(FinerGitConfig.MINIMUM_FILE_NAME_LENGTH)});
+
+    assertThat(status).isEqualTo(FinerGitMain.EXIT_SUCCESS);
+    final List<String> finerFileNames = getFileNames(desPath).stream()
+        .filter(name -> name.endsWith(".mjava"))
+        .collect(Collectors.toList());
+    assertThat(finerFileNames).isNotEmpty()
+        .allSatisfy(name -> assertThat(name.length())
+            .isLessThanOrEqualTo(FinerGitConfig.MINIMUM_FILE_NAME_LENGTH))
+        .allSatisfy(name -> assertThat(name).matches("F_[0-9a-f]{7}\\.mjava"));
   }
 
   /**
