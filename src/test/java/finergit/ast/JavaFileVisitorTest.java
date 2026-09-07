@@ -258,6 +258,35 @@ public class JavaFileVisitorTest {
   }
 
   @Test
+  public void testEnumDeclaration() {
+
+    final String text = "enum Color implements Runnable {" + //
+        "  RED, GREEN(1) { public String toString() { return \"g\"; } };" + //
+        "  Color() {}" + //
+        "  Color(int x) {}" + //
+        "  public void run() {}" + //
+        "}";
+
+    final String path = "dir/Color.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("false");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+    final List<String> tokens = modules.getFirst()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(tokens).containsExactly("enum", "Color", "implements", "Runnable", "{", //
+        "RED", ",", "GREEN", "(", "1", ")", "{", "public", "String", "toString", "(", ")", "{",
+        "return", "\"g\"", ";", "}", "}", ";", //
+        "MethodToken[Color()]", "MethodToken[Color(int)]", "MethodToken[public_void_run()]", "}");
+  }
+
+  @Test
   public void testRecordPattern() {
 
     final String text = "public class RecordPatternExample {" + //

@@ -822,7 +822,7 @@ public class JavaFileVisitor extends ASTVisitor {
       this.addToPeekModule(modifierToken);
     }
 
-    // "class"の処理
+    // "enum"の処理
     this.addToPeekModule(new ENUM());
 
     this.contexts.push(CLASSNAME.class);
@@ -831,7 +831,41 @@ public class JavaFileVisitor extends ASTVisitor {
     final Class<?> context = this.contexts.pop();
     assert CLASSNAME.class == context : "error happened at JavaFileVisitor#visit(EnumDeclaration)";
 
+    // implements 節の処理
+    final List<?> interfaces = node.superInterfaceTypes();
+    if (null != interfaces && !interfaces.isEmpty()) {
+
+      this.contexts.push(TYPENAME.class);
+
+      this.addToPeekModule(new IMPLEMENTS());
+      ((Type) interfaces.getFirst()).accept(this);
+
+      for (int index = 1; index < interfaces.size(); index++) {
+        this.addToPeekModule(new TYPEDECLARATIONCOMMA());
+        ((Type) interfaces.get(index)).accept(this);
+      }
+
+      final Class<?> implementsContext = this.contexts.pop();
+      assert TYPENAME.class == implementsContext : "error happened at visit(EnumDeclaration)";
+    }
+
     this.addToPeekModule(new LEFTCLASSBRACKET());
+
+    // 列挙定数の処理（bodyDeclarations() とは別のリストに格納されている）
+    final List<?> constants = node.enumConstants();
+    if (null != constants && !constants.isEmpty()) {
+      ((EnumConstantDeclaration) constants.getFirst()).accept(this);
+      for (int index = 1; index < constants.size(); index++) {
+        this.addToPeekModule(new ENUMCOMMA());
+        ((EnumConstantDeclaration) constants.get(index)).accept(this);
+      }
+
+      // 定数の後にメンバ宣言が続く場合は，定数リストの終わりを表すセミコロンを出力する
+      if (!node.bodyDeclarations()
+          .isEmpty()) {
+        this.addToPeekModule(new SEMICOLON());
+      }
+    }
 
     for (final Object o : node.bodyDeclarations()) {
       final BodyDeclaration body = (BodyDeclaration) o;
