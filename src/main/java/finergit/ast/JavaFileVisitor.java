@@ -195,6 +195,7 @@ import finergit.ast.token.SWITCH;
 import finergit.ast.token.SWITCHCASEARROW;
 import finergit.ast.token.SWITCHCASECOMMA;
 import finergit.ast.token.SYNCHRONIZED;
+import finergit.ast.token.TEXTBLOCK;
 import finergit.ast.token.THIS;
 import finergit.ast.token.THROW;
 import finergit.ast.token.THROWS;
@@ -2312,9 +2313,20 @@ public class JavaFileVisitor extends ASTVisitor {
 
 
   @Override
-  public boolean visit(TextBlock node) {
-    log.error("JavaFileVisitor#visit(TextBlock) is not implemented yet.");
-    return super.visit(node);
+  public boolean visit(final TextBlock node) {
+
+    // テキストブロックは複数行にわたるので，1行1トークンを保つために1行に符号化する．
+    // 元のテキストに戻せる（可逆な）符号化にするため，まず既存のバックスラッシュを "\\" にエスケープしてから，
+    // 物理的な改行を "\n" に置き換える．これにより，ソース中のエスケープ列 "\n"（"\\n" になる）と
+    // 物理的な改行（"\n" になる）が区別され，どちらか一方だけが変わった場合も差分として現れる．
+    final String literal = node.getEscapedValue()
+        .replace("\\", "\\\\")
+        .replace("\r\n", "\n")
+        .replace("\r", "\n")
+        .replace("\n", "\\n");
+    this.addToPeekModule(new TEXTBLOCK(literal));
+
+    return false;
   }
 
   @Override
