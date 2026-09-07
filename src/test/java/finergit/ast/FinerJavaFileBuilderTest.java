@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Test;
@@ -568,5 +570,70 @@ public class FinerJavaFileBuilderTest {
         .collect(Collectors.toList());
     assertThat(moduleNames).containsExactlyInAnyOrder("EscapeRout.cjava",
         "EscapeRout#public_void_main(String[]).mjava");
+  }
+
+  /**
+   * UTF-8 の BOM で始まるファイルも解析できる．
+   */
+  @Test
+  public void getFinerJavaModulesWithByteOrderMarkTest() {
+    final String text = Character.toString(0xFEFF) + //
+        "public class Bom {" + //
+        "  public void foo() { int x = 1; }" + //
+        "}";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules("dir/Bom.java", text);
+
+    final List<String> moduleNames = modules.stream()
+        .map(m -> m.getFileName())
+        .collect(Collectors.toList());
+    assertThat(moduleNames).containsExactlyInAnyOrder("Bom.cjava", "Bom#public_void_foo().mjava");
+  }
+
+  /**
+   * 構文エラーがあるファイルは読み飛ばされ，空のリストが返される．
+   */
+  @Test
+  public void getFinerJavaModulesWithSyntaxErrorTest() {
+    final String text = "public class Broken {" + //
+        "  public void foo( { }" + //
+        "}";
+    final FinerGitConfig config = new FinerGitConfig();
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules("dir/Broken.java", text);
+    assertThat(modules).isEmpty();
+  }
+
+  /**
+   * Map 版のオーバーロードも，ディスク上のファイルではなく与えられたテキストを解析し，BOM の除去や
+   * 構文エラーの読み飛ばしが同じように働く．
+   */
+  @Test
+  public void getFinerJavaModulesWithMapTest() {
+    final Map<String, String> pathToTextMap = new LinkedHashMap<>();
+    pathToTextMap.put("dir/Bom.java", Character.toString(0xFEFF) + //
+        "public class Bom {" + //
+        "  public void foo() {}" + //
+        "}");
+    pathToTextMap.put("dir/Broken.java", "public class Broken { public void foo( { } }");
+    pathToTextMap.put("dir/Plain.java", "public class Plain { void bar() {} }");
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(pathToTextMap);
+
+    final List<String> moduleNames = modules.stream()
+        .map(m -> m.getFileName())
+        .collect(Collectors.toList());
+    assertThat(moduleNames).containsExactlyInAnyOrder("Bom.cjava", "Bom#public_void_foo().mjava",
+        "Plain.cjava", "Plain#void_bar().mjava");
   }
 }

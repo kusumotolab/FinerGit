@@ -1,6 +1,5 @@
 package finergit.ast;
 
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -10,11 +9,19 @@ import org.eclipse.jdt.core.compiler.IProblem;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CompilationUnit;
-import org.eclipse.jdt.core.dom.FileASTRequestor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import finergit.FinerGitConfig;
 import finergit.JavaVersion;
 
 public class FinerJavaFileBuilder {
+
+  private static final Logger log = LoggerFactory.getLogger(FinerJavaFileBuilder.class);
+
+  /**
+   * UTF-8 のバイト順マーク（BOM）をデコードしたときに先頭に現れる文字
+   */
+  private static final char BYTE_ORDER_MARK = (char) 0xFEFF;
 
   private final FinerGitConfig config;
 
@@ -22,55 +29,69 @@ public class FinerJavaFileBuilder {
     this.config = config;
   }
 
+  /**
+   * 複数のファイルの細粒度モジュールをまとめて取り出す．
+   *
+   * 以前は ASTParser#createASTs でディスク上のファイルを解析していたため，与えられたテキストではなく
+   * ファイルの内容が解析され，BOM の除去などの前処理も効かなかった．与えられたテキストをそのまま
+   * 解析するように，各エントリを {@link #getFinerJavaModules(String, String)} に委譲する．
+   *
+   * @param pathToTextMap ファイルのパスからそのテキストへの対応
+   * @return すべてのファイルから取り出した細粒度モジュール
+   */
   public List<FinerJavaModule> getFinerJavaModules(final Map<String, String> pathToTextMap) {
-
     final List<FinerJavaModule> finerJavaModules = new ArrayList<>();
-    final FileASTRequestor requestor = new FileASTRequestor() {
-
-      @Override
-      public void acceptAST(final String sourceFilePath, final CompilationUnit ast) {
-
-        // 与えられたASTに問題があるときは何もしない
-        final IProblem[] problems = ast.getProblems();
-        if (null == problems || 0 < problems.length) {
-          return;
-        }
-
-        final String text = pathToTextMap.get(sourceFilePath);
-        if (text != null) {
-          final Path path = Paths.get(sourceFilePath);
-          final JavaFileVisitor visitor =
-              new JavaFileVisitor(path, FinerJavaFileBuilder.this.config);
-          ast.accept(visitor);
-          final List<FinerJavaModule> modules = visitor.getFinerJavaModules();
-          finerJavaModules.addAll(modules);
-        }
-      }
-    };
-
-    final ASTParser parser = createNewParser();
-    final String[] filePaths = pathToTextMap.keySet()
-        .toArray(new String[0]);
-    parser.createASTs(filePaths, null, new String[] {}, requestor, null);
-
+    for (final Map.Entry<String, String> entry : pathToTextMap.entrySet()) {
+      finerJavaModules.addAll(this.getFinerJavaModules(entry.getKey(), entry.getValue()));
+    }
     return finerJavaModules;
   }
 
   public List<FinerJavaModule> getFinerJavaModules(final String path, final String text) {
     final ASTParser parser = createNewParser();
     parser.setUnitName(path);
-    parser.setSource(text.toCharArray());
+    parser.setSource(removeByteOrderMark(text).toCharArray());
     final CompilationUnit ast = (CompilationUnit) parser.createAST(null);
 
-    // 与えられたASTに問題があるときは何もしない
-    final IProblem[] problems = ast.getProblems();
-    if (null == problems || 0 < problems.length) {
+    // 与えられたASTに構文エラーがあるときは何もしない
+    if (hasSyntaxError(path, ast)) {
       return Collections.emptyList();
     }
 
     final JavaFileVisitor visitor = new JavaFileVisitor(Paths.get(path), this.config);
     ast.accept(visitor);
     return visitor.getFinerJavaModules();
+  }
+
+  /**
+   * テキストの先頭にある UTF-8 の BOM を取り除く．BOM が残っていると JDT が "Invalid Character"
+   * という構文エラーを報告し，そのファイルは細粒度リポジトリから消えてしまう．
+   */
+  private static String removeByteOrderMark(final String text) {
+    return !text.isEmpty() && BYTE_ORDER_MARK == text.charAt(0) ? text.substring(1) : text;
+  }
+
+  /**
+   * AST に構文エラーが含まれているかを返す．含まれている場合は，そのファイルを読み飛ばすことを
+   * 警告として記録する．警告レベルの問題（isError() が false のもの）は構文エラーとして扱わない．
+   *
+   * @param path 解析したファイルのパス（ログ出力用）
+   * @param ast 解析結果
+   * @return 構文エラーが含まれている場合は true
+   */
+  private static boolean hasSyntaxError(final String path, final CompilationUnit ast) {
+    final IProblem[] problems = ast.getProblems();
+    if (null == problems) {
+      return false;
+    }
+    for (final IProblem problem : problems) {
+      if (problem.isError()) {
+        log.warn("skip \"{}\" because it cannot be parsed (line {}: {})", path,
+            problem.getSourceLineNumber(), problem.getMessage());
+        return true;
+      }
+    }
+    return false;
   }
 
   private ASTParser createNewParser() {
