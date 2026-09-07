@@ -753,4 +753,53 @@ public class FinerJavaFileBuilderTest {
     assertThat(tokens).containsExactly("// leading comment", "public", "void", "foo", "(", ")",
         "{", "}", "// trailing comment");
   }
+
+  /**
+   * フィールドとメソッドのファイル名に含まれる型は同じ規則で無害化される（空白は "-"，"?" "<" ">" は
+   * "#" "[" "]"）．アクセス修飾子の接頭辞も両方で同じ規則で付く．
+   */
+  @Test
+  public void getFinerJavaModulesFileNameSanitizationTest() {
+    final String text = "import java.util.List;" + //
+        "public class Names {" + //
+        "  private List<? extends Number> numbers;" + //
+        "  protected int[] counts;" + //
+        "  List<? super Integer> sinks;" + //
+        "  public <T extends Comparable<T>> List<? extends T> pick(List<? super T> from, T[] all) {" + //
+        "    return null;" + //
+        "  }" + //
+        "  static void plain() {}" + //
+        "}";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("true");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules("dir/Names.java", text);
+
+    final List<String> moduleNames = modules.stream()
+        .map(m -> m.getFileName())
+        .collect(Collectors.toList());
+    assertThat(moduleNames).containsExactlyInAnyOrder(
+        "Names#private_List[#-extends-Number]_numbers.fjava", //
+        "Names#protected_int[]_counts.fjava", //
+        "Names#List[#-super-Integer]_sinks.fjava", //
+        "Names#public_[T-extends-Comparable[T]]_List[#-extends-T]_pick(List[#-super-T],T[]).mjava", //
+        "Names#void_plain().mjava");
+
+    // アクセス修飾子を含めない設定では，接頭辞だけが消える
+    config.setAccessModifierIncluded("false");
+    final List<String> namesWithoutModifiers =
+        new FinerJavaFileBuilder(config).getFinerJavaModules("dir/Names.java", text)
+            .stream()
+            .map(m -> m.getFileName())
+            .collect(Collectors.toList());
+    assertThat(namesWithoutModifiers).containsExactlyInAnyOrder(
+        "Names#List[#-extends-Number]_numbers.fjava", //
+        "Names#int[]_counts.fjava", //
+        "Names#List[#-super-Integer]_sinks.fjava", //
+        "Names#[T-extends-Comparable[T]]_List[#-extends-T]_pick(List[#-super-T],T[]).mjava", //
+        "Names#void_plain().mjava");
+  }
 }
