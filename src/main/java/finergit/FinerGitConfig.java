@@ -84,7 +84,7 @@ public class FinerGitConfig {
     return this.isOriginalJavaIncluded;
   }
 
-  @Option(name = "-o", aliases = "--original-javafiles", metaVar = "<true|false>)",
+  @Option(name = "-o", aliases = "--original-javafiles", metaVar = "<true|false>",
       usage = "finer repository includes whether original Java files or not")
   public void setOriginalJavaIncluded(final String flag) {
     final String errorMessage = "\"-o\" option can take only true or false";
@@ -97,7 +97,7 @@ public class FinerGitConfig {
     return this.isOtherFilesIncluded;
   }
 
-  @Option(name = "-p", aliases = "--otherfiles", metaVar = "<true|false>)",
+  @Option(name = "-p", aliases = "--otherfiles", metaVar = "<true|false>",
       usage = "finer repository includes whether other files or not")
   public void setOtherFilesIncluded(final String flag) {
     final String errorMessage = "\"-p\" option can take only true or false";
@@ -110,7 +110,7 @@ public class FinerGitConfig {
     return this.isTokenized;
   }
 
-  @Option(name = "-t", aliases = "--tokenize", metaVar = "<true|false>)",
+  @Option(name = "-t", aliases = "--tokenize", metaVar = "<true|false>",
       usage = "do tokenize Java method files")
   public void setTokenized(final String flag) {
     final String errorMessage = "\"-t\" option can take only true or false";
@@ -123,7 +123,7 @@ public class FinerGitConfig {
     return this.isAccessModifierIncluded;
   }
 
-  @Option(name = "--access-modifier-included", metaVar = "<true|false>)",
+  @Option(name = "--access-modifier-included", metaVar = "<true|false>",
       usage = "include access modifiers in Java method files")
   public void setAccessModifierIncluded(final String flag) {
     final String errorMessage = "\"--access-modifier-included\" option can take only true or false";
@@ -135,7 +135,7 @@ public class FinerGitConfig {
     return this.isMethodTypeErasureIncluded;
   }
 
-  @Option(name = "--method-type-erasure-included", metaVar = "<true|false>)",
+  @Option(name = "--method-type-erasure-included", metaVar = "<true|false>",
       usage = "include method type erasure in Java method files")
   public void setMethodTypeErasureIncluded(final String flag) {
     final String errorMessage =
@@ -148,7 +148,7 @@ public class FinerGitConfig {
     return this.isReturnTypeIncluded;
   }
 
-  @Option(name = "--return-type-included", metaVar = "<true|false>)",
+  @Option(name = "--return-type-included", metaVar = "<true|false>",
       usage = "include return types in Java method files")
   public void setReturnTypeIncluded(final String flag) {
     final String errorMessage = "\"--return-type-included\" option can take only true or false";
@@ -160,7 +160,7 @@ public class FinerGitConfig {
     return this.isTokenTypeIncluded;
   }
 
-  @Option(name = "--token-type-included", metaVar = "<true|false>)", usage = "include token types")
+  @Option(name = "--token-type-included", metaVar = "<true|false>", usage = "include token types")
   public void setTokenTypeIncluded(final String flag) {
     final String errorMessage = "\"--token-type-included\" option can take only true or false";
     this.isTokenTypeIncluded = getBooleanValue(flag, errorMessage);
@@ -171,7 +171,7 @@ public class FinerGitConfig {
     return this.isMethodTokenIncluded;
   }
 
-  @Option(name = "--method-token-included", metaVar = "<true|false>)",
+  @Option(name = "--method-token-included", metaVar = "<true|false>",
       usage = "include method tokens")
   public void setMethodTokenIncluded(final String flag) {
     final String errorMessage = "\"--method-token-included\" option can take only true or false";
@@ -184,7 +184,8 @@ public class FinerGitConfig {
     return this.nthreads;
   }
 
-  @Option(name = "--nthreads", metaVar = "<num>", usage = "number of threads used for --parallel")
+  @Option(name = "--nthreads", metaVar = "<num>",
+      usage = "number of threads used for repository rewriting")
   public void setNumberOfThreads(final String nthreads) {
     final String errorMessage = "\"--nthreads\" option can take only an integer";
     this.nthreads = getIntValue(nthreads, errorMessage);
@@ -227,7 +228,7 @@ public class FinerGitConfig {
     return this.isPeripheralFileGenerated;
   }
 
-  @Option(name = "--peripheral-file-generated", metaVar = "<true|false>)",
+  @Option(name = "--peripheral-file-generated", metaVar = "<true|false>",
       usage = "generate files for peripheral (outer) tokens")
   public void setPeripheralFileGenerated(final String flag) {
     final String errorMessage =
@@ -241,7 +242,7 @@ public class FinerGitConfig {
     return this.isClassFileGenerated;
   }
 
-  @Option(name = "--class-file-generated", metaVar = "<true|false>)",
+  @Option(name = "--class-file-generated", metaVar = "<true|false>",
       usage = "generate files for classes")
   public void setClassFileGenerated(final String flag) {
     final String errorMessage = "\"--class-file-generated\" option can take only true or false";
@@ -254,7 +255,7 @@ public class FinerGitConfig {
     return this.isMethodFileGenerated;
   }
 
-  @Option(name = "--method-file-generated", metaVar = "<true|false>)",
+  @Option(name = "--method-file-generated", metaVar = "<true|false>",
       usage = "generate files for methods")
   public void setMethodFileGenerated(final String flag) {
     final String errorMessage = "\"--method-file-generated\" option can take only true or false";
@@ -267,10 +268,10 @@ public class FinerGitConfig {
     return this.isFieldFileGenerated;
   }
 
-  @Option(name = "--field-file-generated", metaVar = "<true|false>)",
-      usage = "generate files for methods")
+  @Option(name = "--field-file-generated", metaVar = "<true|false>",
+      usage = "generate files for fields")
   public void setFieldFileGenerated(final String flag) {
-    final String errorMessage = "\"--Field-file-generated\" option can take only true or false";
+    final String errorMessage = "\"--field-file-generated\" option can take only true or false";
     this.isFieldFileGenerated = getBooleanValue(flag, errorMessage);
   }
 
