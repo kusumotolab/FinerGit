@@ -724,4 +724,33 @@ public class FinerJavaFileBuilderTest {
         .collect(Collectors.toList());
     assertThat(moduleNames).containsExactlyInAnyOrder("R#R(int,String).mjava", "R#R().mjava");
   }
+
+  /**
+   * BOM 付きのソースでもコメントの文字列がずれずに取り出される．パーサと visitor に同じ（BOM を除去した）
+   * 文字列を渡しているためで，元の文字列を visitor に渡すとすべてのコメントの位置が1文字ずれる．
+   */
+  @Test
+  public void getFinerJavaModulesWithByteOrderMarkAndCommentsTest() {
+    final String text = Character.toString(0xFEFF) + String.join("\n", //
+        "public class Bom {", //
+        "  // leading comment", //
+        "  public void foo() {} // trailing comment", //
+        "}", //
+        "");
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules("dir/Bom.java", text);
+
+    final List<String> tokens = modules.getFirst()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(tokens).containsExactly("// leading comment", "public", "void", "foo", "(", ")",
+        "{", "}", "// trailing comment");
+  }
 }
