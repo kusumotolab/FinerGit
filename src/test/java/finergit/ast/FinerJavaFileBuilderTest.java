@@ -74,10 +74,12 @@ public class FinerJavaFileBuilderTest {
         case "void_method01()":
           break;
         case "void_method02()":
-          assertThat(tokens).containsExactly("void", "method02", "(", ")", "{", "new", "String",
-              "(", ")", ";", "@SuppressWarnings(\"unused\")", "class", "InnerClass01", "{",
-              "InnerClass01", "(", ")", "{", "new", "String", "(", ")", ";", "}", "void",
-              "method03", "(", ")", "{", "new", "String", "(", ")", ";", "}", "}", "}");
+          // メソッドに先行する行コメントと，メソッド内の行コメントもトークンとして含まれる
+          assertThat(tokens).containsExactly("// 抽出されるはず", "void", "method02", "(", ")", "{",
+              "new", "String", "(", ")", ";", "// 抽出されないはず", "@SuppressWarnings(\"unused\")",
+              "class", "InnerClass01", "{", "// 抽出されないはず", "InnerClass01", "(", ")", "{",
+              "new", "String", "(", ")", ";", "}", "void", "method03", "(", ")", "{", "new",
+              "String", "(", ")", ";", "}", "}", "}");
           break;
         default:
           assertThat(true).isEqualTo(false);
@@ -121,13 +123,14 @@ public class FinerJavaFileBuilderTest {
         case "NestedClass":
           break;
         case "void_method01()":
-          assertThat(tokens).containsExactly("void", "method01", "(", ")", "{", "new", "Runnable",
-              "(", ")", "{", "@Override", "public", "void", "run", "(", ")", "{", "}", "}", ";",
-              "}");
+          assertThat(tokens).containsExactly("// 抽出されるはず", "void", "method01", "(", ")", "{",
+              "// 抽出されないはず", "new", "Runnable", "(", ")", "{", "@Override", "public", "void",
+              "run", "(", ")", "{", "}", "}", ";", "}");
           break;
         case "void_method02()":
-          assertThat(tokens).containsExactly("void", "method02", "(", ")", "{",
-              "@SuppressWarnings(\"unused\")", "class", "InnerClass02", "{", "}", "}");
+          assertThat(tokens).containsExactly("// 抽出されるはず", "void", "method02", "(", ")", "{",
+              "// 抽出されないはず", "@SuppressWarnings(\"unused\")", "class", "InnerClass02", "{",
+              "}", "}");
           break;
         default:
           assertThat(true).isEqualTo(false);

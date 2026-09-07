@@ -10,6 +10,7 @@ By default, the generated repository has the following features.
 
 - Each Java method or constructor is extracted as a single `.mjava` file.
 - Each line of an extracted Java method file contains only one token.
+- Comments (Javadoc, block, and line comments) are kept. A multi-line comment is split into one token per line.
 
 Optional settings can also keep original Java files, keep non-Java files, and generate class, field, or peripheral token files.
 
@@ -187,6 +188,7 @@ FinerGit はそのリポジトリを，より細粒度なファイル構成を�
 
 - 各 Java メソッドまたはコンストラクタが1つの `.mjava` ファイルとして抽出されている．
 - 抽出された各 Java メソッドファイルの各行は1つの字句のみを含む．
+- コメント（Javadoc，ブロックコメント，行コメント）も保持される．複数行のコメントは1行1字句に分割される．
 
 オプションにより，元の Java ファイルや Java 以外のファイルを残したり，クラス，フィールド，周辺トークンのファイルを生成したりできます．
 

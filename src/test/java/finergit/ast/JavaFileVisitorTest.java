@@ -1023,6 +1023,68 @@ public class JavaFileVisitorTest {
   }
 
   @Test
+  public void testComments() {
+
+    final String text = String.join("\n", //
+        "// file header", //
+        "", //
+        "class CommentExample {", //
+        "  // leading comment of field", //
+        "  int x; // trailing comment of field", //
+        "  /* block comment", //
+        "     spanning two lines */", //
+        "  void m() {", //
+        "    int a = 1; // trailing comment of statement", //
+        "    // comment before return", //
+        "    return;", //
+        "    // comment at end of block", //
+        "  } // trailing comment of method", //
+        "  // comment at end of class", //
+        "}", //
+        "// comment at end of file", //
+        "");
+
+    final String path = "dir/CommentExample.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("true");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("true");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+
+    final List<String> fileTokens = tokensOf(modules, FinerJavaFile.class);
+    assertThat(fileTokens).containsExactly("// file header", "ClassToken[CommentExample]",
+        "// comment at end of file");
+
+    final List<String> classTokens = tokensOf(modules, FinerJavaClass.class);
+    assertThat(classTokens).containsExactly("class", "CommentExample", "{", "FieldToken[int_x]",
+        "MethodToken[void_m()]", "// comment at end of class", "}");
+
+    final List<String> fieldTokens = tokensOf(modules, FinerJavaField.class);
+    assertThat(fieldTokens).containsExactly("// leading comment of field", "int", "x", ";",
+        "// trailing comment of field");
+
+    final List<String> methodTokens = tokensOf(modules, FinerJavaMethod.class);
+    assertThat(methodTokens).containsExactly("/* block comment", "spanning two lines */",
+        "void", "m", "(", ")", "{", "int", "a", "=", "1", ";",
+        "// trailing comment of statement", "// comment before return", "return", ";",
+        "// comment at end of block", "}", "// trailing comment of method");
+  }
+
+  private static List<String> tokensOf(final List<FinerJavaModule> modules,
+      final Class<? extends FinerJavaModule> moduleClass) {
+    return modules.stream()
+        .filter(moduleClass::isInstance)
+        .findFirst()
+        .orElseThrow()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+  }
+
+  @Test
   public void testNullPattern() {
 
     final String text = "class NullPatternExample {" + //

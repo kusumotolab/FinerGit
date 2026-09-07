@@ -48,9 +48,13 @@ public class FinerJavaFileBuilder {
   }
 
   public List<FinerJavaModule> getFinerJavaModules(final String path, final String text) {
+    // パーサと visitor には同じ（BOM を除去した）文字列を渡す．visitor は AST の位置情報を使って
+    // この文字列からコメントを切り出すので，異なる文字列を渡すとコメントの位置がずれてしまう．
+    final String source = removeByteOrderMark(text);
+
     final ASTParser parser = createNewParser();
     parser.setUnitName(path);
-    parser.setSource(removeByteOrderMark(text).toCharArray());
+    parser.setSource(source.toCharArray());
     final CompilationUnit ast = (CompilationUnit) parser.createAST(null);
 
     // 与えられたASTに構文エラーがあるときは何もしない
@@ -58,7 +62,7 @@ public class FinerJavaFileBuilder {
       return Collections.emptyList();
     }
 
-    final JavaFileVisitor visitor = createVisitor(path, this.config);
+    final JavaFileVisitor visitor = createVisitor(path, this.config, source);
     ast.accept(visitor);
     return visitor.getFinerJavaModules();
   }
@@ -98,11 +102,16 @@ public class FinerJavaFileBuilder {
    * 解析対象ファイルのパスからディレクトリとベースネームを取り出して visitor を作る．
    * リポジトリ内のパスには Windows で使えない文字（"?" や "*" など）が含まれうるので，
    * java.nio.file.Path を介さずに文字列のまま処理する．
+   *
+   * @param path 解析対象ファイルのリポジトリ内のパス
+   * @param config 設定
+   * @param source パーサに渡したソースコード（コメントの文字列を切り出すために visitor にも渡す）
    */
-  private static JavaFileVisitor createVisitor(final String path, final FinerGitConfig config) {
+  private static JavaFileVisitor createVisitor(final String path, final FinerGitConfig config,
+      final String source) {
     final String directory = FilenameUtils.getFullPathNoEndSeparator(path);
     final String fileName = FilenameUtils.getBaseName(path);
-    return new JavaFileVisitor(directory, fileName, config);
+    return new JavaFileVisitor(directory, fileName, config, source);
   }
 
   private ASTParser createNewParser() {
