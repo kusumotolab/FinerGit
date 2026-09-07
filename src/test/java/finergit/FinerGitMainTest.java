@@ -14,12 +14,16 @@ import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.contrib.java.lang.system.SystemOutRule;
 import org.junit.rules.TemporaryFolder;
 
 public class FinerGitMainTest {
 
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
+
+  @Rule
+  public final SystemOutRule systemOut = new SystemOutRule().enableLog();
 
   /**
    * 変換に成功した場合には，正常終了を表す終了コードが返され，細粒度リポジトリが生成される．
@@ -125,6 +129,24 @@ public class FinerGitMainTest {
   @Test
   public void testRunWithHelpOption() {
     assertThat(FinerGitMain.run(new String[] {"--help"})).isEqualTo(FinerGitMain.EXIT_SUCCESS);
+  }
+
+  /**
+   * "--help" で表示されるオプションの説明に，誤った記述や書式の崩れがない．
+   */
+  @Test
+  public void testHelpTexts() {
+    FinerGitMain.run(new String[] {"--help"});
+    // args4j は長い説明文を折り返すので，空白と改行を1つの空白にまとめてから確認する
+    final String usage = this.systemOut.getLog()
+        .replaceAll("\\s+", " ");
+
+    assertThat(usage).contains("--field-file-generated <true|false> : generate files for fields")
+        .contains("--nthreads <num> : number of threads used for repository rewriting")
+        .doesNotContain("<true|false>)")
+        .doesNotContain("--parallel")
+        .doesNotContain("--check-commit")
+        .doesNotContain("--head");
   }
 
   /**
