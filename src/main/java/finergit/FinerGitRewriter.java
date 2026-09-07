@@ -57,8 +57,9 @@ public class FinerGitRewriter extends RepositoryRewriter {
       result.add(entry);
     }
     for (final FinerJavaModule m : extractFinerModules(entry, c)) {
-      final String finerSource = // 最終行に改行を入れないと途中行とのマッチングが正しく行われない
-          String.join(System.lineSeparator(), m.getLines()) + System.lineSeparator();
+      // 行区切りは実行環境に依存させず常に LF にする（同じ入力からは OS に関係なく同じ blob を生成する）．
+      // また，最終行に改行を入れないと途中行とのマッチングが正しく行われない．
+      final String finerSource = String.join("\n", m.getLines()) + "\n";
       final ObjectId newId = writeBlob(finerSource.getBytes(StandardCharsets.UTF_8), c);
       final String name = m.getFileName();
       log.debug("Generate finer module: {} -> {} {} {}", entry, name, newId.name(), c);

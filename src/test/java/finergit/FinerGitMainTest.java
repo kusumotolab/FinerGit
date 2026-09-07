@@ -12,6 +12,7 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.treewalk.TreeWalk;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -39,6 +40,33 @@ public class FinerGitMainTest {
 
     // 細粒度ファイルが生成されている
     assertThat(getFileNames(desPath)).anyMatch(name -> name.endsWith(".mjava"));
+  }
+
+  /**
+   * 生成される blob の行区切りは，実行環境に関係なく LF であり，最終行にも改行がある．
+   */
+  @Test
+  public void testGeneratedBlobUsesLineFeed() throws Exception {
+    final Path srcPath = createRepository();
+    final Path desPath = getPathInTemporaryFolder("des");
+
+    assertThat(run(srcPath, desPath)).isEqualTo(FinerGitMain.EXIT_SUCCESS);
+
+    final GitRepo desRepo = new GitRepo(desPath);
+    assertThat(desRepo.initialize()).isTrue();
+    final RevCommit headCommit = desRepo.getHeadCommit();
+    try (final TreeWalk treeWalk = TreeWalk.forPath(desRepo.getRepository(),
+        "Foo#public_void_bar().mjava", headCommit.getTree())) {
+      assertThat(treeWalk).isNotNull();
+      final byte[] bytes = desRepo.getRepository()
+          .open(treeWalk.getObjectId(0))
+          .getBytes();
+      final String content = new String(bytes, StandardCharsets.UTF_8);
+      assertThat(content).doesNotContain("\r")
+          .endsWith("\n");
+      assertThat(content.split("\n")).containsExactly("public", "void", "bar", "(", ")", "{",
+          "System", ".", "out", ".", "println", "(", "\"bar\"", ")", ";", "}");
+    }
   }
 
   /**
