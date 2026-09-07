@@ -12,7 +12,6 @@ public class FinerGitConfig {
 
   private Path srcPath = null;
   private Path desPath = null;
-  private String headCommitId = null;
   private JavaVersion javaVersion = JavaVersion.V1_25;
   private boolean isOriginalJavaIncluded = false;
   private boolean isOtherFilesIncluded = false;
@@ -22,7 +21,6 @@ public class FinerGitConfig {
   private boolean isReturnTypeIncluded = true;
   private boolean isTokenTypeIncluded = false;
   private boolean isMethodTokenIncluded = true;
-  private boolean isCheckCommit = false;
   private int nthreads;
   private boolean isPeripheralFileGenerated = false;
   private boolean isClassFileGenerated = false;
@@ -61,16 +59,6 @@ public class FinerGitConfig {
   public void setDesPath(final String path) {
     this.desPath = Paths.get(path)
         .toAbsolutePath();
-  }
-
-  // ===== "--head" =====
-  public String getHeadCommitId() {
-    return this.headCommitId;
-  }
-
-  @Option(name = "--head", metaVar = "<commitId>", usage = "commitId for HEAD of finer repository")
-  public void setHeadCommit(final String headCommitId) {
-    this.headCommitId = headCommitId;
   }
 
   // ===== "-j =====
@@ -188,19 +176,6 @@ public class FinerGitConfig {
   public void setMethodTokenIncluded(final String flag) {
     final String errorMessage = "\"--method-token-included\" option can take only true or false";
     this.isMethodTokenIncluded = getBooleanValue(flag, errorMessage);
-  }
-
-  // ===== "--check-commit" =====
-
-  public boolean isCheckCommit() {
-    return this.isCheckCommit;
-  }
-
-  @Option(name = "--check-commit", metaVar = "<true|false>)",
-      usage = "check whether each rebuilt commit is fine state or not")
-  public void setCheckCommit(final String flag) {
-    final String errorMessage = "\"--check-commit\" option can take only true or false";
-    this.isCheckCommit = getBooleanValue(flag, errorMessage);
   }
 
   // ===== "--nthreads" =====

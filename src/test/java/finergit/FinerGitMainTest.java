@@ -142,6 +142,21 @@ public class FinerGitMainTest {
     assertThat(desPath).doesNotExist();
   }
 
+  /**
+   * 削除された "--head" と "--check-commit" は不明なオプションとして拒否され，変換は行われない．
+   */
+  @Test
+  public void testRunWithRemovedOptions() {
+    final Path srcPath = getPathInTemporaryFolder("absent");
+    final Path desPath = getPathInTemporaryFolder("des");
+
+    assertThat(FinerGitMain.run(new String[] {"-s", srcPath.toString(), "-d", desPath.toString(),
+        "--head", "0123456"})).isEqualTo(FinerGitMain.EXIT_FAILURE);
+    assertThat(FinerGitMain.run(new String[] {"-s", srcPath.toString(), "-d", desPath.toString(),
+        "--check-commit", "true"})).isEqualTo(FinerGitMain.EXIT_FAILURE);
+    assertThat(desPath).doesNotExist();
+  }
+
   private int run(final Path srcPath, final Path desPath) {
     return FinerGitMain.run(new String[] {"-s", srcPath.toString(), "-d", desPath.toString()});
   }
