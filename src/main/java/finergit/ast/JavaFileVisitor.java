@@ -367,8 +367,24 @@ public class JavaFileVisitor extends ASTVisitor {
 
     this.addToPeekModule(new NEW());
 
-    node.getType()
+    // 要素型の処理（"[]" はここでは出力せず，下で次元ごとに出力する）
+    final ArrayType arrayType = node.getType();
+    arrayType.getElementType()
         .accept(this);
+
+    // 次元の処理．サイズ式をもつ次元は "[ 式 ]"，もたない次元は "[ ]" を出力する
+    final List<?> typeDimensions = arrayType.dimensions();
+    final List<?> sizeExpressions = node.dimensions();
+    for (int index = 0; index < typeDimensions.size(); index++) {
+      for (final Object o : ((Dimension) typeDimensions.get(index)).annotations()) {
+        ((Annotation) o).accept(this);
+      }
+      this.addToPeekModule(new LEFTSQUAREBRACKET());
+      if (index < sizeExpressions.size()) {
+        ((Expression) sizeExpressions.get(index)).accept(this);
+      }
+      this.addToPeekModule(new RIGHTSQUAREBRACKET());
+    }
 
     final ArrayInitializer initializer = node.getInitializer();
     if (null != initializer) {

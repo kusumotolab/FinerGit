@@ -65,6 +65,39 @@ public class JavaFileVisitorTest {
   }
 
   @Test
+  public void testArrayCreationWithDimensions() {
+
+    final String text = "class ArrayCreation{" + //
+        "  void arrayCreation(int n, int m){" + //
+        "    byte[] a = new byte[1024];" + //
+        "    int[][] b = new int[n][m];" + //
+        "    int[][] c = new int[n][];" + //
+        "    int[] d = new int[]{1, 2};" + //
+        "  }" + //
+        "}";
+    final String path = "dir/ArrayCreation.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+    final List<String> tokens = modules.get(0)
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(tokens).containsExactly("void", "arrayCreation", "(", "int", "n", ",", "int", "m",
+        ")", "{", //
+        "byte", "[", "]", "a", "=", "new", "byte", "[", "1024", "]", ";", //
+        "int", "[", "]", "[", "]", "b", "=", "new", "int", "[", "n", "]", "[", "m", "]", ";", //
+        "int", "[", "]", "[", "]", "c", "=", "new", "int", "[", "n", "]", "[", "]", ";", //
+        "int", "[", "]", "d", "=", "new", "int", "[", "]", "{", "1", ",", "2", "}", ";", //
+        "}");
+  }
+
+  @Test
   public void testArrayInitializer() {
 
     final String text = "class ArrayAccess{" + //
