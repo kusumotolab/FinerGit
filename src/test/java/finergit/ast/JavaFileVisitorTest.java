@@ -650,6 +650,33 @@ public class JavaFileVisitorTest {
   }
 
   @Test
+  public void testTypeMethodReference() {
+
+    final String text = "import java.util.function.Function;" + //
+        "class TypeMethodReferenceExample {" + //
+        "  Function<int[], int[]> ref() {" + //
+        "    return int[]::clone;" + //
+        "  }" + //
+        "}";
+
+    final String path = "dir/TypeMethodReferenceExample.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+    final List<String> tokens = modules.getFirst()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(tokens).containsExactly("Function", "<", "int", "[", "]", ",", "int", "[", "]", ">",
+        "ref", "(", ")", "{", "return", "int", "[", "]", "::", "clone", ";", "}");
+  }
+
+  @Test
   public void testQualifiedSuperMethodInvocation() {
 
     final String text = "class Outer extends Base {" + //
