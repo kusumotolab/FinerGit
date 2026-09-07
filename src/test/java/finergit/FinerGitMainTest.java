@@ -17,6 +17,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.SystemOutRule;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.LoggerFactory;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import finergit.util.RevCommitUtil;
 
 public class FinerGitMainTest {
 
@@ -244,6 +249,45 @@ public class FinerGitMainTest {
     assertThat(desPath).doesNotExist();
   }
 
+  /**
+   * 1つの Java ファイルから同じ名前の細粒度ファイルが複数生成される場合（同じシグネチャのメソッドの重複など）は，
+   * どのコミットのどのファイルで起きたかが分かる警告が記録され，両方のファイルが保存される（2つ目は "@2" 付き）．
+   */
+  @Test
+  public void testWarnsOnDuplicateFinerFileNames() throws Exception {
+    final Path srcPath = createRepository(String.join(System.lineSeparator(), //
+        "public class Foo {", //
+        "  public void iterator() { int a = 1; }", //
+        "  public void iterator() { int b = 2; }", //
+        "}"));
+    final Path desPath = getPathInTemporaryFolder("des");
+    final GitRepo srcRepo = new GitRepo(srcPath);
+    assertThat(srcRepo.initialize()).isTrue();
+    final String commitId = RevCommitUtil.getAbbreviatedID(srcRepo.getHeadCommit());
+
+    final ch.qos.logback.classic.Logger rewriterLogger =
+        (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(FinerGitRewriter.class);
+    final ListAppender<ILoggingEvent> appender = new ListAppender<>();
+    appender.start();
+    rewriterLogger.addAppender(appender);
+    try {
+      assertThat(run(srcPath, desPath)).isEqualTo(FinerGitMain.EXIT_SUCCESS);
+    } finally {
+      rewriterLogger.detachAppender(appender);
+    }
+
+    assertThat(appender.list).anySatisfy(event -> {
+      assertThat(event.getLevel()).isEqualTo(Level.WARN);
+      assertThat(event.getFormattedMessage()).contains("Foo#public_void_iterator().mjava")
+          .contains("Foo.java")
+          .contains(commitId);
+    });
+
+    // 両方のメソッドファイルが保存されている（2つ目には git-stein が "@2" を付ける）
+    assertThat(getFileNames(desPath)).contains("Foo#public_void_iterator().mjava",
+        "Foo#public_void_iterator().mjava@2");
+  }
+
   private int run(final Path srcPath, final Path desPath) {
     return FinerGitMain.run(new String[] {"-s", srcPath.toString(), "-d", desPath.toString()});
   }
@@ -268,17 +312,26 @@ public class FinerGitMainTest {
    * @return 作成したリポジトリのパス
    */
   private Path createRepository() throws IOException, GitAPIException {
+    return createRepository(String.join(System.lineSeparator(), //
+        "public class Foo {", //
+        "  public void bar() {", //
+        "    System.out.println(\"bar\");", //
+        "  }", //
+        "}"));
+  }
+
+  /**
+   * 与えられた内容の Foo.java を1つ含むGitリポジトリを作成する．
+   *
+   * @param source Foo.java の内容
+   * @return 作成したリポジトリのパス
+   */
+  private Path createRepository(final String source) throws IOException, GitAPIException {
     final Path repositoryPath = this.folder.newFolder("src")
         .toPath();
     try (final Git git = Git.init()
         .setDirectory(repositoryPath.toFile())
         .call()) {
-      final String source = String.join(System.lineSeparator(), //
-          "public class Foo {", //
-          "  public void bar() {", //
-          "    System.out.println(\"bar\");", //
-          "  }", //
-          "}");
       Files.writeString(repositoryPath.resolve("Foo.java"), source, StandardCharsets.UTF_8);
       git.add()
           .addFilepattern("Foo.java")
