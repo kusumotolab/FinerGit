@@ -636,4 +636,31 @@ public class FinerJavaFileBuilderTest {
     assertThat(moduleNames).containsExactlyInAnyOrder("Bom.cjava", "Bom#public_void_foo().mjava",
         "Plain.cjava", "Plain#void_bar().mjava");
   }
+
+  /**
+   * Git 上では合法だが Windows のファイルシステムでは使えない文字（"?" や "*"）を含むパスでも解析できる．
+   */
+  @Test
+  public void getFinerJavaModulesWithWindowsIllegalCharactersInPathTest() {
+    final String text = "public class Foo {" + //
+        "  public void bar() {}" + //
+        "}";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("true");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules =
+        builder.getFinerJavaModules("src/what?/x*y/Foo.java", text);
+
+    final List<String> moduleNames = modules.stream()
+        .map(m -> m.getFileName())
+        .collect(Collectors.toList());
+    assertThat(moduleNames).containsExactlyInAnyOrder("Foo.pjava", "Foo.cjava",
+        "Foo#public_void_bar().mjava");
+    assertThat(modules).allSatisfy(m -> assertThat(m.getDirectory()).isEqualTo("src/what?/x*y"));
+    assertThat(modules.getFirst()
+        .getPath()).isEqualTo("src/what?/x*y/Foo.pjava");
+  }
 }

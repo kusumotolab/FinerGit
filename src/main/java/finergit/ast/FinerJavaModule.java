@@ -1,6 +1,5 @@
 package finergit.ast;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -57,7 +56,14 @@ public abstract class FinerJavaModule {
         .collect(Collectors.toList());
   }
 
-  public abstract Path getDirectory();
+  /**
+   * このモジュールが置かれるディレクトリ（リポジトリ内のパス）を返す．リポジトリ内のパスには
+   * 実行環境のファイルシステムで使えない文字（Windows の "?" や "*" など）が含まれうるので，
+   * java.nio.file.Path ではなく文字列として扱う．
+   *
+   * @return ディレクトリのパス（ルートの場合は空文字列）
+   */
+  public abstract String getDirectory();
 
   /**
    * このモジュールのファイル名を返す．モジュールのファイル名は，"外側のモジュール名 + 自分のベースネーム + 拡張子"である．
@@ -86,9 +92,10 @@ public abstract class FinerJavaModule {
         + getExtension();
   }
 
-  public final Path getPath() {
-    return this.getDirectory()
-        .resolve(this.getFileName());
+  public final String getPath() {
+    final String directory = this.getDirectory();
+    final String fileName = this.getFileName();
+    return directory.isEmpty() ? fileName : directory + "/" + fileName;
   }
 
   /**

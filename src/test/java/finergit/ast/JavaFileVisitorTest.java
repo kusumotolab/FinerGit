@@ -1,7 +1,6 @@
 package finergit.ast;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.Stack;
@@ -466,7 +465,7 @@ public class JavaFileVisitorTest {
     region.tags()
         .add(highlight);
 
-    final JavaFileVisitor visitor = new JavaFileVisitor(Paths.get("dir/Javadocs.java"), config);
+    final JavaFileVisitor visitor = new JavaFileVisitor("dir", "Javadocs", config);
     seeField.accept(visitor);
     seeMethod.accept(visitor);
     region.accept(visitor);

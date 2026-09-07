@@ -1,12 +1,10 @@
 package finergit.ast;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.commons.io.FilenameUtils;
 import org.eclipse.jdt.core.dom.*;
 import org.eclipse.jdt.core.dom.InfixExpression.Operator;
 import org.slf4j.Logger;
@@ -227,7 +225,14 @@ public class JavaFileVisitor extends ASTVisitor {
   private final Stack<Class<?>> contexts;
   private int classNestLevel;
 
-  public JavaFileVisitor(final Path path, final FinerGitConfig config) {
+  /**
+   * @param directory 解析対象ファイルが置かれているディレクトリ（リポジトリ内のパス，ルートの場合は空文字列）．
+   *        リポジトリ内のパスには実行環境で使えない文字が含まれうるので，java.nio.file.Path にはしない．
+   * @param fileName 解析対象ファイルのベースネーム（拡張子を除いたファイル名）
+   * @param config 設定
+   */
+  public JavaFileVisitor(final String directory, final String fileName,
+      final FinerGitConfig config) {
 
     this.config = config;
     this.moduleStack = new Stack<>();
@@ -235,9 +240,7 @@ public class JavaFileVisitor extends ASTVisitor {
     this.contexts = new Stack<>();
     this.classNestLevel = 0;
 
-    final Path dirName = path.getParent();
-    final String fileName = FilenameUtils.getBaseName(path.toString());
-    final FinerJavaFile finerJavaFile = new FinerJavaFile(dirName, fileName, config);
+    final FinerJavaFile finerJavaFile = new FinerJavaFile(directory, fileName, config);
     this.moduleStack.push(finerJavaFile);
     this.moduleList.add(finerJavaFile);
   }

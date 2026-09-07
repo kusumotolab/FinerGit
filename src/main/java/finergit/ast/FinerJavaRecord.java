@@ -1,6 +1,5 @@
 package finergit.ast;
 
-import java.nio.file.Path;
 import finergit.FinerGitConfig;
 
 public class FinerJavaRecord extends FinerJavaModule {
@@ -15,7 +14,7 @@ public class FinerJavaRecord extends FinerJavaModule {
   }
 
   @Override
-  public Path getDirectory() {
+  public String getDirectory() {
     return this.outerModule.getDirectory();
   }
 
