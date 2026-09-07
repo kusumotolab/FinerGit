@@ -7,10 +7,13 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Stream;
 import org.eclipse.jgit.lib.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,11 +42,17 @@ public class FinerRepoBuilder {
   public GitRepo exec() throws ConversionException {
     log.trace("enter exec()");
 
+    final Path srcPath = this.config.getSrcPath();
     final Path desPath = this.config.getDesPath();
+
+    // 出力先を上書きしてしまわないように，コピーを始める前にパスを検証する．
+    // ここで失敗した場合は出力先に何も書いていないので，try-finally の外で行う．
+    validatePaths(srcPath, desPath);
+
     boolean converted = false;
     try {
       // duplicate repository
-      copyDirectory(this.config.getSrcPath(), desPath);
+      copyDirectory(srcPath, desPath);
       final GitRepo repo = new GitRepo(desPath);
       if (!repo.initialize()) {
         throw new ConversionException("failed to open repository \"" + desPath + "\"");
@@ -112,6 +121,96 @@ public class FinerRepoBuilder {
           "the following branches were not rewritten: " + String.join(", ", notRewrittenBranches));
     }
     log.debug("all the {} branches were rewritten", before.size());
+  }
+
+  /**
+   * 入力リポジトリと出力先のパスを検証する．
+   *
+   * 出力先が入力リポジトリと同じ場合，Files.copy は同一ファイルへのコピーを何もせずに成功させるため，
+   * 複製が行われないまま入力リポジトリそのものが書き換えられてしまう．また，出力先が既存の空でない
+   * ディレクトリの場合はその内容を汚し，出力先が入力リポジトリの内側にある場合はコピー中に自分自身を
+   * コピーしてしまう．これらを防ぐため，以下の条件をすべて満たすことを確認する．
+   *
+   * <ul>
+   * <li>入力リポジトリがディレクトリとして存在する</li>
+   * <li>出力先が存在しない，もしくは空のディレクトリである</li>
+   * <li>出力先が入力リポジトリと同じでなく，入力リポジトリの内側でもない</li>
+   * </ul>
+   *
+   * @param srcPath 入力リポジトリのパス
+   * @param desPath 出力先のパス
+   * @throws ConversionException 条件を満たさない場合
+   */
+  protected void validatePaths(final Path srcPath, final Path desPath)
+      throws ConversionException {
+    log.trace("enter validatePaths(Path, Path)");
+
+    if (!Files.isDirectory(srcPath)) {
+      throw new ConversionException(
+          "input repository \"" + srcPath + "\" does not exist or is not a directory");
+    }
+
+    final Path realSrcPath;
+    final Path realDesPath;
+    try {
+      realSrcPath = srcPath.toRealPath();
+      realDesPath = toRealPathOfNonExistingFile(desPath);
+    } catch (final IOException e) {
+      throw new ConversionException("failed to resolve \"" + srcPath + "\" or \"" + desPath
+          + "\": " + e, e);
+    }
+
+    if (realDesPath.equals(realSrcPath)) {
+      throw new ConversionException(
+          "output path \"" + desPath + "\" is the same as the input repository");
+    }
+    if (realDesPath.startsWith(realSrcPath)) {
+      throw new ConversionException(
+          "output path \"" + desPath + "\" is inside the input repository \"" + srcPath + "\"");
+    }
+
+    if (Files.exists(desPath)) {
+      if (!Files.isDirectory(desPath)) {
+        throw new ConversionException(
+            "output path \"" + desPath + "\" already exists and is not a directory");
+      }
+      if (!isEmptyDirectory(desPath)) {
+        throw new ConversionException(
+            "output path \"" + desPath + "\" already exists and is not empty");
+      }
+    }
+  }
+
+  /**
+   * 存在しないかもしれないパスの実パスを返す．存在する最も近い祖先ディレクトリの実パスに，
+   * 存在しない部分を連結したものを返す．
+   */
+  private static Path toRealPathOfNonExistingFile(final Path path) throws IOException {
+    Path existing = path.toAbsolutePath()
+        .normalize();
+    final Deque<Path> missing = new ArrayDeque<>();
+    while (null != existing && Files.notExists(existing)) {
+      missing.push(existing.getFileName());
+      existing = existing.getParent();
+    }
+    if (null == existing) {
+      return path.toAbsolutePath()
+          .normalize();
+    }
+    Path realPath = existing.toRealPath();
+    while (!missing.isEmpty()) {
+      realPath = realPath.resolve(missing.pop());
+    }
+    return realPath;
+  }
+
+  private static boolean isEmptyDirectory(final Path directory) throws ConversionException {
+    try (final Stream<Path> entries = Files.list(directory)) {
+      return entries.findAny()
+          .isEmpty();
+    } catch (final IOException e) {
+      throw new ConversionException("failed to read \"" + directory + "\": " + e, e);
+    }
   }
 
   /**
