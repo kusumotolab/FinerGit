@@ -31,6 +31,11 @@ FinerGit can parse target source files from Java 1.4 through Java 25.
 Use `-j` or `--java-version` to select the Java version of the input source files.
 If this option is omitted, FinerGit uses Java 25.
 
+Run FinerGit in a UTF-8 locale (for example `LANG=en_US.UTF-8` on Linux).
+Generated file names are built from Java identifiers and type names, which may contain non-ASCII characters.
+If the JVM's file-name encoding cannot represent such a name, the final checkout of the working copy fails with `InvalidPathException`.
+FinerGit then still creates the repository (all objects and references are rewritten) and only prints a warning; fix the locale and run `git reset --hard` and `git clean -fd` in the output repository.
+
 ### Build FinerGit
 
 Build `FinerGit-all.jar` with the following commands.
@@ -208,6 +213,11 @@ java version "25" ...
 変換対象の Java ソースコードのバージョンは，Java 1.4 から Java 25 まで指定できます．
 入力ソースコードの Java バージョンは `-j` または `--java-version` で指定してください．
 このオプションを省略した場合は Java 25 として解析します．
+
+FinerGit は UTF-8 のロケール（例えば Linux では `LANG=ja_JP.UTF-8`）で実行してください．
+生成されるファイル名は Java の識別子や型名から作られるため，非 ASCII 文字を含むことがあります．
+JVM のファイル名のエンコーディングでそのような名前を表現できない場合，最後に行う作業コピーのチェックアウトが `InvalidPathException` で失敗します．
+この場合でもリポジトリ自体（すべてのオブジェクトと参照）は生成されており，FinerGit は警告を出すだけです．ロケールを直した上で，出力先リポジトリで `git reset --hard` と `git clean -fd` を実行してください．
 
 ### FinerGit のビルド
 

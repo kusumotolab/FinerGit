@@ -53,7 +53,7 @@ public class FinerRepoBuilder {
     try {
       // duplicate repository
       copyDirectory(srcPath, desPath);
-      final GitRepo repo = new GitRepo(desPath);
+      final GitRepo repo = createGitRepo(desPath);
       if (!repo.initialize()) {
         throw new ConversionException("failed to open repository \"" + desPath + "\"");
       }
@@ -71,14 +71,7 @@ public class FinerRepoBuilder {
       converted = true;
 
       // clean up working copy
-      final boolean resetSucceeded = repo.resetHard();
-      if (!resetSucceeded) {
-        log.warn("git reset --hard failed in \"{}\"", desPath);
-      }
-      final boolean cleanSucceeded = repo.clean();
-      if (!cleanSucceeded) {
-        log.warn("git clean -fd failed in \"{}\"", desPath);
-      }
+      cleanUpWorkingCopy(repo, desPath);
 
       return repo;
 
@@ -89,6 +82,43 @@ public class FinerRepoBuilder {
       if (!converted) {
         warnIncompleteRepository(desPath);
       }
+    }
+  }
+
+  /**
+   * 出力先リポジトリを表す GitRepo を作る．テストで差し替えられるように protected にしている．
+   *
+   * @param path 出力先リポジトリのパス
+   * @return 出力先リポジトリ
+   */
+  protected GitRepo createGitRepo(final Path path) {
+    return new GitRepo(path);
+  }
+
+  /**
+   * 作業コピーを書き換え後の HEAD に合わせる（git reset --hard と git clean -fd）．
+   *
+   * ここに到達した時点でリポジトリ（オブジェクトと参照）の書き換えは完了しているので，作業コピーの整理に
+   * 失敗しても変換の失敗にはしない．例えば，生成したファイル名に実行環境のロケールで表現できない文字が
+   * 含まれると，jgit のチェックアウトは InvalidPathException で失敗する（#114）．その場合は，手動で
+   * 復旧する方法を警告として案内する．
+   *
+   * @param repo 出力先リポジトリ
+   * @param desPath 出力先リポジトリのパス（ログ出力用）
+   */
+  private void cleanUpWorkingCopy(final GitRepo repo, final Path desPath) {
+    boolean succeeded;
+    try {
+      succeeded = repo.resetHard();
+      succeeded = repo.clean() && succeeded;
+    } catch (final RuntimeException e) {
+      log.warn("failed to clean up the working copy of \"{}\": {}", desPath, e.toString());
+      succeeded = false;
+    }
+    if (!succeeded) {
+      log.warn("the finer repository \"{}\" has been created, but its working copy could not be "
+          + "updated; run \"git reset --hard\" and \"git clean -fd\" in it "
+          + "(if file names contain non-ASCII characters, use a UTF-8 locale)", desPath);
     }
   }
 

@@ -150,8 +150,11 @@ public class GitRepo {
       cmd.setMode(ResetType.HARD);
       cmd.call();
       return true;
-    } catch (final GitAPIException e) {
-      e.printStackTrace();
+    } catch (final GitAPIException | RuntimeException e) {
+      // 作業コピーの整理に失敗してもリポジトリ（オブジェクトと参照）の書き換えは完了しているので，例外は伝播させない．
+      // 例えば，生成したファイル名に実行環境のロケールで表現できない文字が含まれると，jgit は
+      // InvalidPathException（RuntimeException）を投げる（#114）．
+      log.warn("git reset --hard failed in \"{}\": {}", this.path, e.toString());
       return false;
     }
   }
@@ -167,8 +170,9 @@ public class GitRepo {
       cmd.setCleanDirectories(true);
       cmd.call();
       return true;
-    } catch (final GitAPIException e) {
-      e.printStackTrace();
+    } catch (final GitAPIException | RuntimeException e) {
+      // resetHard() と同じく，作業コピーの整理の失敗は伝播させない
+      log.warn("git clean -fd failed in \"{}\": {}", this.path, e.toString());
       return false;
     }
   }
