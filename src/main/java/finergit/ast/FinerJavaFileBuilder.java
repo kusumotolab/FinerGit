@@ -1,6 +1,5 @@
 package finergit.ast;
 
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -10,7 +9,6 @@ import org.eclipse.jdt.core.compiler.IProblem;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CompilationUnit;
-import org.eclipse.jdt.core.dom.FileASTRequestor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import finergit.FinerGitConfig;
@@ -31,36 +29,21 @@ public class FinerJavaFileBuilder {
     this.config = config;
   }
 
+  /**
+   * 複数のファイルの細粒度モジュールをまとめて取り出す．
+   *
+   * 以前は ASTParser#createASTs でディスク上のファイルを解析していたため，与えられたテキストではなく
+   * ファイルの内容が解析され，BOM の除去などの前処理も効かなかった．与えられたテキストをそのまま
+   * 解析するように，各エントリを {@link #getFinerJavaModules(String, String)} に委譲する．
+   *
+   * @param pathToTextMap ファイルのパスからそのテキストへの対応
+   * @return すべてのファイルから取り出した細粒度モジュール
+   */
   public List<FinerJavaModule> getFinerJavaModules(final Map<String, String> pathToTextMap) {
-
     final List<FinerJavaModule> finerJavaModules = new ArrayList<>();
-    final FileASTRequestor requestor = new FileASTRequestor() {
-
-      @Override
-      public void acceptAST(final String sourceFilePath, final CompilationUnit ast) {
-
-        // 与えられたASTに構文エラーがあるときは何もしない
-        if (hasSyntaxError(sourceFilePath, ast)) {
-          return;
-        }
-
-        final String text = pathToTextMap.get(sourceFilePath);
-        if (text != null) {
-          final Path path = Paths.get(sourceFilePath);
-          final JavaFileVisitor visitor =
-              new JavaFileVisitor(path, FinerJavaFileBuilder.this.config);
-          ast.accept(visitor);
-          final List<FinerJavaModule> modules = visitor.getFinerJavaModules();
-          finerJavaModules.addAll(modules);
-        }
-      }
-    };
-
-    final ASTParser parser = createNewParser();
-    final String[] filePaths = pathToTextMap.keySet()
-        .toArray(new String[0]);
-    parser.createASTs(filePaths, null, new String[] {}, requestor, null);
-
+    for (final Map.Entry<String, String> entry : pathToTextMap.entrySet()) {
+      finerJavaModules.addAll(this.getFinerJavaModules(entry.getKey(), entry.getValue()));
+    }
     return finerJavaModules;
   }
 
