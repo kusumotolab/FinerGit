@@ -658,10 +658,16 @@ public class JavaFileVisitorTest {
   @Test
   public void testTextBlock() {
 
+    // 1つ目は物理的な改行だけを含むテキストブロック，2つ目はエスケープ列 "\n" と物理的な改行の両方を含む
     final String text = "class TextBlock {" + //
         "  String textBlock() {" + //
         "    return \"\"\"\n" + //
         "        hello\n" + //
+        "        world\"\"\";" + //
+        "  }" + //
+        "  String textBlockWithEscape() {" + //
+        "    return \"\"\"\n" + //
+        "        hello\\n\n" + //
         "        world\"\"\";" + //
         "  }" + //
         "}";
@@ -674,14 +680,25 @@ public class JavaFileVisitorTest {
     config.setFieldFileGenerated("false");
     final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
     final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
-    final List<String> tokens = modules.getFirst()
+
+    final List<String> tokens = modules.get(0)
         .getTokens()
         .stream()
         .map(t -> t.value)
         .collect(Collectors.toList());
-    // テキストブロック内の改行は "\n" にエスケープされ，トークンは1行に収まる
+    // テキストブロック内の物理的な改行は "\n" に符号化され，トークンは1行に収まる
     assertThat(tokens).containsExactly("String", "textBlock", "(", ")", "{", "return",
         "\"\"\"\\n        hello\\n        world\"\"\"", ";", "}");
     assertThat(tokens).allSatisfy(token -> assertThat(token).doesNotContain("\n"));
+
+    final List<String> tokensWithEscape = modules.get(1)
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    // ソース中のエスケープ列 "\n" はバックスラッシュが二重化されて "\\n" になり，物理的な改行の "\n" と区別される
+    assertThat(tokensWithEscape).containsExactly("String", "textBlockWithEscape", "(", ")", "{",
+        "return", "\"\"\"\\n        hello\\\\n\\n        world\"\"\"", ";", "}");
+    assertThat(tokensWithEscape.get(6)).isNotEqualTo(tokens.get(6));
   }
 }

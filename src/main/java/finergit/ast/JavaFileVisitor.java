@@ -2269,8 +2269,12 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final TextBlock node) {
 
-    // テキストブロックは複数行にわたるので，1行1トークンを保つために改行を "\n" にエスケープして1行にする
+    // テキストブロックは複数行にわたるので，1行1トークンを保つために1行に符号化する．
+    // 元のテキストに戻せる（可逆な）符号化にするため，まず既存のバックスラッシュを "\\" にエスケープしてから，
+    // 物理的な改行を "\n" に置き換える．これにより，ソース中のエスケープ列 "\n"（"\\n" になる）と
+    // 物理的な改行（"\n" になる）が区別され，どちらか一方だけが変わった場合も差分として現れる．
     final String literal = node.getEscapedValue()
+        .replace("\\", "\\\\")
         .replace("\r\n", "\n")
         .replace("\r", "\n")
         .replace("\n", "\\n");
