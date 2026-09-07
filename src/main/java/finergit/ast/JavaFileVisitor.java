@@ -279,8 +279,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final Javadoc javadoc = node.getJavadoc();
     if (null != javadoc) {
-      this.addToPeekModule(
-          new JAVADOCCOMMENT(this.removeTerminalLineCharacter(javadoc.toString())));
+      this.addJavadoc(javadoc);
     }
 
     // 修飾子の処理
@@ -317,8 +316,7 @@ public class JavaFileVisitor extends ASTVisitor {
     // Javadoc コメントの処理
     final Javadoc javadoc = node.getJavadoc();
     if (null != javadoc) {
-      this.addToPeekModule(
-          new JAVADOCCOMMENT(this.removeTerminalLineCharacter(javadoc.toString())));
+      this.addJavadoc(javadoc);
     }
 
     // 修飾子の処理
@@ -804,8 +802,7 @@ public class JavaFileVisitor extends ASTVisitor {
     // Javadoc コメントの処理
     final Javadoc javadoc = node.getJavadoc();
     if (null != javadoc) {
-      this.addToPeekModule(
-          new JAVADOCCOMMENT(this.removeTerminalLineCharacter(javadoc.toString())));
+      this.addJavadoc(javadoc);
     }
 
     // 修飾子の処理
@@ -861,8 +858,7 @@ public class JavaFileVisitor extends ASTVisitor {
     // Javadoc コメントの処理
     final Javadoc javadoc = node.getJavadoc();
     if (null != javadoc) {
-      this.addToPeekModule(
-          new JAVADOCCOMMENT(this.removeTerminalLineCharacter(javadoc.toString())));
+      this.addJavadoc(javadoc);
     }
 
     // 修飾子の処理
@@ -1012,8 +1008,7 @@ public class JavaFileVisitor extends ASTVisitor {
     // Javadoc コメントの処理
     final Javadoc javadoc = node.getJavadoc();
     if (null != javadoc) {
-      this.addToPeekModule(
-          new JAVADOCCOMMENT(this.removeTerminalLineCharacter(javadoc.toString())));
+      this.addJavadoc(javadoc);
     }
 
     // 修飾子の処理
@@ -1221,8 +1216,7 @@ public class JavaFileVisitor extends ASTVisitor {
     // Javadoc コメントの処理
     final Javadoc javadoc = node.getJavadoc();
     if (null != javadoc) {
-      this.addToPeekModule(
-          new JAVADOCCOMMENT(this.removeTerminalLineCharacter(javadoc.toString())));
+      this.addJavadoc(javadoc);
     }
 
     for (final Object modifier : node.modifiers()) {
@@ -1266,7 +1260,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
   @Override
   public boolean visit(final Javadoc node) {
-    this.addToPeekModule(new JAVADOCCOMMENT(this.removeTerminalLineCharacter(node.toString())));
+    this.addJavadoc(node);
     return false;
   }
 
@@ -1427,8 +1421,7 @@ public class JavaFileVisitor extends ASTVisitor {
     // Javadoc コメントの処理
     final Javadoc javadoc = node.getJavadoc();
     if (null != javadoc) {
-      this.addToPeekModule(
-          new JAVADOCCOMMENT(this.removeTerminalLineCharacter(javadoc.toString())));
+      this.addJavadoc(javadoc);
     }
 
     // 修飾子の処理（ダミーメソッドに追加）
@@ -1649,8 +1642,7 @@ public class JavaFileVisitor extends ASTVisitor {
   public boolean visit(final ModuleDeclaration node) {
     final Javadoc javadoc = node.getJavadoc();
     if (null != javadoc) {
-      this.addToPeekModule(
-          new JAVADOCCOMMENT(this.removeTerminalLineCharacter(javadoc.toString())));
+      this.addJavadoc(javadoc);
     }
 
     for (final Object annotation : node.annotations()) {
@@ -1962,8 +1954,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final Javadoc javadoc = node.getJavadoc();
     if (null != javadoc) {
-      this.addToPeekModule(
-          new JAVADOCCOMMENT(this.removeTerminalLineCharacter(javadoc.toString())));
+      this.addJavadoc(javadoc);
     }
 
     // 修飾子の処理
@@ -2505,8 +2496,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final Javadoc javadoc = node.getJavadoc();
     if (null != javadoc) {
-      this.addToPeekModule(
-          new JAVADOCCOMMENT(this.removeTerminalLineCharacter(javadoc.toString())));
+      this.addJavadoc(javadoc);
     }
 
     // 修飾子の処理
@@ -2859,8 +2849,7 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final Javadoc javadoc = node.getJavadoc();
     if (null != javadoc) {
-      this.addToPeekModule(
-          new JAVADOCCOMMENT(this.removeTerminalLineCharacter(javadoc.toString())));
+      this.addJavadoc(javadoc);
     }
 
     for (final Object modifier : node.modifiers()) {
@@ -2989,6 +2978,19 @@ public class JavaFileVisitor extends ASTVisitor {
     }
     final Class<?> moduleContext = this.contexts.pop();
     assert PACKAGENAME.class == moduleContext : "error happened at addTargetModules";
+  }
+
+  /**
+   * Javadoc コメントをトークンとして追加する．JDT の Javadoc#toString() は複数行の文字列を返すので，
+   * 「1行1トークン」を保つために行ごとに分割し，1行を1つの JAVADOCCOMMENT トークンにする．
+   *
+   * @param javadoc 追加する Javadoc コメント
+   */
+  private void addJavadoc(final Javadoc javadoc) {
+    final String text = this.removeTerminalLineCharacter(javadoc.toString());
+    for (final String line : text.split("\r\n|\r|\n")) {
+      this.addToPeekModule(new JAVADOCCOMMENT(line.stripTrailing()));
+    }
   }
 
   private String removeTerminalLineCharacter(final String text) {

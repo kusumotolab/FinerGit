@@ -844,6 +844,36 @@ public class JavaFileVisitorTest {
   }
 
   @Test
+  public void testJavadocIsSplitIntoLines() {
+
+    final String text = "class JavadocExample {\n" + //
+        "  /**\n" + //
+        "   * Method javadoc line 1\n" + //
+        "   * @param x the x\n" + //
+        "   */\n" + //
+        "  void method(int x) {}\n" + //
+        "}\n";
+
+    final String path = "dir/JavadocExample.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+    final List<String> tokens = modules.getFirst()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    // Javadoc は1行ごとに1トークンになり，トークンの中に改行は含まれない
+    assertThat(tokens).containsExactly("/**", " * Method javadoc line 1", " * @param x the x",
+        " */", "void", "method", "(", "int", "x", ")", "{", "}");
+    assertThat(tokens).allSatisfy(token -> assertThat(token).doesNotContain("\n", "\r"));
+  }
+
+  @Test
   public void testSuperMethodReferenceAndTypeParameter() {
 
     final String text = "import java.util.function.Supplier;" + //
