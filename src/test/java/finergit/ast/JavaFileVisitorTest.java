@@ -3,13 +3,16 @@ package finergit.ast;
 import static org.assertj.core.api.Assertions.assertThat;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Stack;
 import java.util.stream.Collectors;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.TagElement;
 import org.junit.Test;
 import finergit.FinerGitConfig;
+import finergit.ast.token.ModifierFactory;
 
 public class JavaFileVisitorTest {
 
@@ -509,6 +512,42 @@ public class JavaFileVisitorTest {
         "empty", "(", ")", "->", "s", ".", "push", "(", "\"first\"", ")", ";", "case", "Stack",
         "s2", "->", "s2", ".", "push", "(", "\"second\"", ")", ";", "default", "->", "c", ";", "}",
         ";", "}");
+  }
+
+  @Test
+  public void testModifierTokenTypes() {
+
+    final String text = "sealed interface Shape permits Circle {" + //
+        "  default double unit() { return 1; }" + //
+        "}" + //
+        "non-sealed class Circle implements Shape {" + //
+        "  public double area() { return 0; }" + //
+        "}";
+
+    final String path = "dir/Shape.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+
+    // 修飾子のトークン値ごとに，そのトークン型（--token-type-included で出力される名前）を集める
+    final Map<String, String> typeByValue = new HashMap<>();
+    modules.forEach(module -> module.getTokens()
+        .forEach(token -> typeByValue.put(token.value, token.getClass()
+            .getSimpleName())));
+    assertThat(typeByValue).containsEntry("sealed", "SEALED")
+        .containsEntry("non-sealed", "NONSEALED")
+        .containsEntry("default", "DEFAULT")
+        .containsEntry("public", "PUBLIC")
+        .doesNotContainValue("ANNOTATION");
+
+    // strictfp は Java 17 以降では警告になり構文解析結果から除外されるので，ファクトリを直接確認する
+    assertThat(ModifierFactory.create("strictfp")
+        .getClass()
+        .getSimpleName()).isEqualTo("STRICTFP");
   }
 
   @Test
