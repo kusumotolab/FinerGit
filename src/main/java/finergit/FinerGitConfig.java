@@ -198,10 +198,11 @@ public class FinerGitConfig {
   }
 
   @Option(name = "--max-file-name-length",
-      usage = "max file name length for Java method files [13, 255]")
+      usage = "max file name length for Java method files [15, 255], must be at least hash length + 8")
   public void setMaxFileNameLength(final int maxFileNameLength) {
-    if (maxFileNameLength < 13 || 255 < maxFileNameLength) {
-      System.err.println("option \"--max-file-name-length\" must be between 13 and 255");
+    if (maxFileNameLength < MINIMUM_FILE_NAME_LENGTH || 255 < maxFileNameLength) {
+      System.err.println("option \"--max-file-name-length\" must be between "
+          + MINIMUM_FILE_NAME_LENGTH + " and 255");
       exit(1);
     }
     this.maxFileNameLength = maxFileNameLength;
@@ -318,6 +319,33 @@ public class FinerGitConfig {
   @Option(name = "-h", aliases = "--help", usage = "print the option list and exit")
   public void setHelpRequested(final boolean helpRequested) {
     this.isHelpRequested = helpRequested;
+  }
+
+  /**
+   * 生成されるファイルの拡張子の長さ（".mjava"，".cjava"，".fjava"，".pjava"，".rjava" はいずれも6文字）
+   */
+  public static final int EXTENSION_LENGTH = 6;
+
+  /**
+   * 短縮されたファイル名は "ベースネームの先頭 + '_' + ハッシュ値 + 拡張子" という形になるので，
+   * ベースネームが1文字以上残るためには，ファイル名の最大長は "ハッシュ値の長さ + 8" 以上でなければならない．
+   * ハッシュ値の長さの最小値は7なので，ファイル名の最大長の最小値は15である．
+   */
+  public static final int MINIMUM_FILE_NAME_LENGTH = 7 + 1 + 1 + EXTENSION_LENGTH;
+
+  /**
+   * 互いに依存するオプションの組み合わせを検証する．各オプションの setter は単独の範囲しか確認できないので，
+   * すべてのオプションを読み込んだ後にこのメソッドを呼び出す必要がある．
+   *
+   * @return 問題がなければ null，問題がある場合はその内容を表すメッセージ
+   */
+  public String validate() {
+    final int minimumFileNameLength = this.hashLength + 1 + 1 + EXTENSION_LENGTH;
+    if (this.maxFileNameLength < minimumFileNameLength) {
+      return "option \"--max-file-name-length\" must be at least " + minimumFileNameLength
+          + " (hash length + 8) when option \"--hash-length\" is " + this.hashLength;
+    }
+    return null;
   }
 
   private boolean getBooleanValue(final String flag, final String message) {

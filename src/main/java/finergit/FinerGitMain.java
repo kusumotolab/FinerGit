@@ -73,6 +73,13 @@ public class FinerGitMain {
       return EXIT_SUCCESS;
     }
 
+    // 互いに依存するオプション（--max-file-name-length と --hash-length など）の組み合わせを確認する
+    final String configError = config.validate();
+    if (null != configError) {
+      System.err.println(configError);
+      return EXIT_FAILURE;
+    }
+
     final Timer timer = new Timer();
     timer.start();
 
