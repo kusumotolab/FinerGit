@@ -2,7 +2,9 @@ package finergit;
 
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 import org.eclipse.jgit.errors.ObjectWritingException;
 import org.eclipse.jgit.lib.ObjectId;
@@ -56,6 +58,7 @@ public class FinerGitRewriter extends RepositoryRewriter {
       log.debug("Keep original file: {} {}", entry, c);
       result.add(entry);
     }
+    final Set<String> generatedNames = new HashSet<>();
     for (final FinerJavaModule m : extractFinerModules(entry, c)) {
       // 行区切りは実行環境に依存させず常に LF にする（同じ入力からは OS に関係なく同じ blob を生成する）．
       // また，最終行に改行を入れないと途中行とのマッチングが正しく行われない．
@@ -63,6 +66,16 @@ public class FinerGitRewriter extends RepositoryRewriter {
       final ObjectId newId = writeBlob(finerSource.getBytes(StandardCharsets.UTF_8), c);
       final String name = m.getFileName();
       log.debug("Generate finer module: {} -> {} {} {}", entry, name, newId.name(), c);
+
+      // リポジトリ内のソースコードはコンパイルできるとは限らず，同じシグネチャのメソッドが重複していることがある．
+      // その場合は同じ名前の細粒度ファイルが複数生成され，git-stein が後のものを "名前@N" として保存する．
+      // git-stein はこのことを DEBUG でしか記録しないので，どのコミットのどのファイルで起きたかをここで警告する．
+      if (!generatedNames.add(name)) {
+        log.warn(
+            "duplicate finer file name \"{}\" is generated from \"{}/{}\" in commit {}; "
+                + "the later one is stored with an \"@N\" suffix",
+            name, entry.directory, entry.name, RevCommitUtil.getAbbreviatedID(c.getCommit()));
+      }
       result.add(Entry.of(entry.mode, name, newId, entry.directory));
     }
     return result;
