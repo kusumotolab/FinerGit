@@ -222,6 +222,51 @@ public class JavaFileVisitorTest {
   }
 
   @Test
+  public void testInterfaceAndTypeParameters() {
+
+    final String text = "interface Shape<T> extends Comparable<T>, Runnable {}" + //
+        "sealed class Box<T extends Number, U> permits SmallBox, LargeBox {}" + //
+        "record Pair<A, B>(A first, B second) { Pair {} }";
+
+    final String path = "dir/Shape.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+
+    final List<String> interfaceTokens = modules.get(0)
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(interfaceTokens).containsExactly("interface", "Shape", "<", "T", ">", "extends",
+        "Comparable", "<", "T", ">", ",", "Runnable", "{", "}");
+
+    final List<String> classTokens = modules.get(1)
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(classTokens).containsExactly("sealed", "class", "Box", "<", "T", "extends", "Number",
+        ",", "U", ">", "permits", "SmallBox", ",", "LargeBox", "{", "}");
+
+    // レコードモジュールはコンパクトコンストラクタのメソッドモジュールの外側モジュールとして取得する
+    final FinerJavaModule recordModule = modules.stream()
+        .filter(m -> m instanceof FinerJavaMethod)
+        .findFirst()
+        .orElseThrow().outerModule;
+    final List<String> recordTokens = recordModule.getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(recordTokens).containsExactly("record", "Pair", "<", "A", ",", "B", ">", "(", "A",
+        "first", ",", "B", "second", ")", "{", "MethodToken[Pair()]", "}");
+  }
+
+  @Test
   public void testRecord() {
 
     final String text = "record RecordExample(double length, double width) {" + //
