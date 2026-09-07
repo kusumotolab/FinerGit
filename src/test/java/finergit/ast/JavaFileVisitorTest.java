@@ -226,7 +226,7 @@ public class JavaFileVisitorTest {
 
     final String text = "interface Shape<T> extends Comparable<T>, Runnable {}" + //
         "sealed class Box<T extends Number, U> permits SmallBox, LargeBox {}" + //
-        "record Pair<A, B>(A first, B second) { Pair {} }";
+        "record Pair<A, B>(A first, B second) { int size() { return 2; } }";
 
     final String path = "dir/Shape.java";
     final FinerGitConfig config = new FinerGitConfig();
@@ -253,7 +253,7 @@ public class JavaFileVisitorTest {
     assertThat(classTokens).containsExactly("sealed", "class", "Box", "<", "T", "extends", "Number",
         ",", "U", ">", "permits", "SmallBox", ",", "LargeBox", "{", "}");
 
-    // レコードモジュールはコンパクトコンストラクタのメソッドモジュールの外側モジュールとして取得する
+    // レコードモジュールはメソッドモジュールの外側モジュールとして取得する
     final FinerJavaModule recordModule = modules.stream()
         .filter(m -> m instanceof FinerJavaMethod)
         .findFirst()
@@ -263,7 +263,7 @@ public class JavaFileVisitorTest {
         .map(t -> t.value)
         .collect(Collectors.toList());
     assertThat(recordTokens).containsExactly("record", "Pair", "<", "A", ",", "B", ">", "(", "A",
-        "first", ",", "B", "second", ")", "{", "MethodToken[Pair()]", "}");
+        "first", ",", "B", "second", ")", "{", "MethodToken[int_size()]", "}");
   }
 
   @Test
