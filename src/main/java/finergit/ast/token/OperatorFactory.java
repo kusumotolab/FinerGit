@@ -55,12 +55,18 @@ public class OperatorFactory {
         return new NOTEQUAL();
       case "^":
         return new EXCLUSIVEOR();
+      case "^=":
+        return new EXCLUSIVEOREQUAL();
       case "&":
         return new AND();
+      case "&=":
+        return new ANDEQUAL();
       case "&&":
         return new ANDAND();
       case "|":
         return new OR();
+      case "|=":
+        return new OREQUAL();
       case "||":
         return new OROR();
       case "~":

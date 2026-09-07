@@ -115,6 +115,54 @@ public class JavaFileVisitorTest {
   }
 
   @Test
+  public void testCompoundAssignment() {
+
+    final String text = "class CompoundAssignment{" + //
+        "  void compoundAssignment(int x){" + //
+        "    int c = 0;" + //
+        "    c += x;" + //
+        "    c -= x;" + //
+        "    c *= x;" + //
+        "    c /= x;" + //
+        "    c %= x;" + //
+        "    c <<= 1;" + //
+        "    c >>= 1;" + //
+        "    c >>>= 1;" + //
+        "    c &= x;" + //
+        "    c |= x;" + //
+        "    c ^= x;" + //
+        "  }" + //
+        "}";
+    final String path = "dir/CompoundAssignment.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+    final List<String> tokens = modules.get(0)
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(tokens).containsExactly("void", "compoundAssignment", "(", "int", "x", ")", "{", //
+        "int", "c", "=", "0", ";", //
+        "c", "+=", "x", ";", //
+        "c", "-=", "x", ";", //
+        "c", "*=", "x", ";", //
+        "c", "/=", "x", ";", //
+        "c", "%=", "x", ";", //
+        "c", "<<=", "1", ";", //
+        "c", ">>=", "1", ";", //
+        "c", ">>>=", "1", ";", //
+        "c", "&=", "x", ";", //
+        "c", "|=", "x", ";", //
+        "c", "^=", "x", ";", //
+        "}");
+  }
+
+  @Test
   public void testDoStatement() {
 
     final String text = "class DoStatement{" + //
