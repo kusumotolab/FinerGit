@@ -1085,6 +1085,47 @@ public class JavaFileVisitorTest {
   }
 
   @Test
+  public void testCommentsWithoutTokenization() {
+
+    final String text = String.join("\n", //
+        "class NoTokenize {", //
+        "  // leading comment of field", //
+        "  int x; // trailing comment of field", //
+        "  // leading comment of method", //
+        "  void m() {", //
+        "    // comment inside method", //
+        "    return;", //
+        "  } // trailing comment of method", //
+        "}", //
+        "");
+
+    final String path = "dir/NoTokenize.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setTokenized("false");
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("true");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+
+    // フィールド：先行コメント，宣言の文字列表現，同じ行の末尾コメントの順に並ぶ
+    final List<String> fieldTokens = tokensOf(modules, FinerJavaField.class);
+    assertThat(fieldTokens).hasSize(3);
+    assertThat(fieldTokens.get(0)).isEqualTo("// leading comment of field");
+    assertThat(fieldTokens.get(1)).startsWith("int x;");
+    assertThat(fieldTokens.get(2)).isEqualTo("// trailing comment of field");
+
+    // メソッド：宣言の範囲外にある先行コメントと末尾コメントは保持される．
+    // 本体内のコメントはメソッドの文字列表現に含まれないので出力されない（トークン化しない場合の従来どおりの挙動）
+    final List<String> methodTokens = tokensOf(modules, FinerJavaMethod.class);
+    assertThat(methodTokens.getFirst()).isEqualTo("// leading comment of method");
+    assertThat(methodTokens.getLast()).isEqualTo("// trailing comment of method");
+    assertThat(methodTokens).anyMatch(token -> token.startsWith("void m("));
+    assertThat(methodTokens).noneMatch(token -> token.contains("comment inside method"));
+  }
+
+  @Test
   public void testNullPattern() {
 
     final String text = "class NullPatternExample {" + //

@@ -1072,14 +1072,19 @@ public class JavaFileVisitor extends ASTVisitor {
   public boolean visit(final FieldDeclaration node) {
 
     // 内部クラスのフィールドでない場合は，ダミーフィールドを生成し，モジュールスタックに追加
+    int leadingCommentCount = 0;
     if (1 == this.classNestLevel) {
       final FinerJavaModule outerModule = this.moduleStack.peek();
       final FinerJavaField dummyField = new FinerJavaField("DummyField", outerModule, null);
       this.moduleStack.push(dummyField);
-    }
 
-    // 宣言に先行するコメント（Javadoc より前にある行コメントなど）をこのフィールドのモジュールに入れる
-    this.addCommentsBefore(node.getStartPosition());
+      // 宣言に先行するコメント（Javadoc より前にある行コメントなど）をこのフィールドのモジュールに入れる．
+      // ここまでにダミーフィールドに入ったトークンはすべて先行コメントなので，トークン化しない場合に
+      // 引き継ぐためにその数を覚えておく（内部クラスのフィールドの先行コメントは preVisit で出力済み）
+      this.addCommentsBefore(node.getStartPosition());
+      leadingCommentCount = dummyField.getTokens()
+          .size();
+    }
 
     // Javadoc コメントの処理
     final Javadoc javadoc = node.getJavadoc();
@@ -1134,9 +1139,6 @@ public class JavaFileVisitor extends ASTVisitor {
       fieldFileName.append(((VariableDeclarationFragment) fragments.get(index)).getName());
     }
 
-    // フィールド宣言の末尾行にあるコメント（"int x; // count" など）をこのフィールドのモジュールに入れる
-    this.addCommentsBefore(this.endOfLine(node));
-
     // 内部クラスのフィールドでない場合は，ダミーフィールドをスタックから取り除く
     if (1 == this.classNestLevel) {
       final FinerJavaModule dummyField = this.moduleStack.pop();
@@ -1153,13 +1155,27 @@ public class JavaFileVisitor extends ASTVisitor {
             new FinerJavaFieldToken("FieldToken[" + javaField.name + "]", javaField));
       }
 
-      // 一行一トークンでない場合は，,フィールドの文字列表現からトークンを作り出し，それらをフィールドモジュールに追加し，処理を終了する
+      // 一行一トークンでない場合は，フィールドの文字列表現からトークンを作り出し，それらをフィールドモジュールに追加する
       else {
+        // 宣言に先行するコメントは文字列表現に含まれないので，ダミーフィールドから引き継ぐ
+        dummyField.getTokens()
+            .subList(0, leadingCommentCount)
+            .forEach(javaField::addToken);
         Stream.of(node.toString()
                 .split("(\\r\\n|\\r|\\n)"))
             .map(LineToken::new)
             .forEach(javaField::addToken);
+        // 宣言の範囲内にあるコメントは文字列表現に含まれているので，別途出力しないように捨てる
+        this.discardCommentsBefore(node.getStartPosition() + node.getLength());
       }
+
+      // フィールド宣言の後ろの同じ行にあるコメント（"int x; // count" など）をこのフィールドのモジュールに入れる
+      this.moduleStack.push(javaField);
+      this.addCommentsBefore(this.endOfLine(node));
+      this.moduleStack.pop();
+    } else {
+      // 内部クラスのフィールドの場合は，宣言の後ろの同じ行にあるコメントも現在のモジュールに入れる
+      this.addCommentsBefore(this.endOfLine(node));
     }
 
     return false;
@@ -1491,14 +1507,19 @@ public class JavaFileVisitor extends ASTVisitor {
   public boolean visit(final MethodDeclaration node) {
 
     // 内部クラスのメソッドでない場合は，ダミーメソッドを生成し，モジュールスタックに追加
+    int leadingCommentCount = 0;
     if (1 == this.classNestLevel) {
       final FinerJavaModule outerModule = this.moduleStack.peek();
       final FinerJavaMethod dummyMethod = new FinerJavaMethod("DummyMethod", outerModule, null);
       this.moduleStack.push(dummyMethod);
-    }
 
-    // 宣言に先行するコメント（Javadoc より前にある行コメントなど）をこのメソッドのモジュールに入れる
-    this.addCommentsBefore(node.getStartPosition());
+      // 宣言に先行するコメント（Javadoc より前にある行コメントなど）をこのメソッドのモジュールに入れる．
+      // ここまでにダミーメソッドに入ったトークンはすべて先行コメントなので，トークン化しない場合に
+      // 引き継ぐためにその数を覚えておく（内部クラスのメソッドの先行コメントは preVisit で出力済み）
+      this.addCommentsBefore(node.getStartPosition());
+      leadingCommentCount = dummyMethod.getTokens()
+          .size();
+    }
 
     // Javadoc コメントの処理
     final Javadoc javadoc = node.getJavadoc();
@@ -1660,12 +1681,18 @@ public class JavaFileVisitor extends ASTVisitor {
 
       // 一行一トークンでない場合は，メソッドの文字列表現からトークンを作り出し，それらをメソッドモジュールに追加し，処理を終了する
       else {
+        // 宣言に先行するコメントは文字列表現に含まれないので，ダミーメソッドから引き継ぐ
+        dummyMethod.getTokens()
+            .subList(0, leadingCommentCount)
+            .forEach(javaMethod::addToken);
         Stream.of(node.toString()
                 .split("(\\r\\n|\\r|\\n)"))
             .map(LineToken::new)
             .forEach(javaMethod::addToken);
-        // メソッド内のコメントは文字列表現に含まれているので，別途出力しないように捨てる
-        this.discardCommentsBefore(this.endOfLine(node));
+        // 宣言の範囲内にあるコメントは文字列表現に含まれているので，別途出力しないように捨てる．
+        // 宣言の後ろの同じ行にあるコメント（"} // end of m" など）は文字列表現に含まれないので出力する
+        this.discardCommentsBefore(node.getStartPosition() + node.getLength());
+        this.addCommentsBefore(this.endOfLine(node));
         this.moduleStack.pop();
         return false;
       }
