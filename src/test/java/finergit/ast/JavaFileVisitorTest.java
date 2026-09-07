@@ -626,6 +626,37 @@ public class JavaFileVisitorTest {
         "s", ";", "}", ";", "}");
   }
 
+  @Test
+  public void testPatternInstanceof() {
+
+    final String text = "class PatternInstanceof {" + //
+        "  record Point(int x, int y) {}" + //
+        "  boolean patternInstanceof(Object o) {" + //
+        "    if (o instanceof Point(int x, int y)) { return true; }" + //
+        "    return o instanceof String s && !s.isEmpty();" + //
+        "  }" + //
+        "}";
+
+    final String path = "dir/PatternInstanceof.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("false");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+    final List<String> tokens = modules.getFirst()
+        .getTokens()
+        .stream()
+        .map(t -> t.value)
+        .collect(Collectors.toList());
+    assertThat(tokens).containsExactly("boolean", "patternInstanceof", "(", "Object", "o", ")", "{", //
+        "if", "(", "o", "instanceof", "Point", "(", "int", "x", ",", "int", "y", ")", ")", "{", //
+        "return", "true", ";", "}", //
+        "return", "o", "instanceof", "String", "s", "&&", "!", "s", ".", "isEmpty", "(", ")", ";", //
+        "}");
+  }
+
   //@Test
   public void testStringTemplate() {
 

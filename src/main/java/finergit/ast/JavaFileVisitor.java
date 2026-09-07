@@ -1726,9 +1726,18 @@ public class JavaFileVisitor extends ASTVisitor {
   }
 
   @Override
-  public boolean visit(PatternInstanceofExpression node) {
-    log.error("JavaFileVisitor#visit(PatternInstanceofExpression) is not implemented yet.");
-    return super.visit(node);
+  public boolean visit(final PatternInstanceofExpression node) {
+
+    node.getLeftOperand()
+        .accept(this);
+
+    this.addToPeekModule(new INSTANCEOF());
+
+    // 型パターンやレコードパターンは既存の visit で処理される
+    node.getPattern()
+        .accept(this);
+
+    return false;
   }
 
   @Override
