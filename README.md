@@ -104,6 +104,10 @@ If a conversion was aborted, or if an invalid command line was given, FinerGit p
 $ java -jar build/libs/FinerGit-all.jar create --src /path/to/repoA --des /path/to/repoB || echo "conversion failed"
 ```
 
+FinerGit checks the paths before it starts copying.
+The output path must not exist yet or must be an empty directory, and it must not be the same as or inside the input repository.
+If these conditions are not met, FinerGit exits with `1` without touching the input repository or the output path.
+
 Note that an aborted conversion leaves an incomplete copy of the input repository in the output path.
 Such a repository is not a FinerGit repository, and thus it should be removed before retrying the conversion.
 
@@ -276,6 +280,10 @@ FinerGit は，変換が正常に終了した場合に `0` を返します．
 ```shell-session
 $ java -jar build/libs/FinerGit-all.jar create --src /path/to/repoA --des /path/to/repoB || echo "変換に失敗しました"
 ```
+
+FinerGit はコピーを始める前にパスを検証します．
+出力先は存在しないパスか空のディレクトリでなければならず，入力リポジトリと同じパスや入力リポジトリの内側を指定することはできません．
+これらの条件を満たさない場合，FinerGit は入力リポジトリにも出力先にも変更を加えずに `1` を返します．
 
 変換が中断された場合，出力先には入力リポジトリの不完全な複製が残ることに注意してください．
 そのようなリポジトリは FinerGit リポジトリではないため，再実行する前に削除してください．

@@ -53,6 +53,65 @@ public class FinerGitMainTest {
   }
 
   /**
+   * 入力リポジトリと出力先が同じ場合には，入力リポジトリを書き換えずに異常終了する．
+   */
+  @Test
+  public void testRunWithSameSrcAndDes() throws Exception {
+    final Path srcPath = createRepository();
+    final GitRepo srcRepo = new GitRepo(srcPath);
+    assertThat(srcRepo.initialize()).isTrue();
+    final RevCommit headBefore = srcRepo.getHeadCommit();
+
+    assertThat(run(srcPath, srcPath)).isEqualTo(FinerGitMain.EXIT_FAILURE);
+
+    // 入力リポジトリの HEAD もワーキングコピーも変更されていない
+    final GitRepo repoAfter = new GitRepo(srcPath);
+    assertThat(repoAfter.initialize()).isTrue();
+    assertThat(repoAfter.getHeadCommit()
+        .getId()).isEqualTo(headBefore.getId());
+    assertThat(getFileNames(srcPath)).contains("Foo.java");
+  }
+
+  /**
+   * 出力先が入力リポジトリの内側にある場合には，異常終了する．
+   */
+  @Test
+  public void testRunWithDesInsideSrc() throws Exception {
+    final Path srcPath = createRepository();
+    final Path desPath = srcPath.resolve("finer");
+
+    assertThat(run(srcPath, desPath)).isEqualTo(FinerGitMain.EXIT_FAILURE);
+    assertThat(desPath).doesNotExist();
+  }
+
+  /**
+   * 出力先が空でない既存ディレクトリの場合には，その内容を変更せずに異常終了する．
+   */
+  @Test
+  public void testRunWithNonEmptyDes() throws Exception {
+    final Path srcPath = createRepository();
+    final Path desPath = this.folder.newFolder("des")
+        .toPath();
+    Files.writeString(desPath.resolve("existing.txt"), "existing", StandardCharsets.UTF_8);
+
+    assertThat(run(srcPath, desPath)).isEqualTo(FinerGitMain.EXIT_FAILURE);
+    assertThat(getFileNames(desPath)).containsExactly("existing.txt");
+  }
+
+  /**
+   * 出力先が空の既存ディレクトリの場合には，変換が行われる．
+   */
+  @Test
+  public void testRunWithEmptyDes() throws Exception {
+    final Path srcPath = createRepository();
+    final Path desPath = this.folder.newFolder("des")
+        .toPath();
+
+    assertThat(run(srcPath, desPath)).isEqualTo(FinerGitMain.EXIT_SUCCESS);
+    assertThat(getFileNames(desPath)).anyMatch(name -> name.endsWith(".mjava"));
+  }
+
+  /**
    * 必須オプションが指定されていない場合には，異常終了を表す終了コードが返される．
    */
   @Test
