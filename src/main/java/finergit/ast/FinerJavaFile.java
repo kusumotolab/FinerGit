@@ -1,6 +1,5 @@
 package finergit.ast;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import finergit.FinerGitConfig;
@@ -9,12 +8,16 @@ public class FinerJavaFile extends FinerJavaModule {
 
   private static final String FILE_EXTENSION = ".pjava";
 
-  public final Path directory;
+  /**
+   * このファイルが置かれているディレクトリ（リポジトリ内のパス，ルートの場合は空文字列）
+   */
+  public final String directoryName;
   private final List<FinerJavaModule> innerJavaModules;
 
-  public FinerJavaFile(final Path directory, final String name, final FinerGitConfig config) {
+  public FinerJavaFile(final String directoryName, final String name,
+      final FinerGitConfig config) {
     super(name, null, config);
-    this.directory = directory;
+    this.directoryName = directoryName;
     this.innerJavaModules = new ArrayList<>();
   }
 
@@ -27,8 +30,8 @@ public class FinerJavaFile extends FinerJavaModule {
   }
 
   @Override
-  public Path getDirectory() {
-    return this.directory;
+  public String getDirectoryName() {
+    return this.directoryName;
   }
 
   @Override

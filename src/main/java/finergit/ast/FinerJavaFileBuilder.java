@@ -1,10 +1,10 @@
 package finergit.ast;
 
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.io.FilenameUtils;
 import org.eclipse.jdt.core.compiler.IProblem;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
@@ -58,7 +58,7 @@ public class FinerJavaFileBuilder {
       return Collections.emptyList();
     }
 
-    final JavaFileVisitor visitor = new JavaFileVisitor(Paths.get(path), this.config);
+    final JavaFileVisitor visitor = createVisitor(path, this.config);
     ast.accept(visitor);
     return visitor.getFinerJavaModules();
   }
@@ -92,6 +92,17 @@ public class FinerJavaFileBuilder {
       }
     }
     return false;
+  }
+
+  /**
+   * 解析対象ファイルのパスからディレクトリとベースネームを取り出して visitor を作る．
+   * リポジトリ内のパスには Windows で使えない文字（"?" や "*" など）が含まれうるので，
+   * java.nio.file.Path を介さずに文字列のまま処理する．
+   */
+  private static JavaFileVisitor createVisitor(final String path, final FinerGitConfig config) {
+    final String directory = FilenameUtils.getFullPathNoEndSeparator(path);
+    final String fileName = FilenameUtils.getBaseName(path);
+    return new JavaFileVisitor(directory, fileName, config);
   }
 
   private ASTParser createNewParser() {

@@ -227,7 +227,26 @@ public class JavaFileVisitor extends ASTVisitor {
   private final Stack<Class<?>> contexts;
   private int classNestLevel;
 
+  /**
+   * @param path 解析対象ファイルのパス
+   * @param config 設定
+   * @deprecated リポジトリ内のパスには実行環境で使えない文字が含まれうるため，Path を作ること自体が
+   *             失敗しうる．代わりに {@link #JavaFileVisitor(String, String, FinerGitConfig)} を使うこと．
+   */
+  @Deprecated
   public JavaFileVisitor(final Path path, final FinerGitConfig config) {
+    this(null == path.getParent() ? "" : path.getParent()
+        .toString(), FilenameUtils.getBaseName(path.toString()), config);
+  }
+
+  /**
+   * @param directory 解析対象ファイルが置かれているディレクトリ（リポジトリ内のパス，ルートの場合は空文字列）．
+   *        リポジトリ内のパスには実行環境で使えない文字が含まれうるので，java.nio.file.Path にはしない．
+   * @param fileName 解析対象ファイルのベースネーム（拡張子を除いたファイル名）
+   * @param config 設定
+   */
+  public JavaFileVisitor(final String directory, final String fileName,
+      final FinerGitConfig config) {
 
     this.config = config;
     this.moduleStack = new Stack<>();
@@ -235,9 +254,7 @@ public class JavaFileVisitor extends ASTVisitor {
     this.contexts = new Stack<>();
     this.classNestLevel = 0;
 
-    final Path dirName = path.getParent();
-    final String fileName = FilenameUtils.getBaseName(path.toString());
-    final FinerJavaFile finerJavaFile = new FinerJavaFile(dirName, fileName, config);
+    final FinerJavaFile finerJavaFile = new FinerJavaFile(directory, fileName, config);
     this.moduleStack.push(finerJavaFile);
     this.moduleList.add(finerJavaFile);
   }

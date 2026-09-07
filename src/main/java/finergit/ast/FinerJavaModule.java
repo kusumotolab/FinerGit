@@ -1,6 +1,7 @@
 package finergit.ast;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -57,7 +58,27 @@ public abstract class FinerJavaModule {
         .collect(Collectors.toList());
   }
 
-  public abstract Path getDirectory();
+  /**
+   * このモジュールが置かれるディレクトリ（リポジトリ内のパス）を返す．リポジトリ内のパスには
+   * 実行環境のファイルシステムで使えない文字（Windows の "?" や "*" など）が含まれうるので，
+   * java.nio.file.Path ではなく文字列として扱う．
+   *
+   * @return ディレクトリのパス（ルートの場合は空文字列）
+   */
+  public abstract String getDirectoryName();
+
+  /**
+   * このモジュールが置かれるディレクトリを {@link Path} として返す．
+   *
+   * @deprecated リポジトリ内のパスには実行環境で使えない文字が含まれうるため，このメソッドは
+   *             {@link java.nio.file.InvalidPathException} を投げることがある．
+   *             代わりに {@link #getDirectoryName()} を使うこと．
+   * @return ディレクトリのパス
+   */
+  @Deprecated
+  public Path getDirectory() {
+    return Paths.get(this.getDirectoryName());
+  }
 
   /**
    * このモジュールのファイル名を返す．モジュールのファイル名は，"外側のモジュール名 + 自分のベースネーム + 拡張子"である．
@@ -86,9 +107,28 @@ public abstract class FinerJavaModule {
         + getExtension();
   }
 
+  /**
+   * このモジュールのリポジトリ内のパス（ディレクトリ + "/" + ファイル名）を返す．
+   *
+   * @return リポジトリ内のパス
+   */
+  public final String getPathName() {
+    final String directory = this.getDirectoryName();
+    final String fileName = this.getFileName();
+    return directory.isEmpty() ? fileName : directory + "/" + fileName;
+  }
+
+  /**
+   * このモジュールのパスを {@link Path} として返す．
+   *
+   * @deprecated リポジトリ内のパスには実行環境で使えない文字が含まれうるため，このメソッドは
+   *             {@link java.nio.file.InvalidPathException} を投げることがある．
+   *             代わりに {@link #getPathName()} を使うこと．
+   * @return パス
+   */
+  @Deprecated
   public final Path getPath() {
-    return this.getDirectory()
-        .resolve(this.getFileName());
+    return Paths.get(this.getPathName());
   }
 
   /**
