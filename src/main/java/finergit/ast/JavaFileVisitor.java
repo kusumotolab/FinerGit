@@ -186,6 +186,7 @@ import finergit.ast.token.RIGHTWHILEBRACKET;
 import finergit.ast.token.RIGHTWHILEPAREN;
 import finergit.ast.token.SEMICOLON;
 import finergit.ast.token.SHARP;
+import finergit.ast.token.STAR;
 import finergit.ast.token.STATIC;
 import finergit.ast.token.STRINGLITERAL;
 import finergit.ast.token.SUPER;
@@ -587,6 +588,9 @@ public class JavaFileVisitor extends ASTVisitor {
 
     this.addToPeekModule(new NEW());
 
+    // 明示的な型引数（"new <String>Foo()" の "<String>"）の処理
+    this.addTypeArguments(node.typeArguments());
+
     node.getType()
         .accept(this);
 
@@ -639,6 +643,9 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final ConstructorInvocation node) {
 
+    // 明示的な型引数（"<String>this(...)" の "<String>"）の処理
+    this.addTypeArguments(node.typeArguments());
+
     this.addToPeekModule(new THIS(), new LEFTCONSTRUCTORINVOCATIONPAREN());
 
     final List<?> arguments = node.arguments();
@@ -680,7 +687,9 @@ public class JavaFileVisitor extends ASTVisitor {
     node.getType()
         .accept(this);
 
-    this.addToPeekModule(new METHODREFERENCE(), new NEW());
+    this.addToPeekModule(new METHODREFERENCE());
+    this.addTypeArguments(node.typeArguments());
+    this.addToPeekModule(new NEW());
 
     return false;
   }
@@ -875,6 +884,8 @@ public class JavaFileVisitor extends ASTVisitor {
         .accept(this);
 
     this.addToPeekModule(new METHODREFERENCE());
+
+    this.addTypeArguments(node.typeArguments());
 
     this.contexts.push(INVOKEDMETHODNAME.class);
     node.getName()
@@ -1079,17 +1090,31 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final ImportDeclaration node) {
 
-    if (node.isStatic()) {
-      this.addToPeekModule(new STATIC());
-    }
-
     this.addToPeekModule(new IMPORT());
+
+    // "import static ..." と "import module ..." の処理（modifiers() には static か module が入る）
+    boolean isModuleImport = false;
+    for (final Object o : node.modifiers()) {
+      final Modifier modifier = (Modifier) o;
+      if (modifier.isStatic()) {
+        this.addToPeekModule(new STATIC());
+      } else if (Modifier.ModifierKeyword.MODULE_KEYWORD == modifier.getKeyword()) {
+        this.addToPeekModule(new MODULE());
+        isModuleImport = true;
+      }
+    }
 
     this.contexts.push(IMPORTNAME.class);
     node.getName()
         .accept(this);
     final Class<?> c = this.contexts.pop();
     assert c == IMPORTNAME.class : "context error.";
+
+    // オンデマンドインポート（"import java.util.*;" の ".*"）の処理．
+    // JDT はモジュールインポートも isOnDemand() を true にするが，ソース上に ".*" はないので出力しない
+    if (node.isOnDemand() && !isModuleImport) {
+      this.addToPeekModule(new DOT(), new STAR());
+    }
 
     return false;
   }
@@ -1514,6 +1539,9 @@ public class JavaFileVisitor extends ASTVisitor {
       qualifier.accept(this);
       this.addToPeekModule(new DOT());
     }
+
+    // 明示的な型引数（"Collections.<String>emptyList()" の "<String>"）の処理
+    this.addTypeArguments(node.typeArguments());
 
     this.contexts.push(INVOKEDMETHODNAME.class);
     node.getName()
@@ -2043,6 +2071,9 @@ public class JavaFileVisitor extends ASTVisitor {
       assert VARIABLENAME.class == context : "error happened at visit(SingleVariableDeclaration";
     }
 
+    // 追加次元（"int a[]" の "[]"）の処理
+    this.addExtraDimensions(node.extraDimensions());
+
     return false;
   }
 
@@ -2061,6 +2092,8 @@ public class JavaFileVisitor extends ASTVisitor {
       qualifier.accept(this);
       this.addToPeekModule(new DOT());
     }
+
+    this.addTypeArguments(node.typeArguments());
 
     this.addToPeekModule(new SUPER(), new LEFTSUPERCONSTRUCTORINVOCATIONPAREN());
 
@@ -2081,6 +2114,16 @@ public class JavaFileVisitor extends ASTVisitor {
 
   @Override
   public boolean visit(final SuperFieldAccess node) {
+
+    // 限定子付きの super（"Outer.super.field"）の処理
+    final Name qualifier = node.getQualifier();
+    if (null != qualifier) {
+      this.contexts.push(TYPENAME.class);
+      qualifier.accept(this);
+      final Class<?> qualifierContext = this.contexts.pop();
+      assert TYPENAME.class == qualifierContext : "error happened at visit(SuperFieldAccess)";
+      this.addToPeekModule(new DOT());
+    }
 
     this.addToPeekModule(new SUPER(), new DOT());
 
@@ -2103,6 +2146,8 @@ public class JavaFileVisitor extends ASTVisitor {
     }
 
     this.addToPeekModule(new SUPER(), new DOT());
+
+    this.addTypeArguments(node.typeArguments());
 
     this.contexts.push(INVOKEDMETHODNAME.class);
     node.getName()
@@ -2141,6 +2186,8 @@ public class JavaFileVisitor extends ASTVisitor {
     }
 
     this.addToPeekModule(new SUPER(), new METHODREFERENCE());
+
+    this.addTypeArguments(node.typeArguments());
 
     this.contexts.push(INVOKEDMETHODNAME.class);
     node.getName()
@@ -2279,6 +2326,17 @@ public class JavaFileVisitor extends ASTVisitor {
 
   @Override
   public boolean visit(final ThisExpression node) {
+
+    // 限定子付きの this（"Outer.this"）の処理
+    final Name qualifier = node.getQualifier();
+    if (null != qualifier) {
+      this.contexts.push(TYPENAME.class);
+      qualifier.accept(this);
+      final Class<?> context = this.contexts.pop();
+      assert TYPENAME.class == context : "error happened at visit(ThisExpression)";
+      this.addToPeekModule(new DOT());
+    }
+
     this.addToPeekModule(new THIS());
     return false;
   }
@@ -2446,6 +2504,8 @@ public class JavaFileVisitor extends ASTVisitor {
 
     this.addToPeekModule(new METHODREFERENCE());
 
+    this.addTypeArguments(node.typeArguments());
+
     this.contexts.push(INVOKEDMETHODNAME.class);
     node.getName()
         .accept(this);
@@ -2571,6 +2631,9 @@ public class JavaFileVisitor extends ASTVisitor {
     final Class<?> context = this.contexts.pop();
     assert VARIABLENAME.class
         == context : "error happened at JavaFileVisitor#visit(VariableDeclarationFragment)";
+
+    // 追加次元（"int a[]" の "[]"）の処理
+    this.addExtraDimensions(node.extraDimensions());
 
     final Expression initializer = node.getInitializer();
     if (null != initializer) {
@@ -2784,6 +2847,36 @@ public class JavaFileVisitor extends ASTVisitor {
       return this.removeTerminalLineCharacter(text.substring(0, text.length() - 1));
     } else {
       return text;
+    }
+  }
+
+  /**
+   * メソッド呼び出しやインスタンス生成などの明示的な型引数リストを "&lt;" と "&gt;" で囲んで追加する．
+   *
+   * @param typeArguments 型引数のリスト（空の場合は何も追加しない）
+   */
+  private void addTypeArguments(final List<?> typeArguments) {
+    if (null == typeArguments || typeArguments.isEmpty()) {
+      return;
+    }
+
+    this.addToPeekModule(new LESS());
+    ((Type) typeArguments.getFirst()).accept(this);
+    for (int index = 1; index < typeArguments.size(); index++) {
+      this.addToPeekModule(new PARAMETERIZEDTYPECOMMA());
+      ((Type) typeArguments.get(index)).accept(this);
+    }
+    this.addToPeekModule(new GREAT());
+  }
+
+  /**
+   * 変数名の後に置かれた追加次元（"int a[]" の "[]"）を追加する．
+   *
+   * @param dimensions Dimension ノードのリスト（空の場合は何も追加しない）
+   */
+  private void addExtraDimensions(final List<?> dimensions) {
+    for (final Object o : dimensions) {
+      ((Dimension) o).accept(this);
     }
   }
 
