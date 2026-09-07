@@ -1170,6 +1170,9 @@ public class JavaFileVisitor extends ASTVisitor {
             .forEach(javaField::addToken);
         // 宣言の範囲内にあるコメントは文字列表現に含まれているので，別途出力しないように捨てる
         this.discardCommentsBefore(node.getStartPosition() + node.getLength());
+        // 字句化する場合と同じように，外側のモジュール（クラスファイル）にはフィールドを表すトークンを置く
+        this.addToPeekModule(
+            new FinerJavaFieldToken("FieldToken[" + javaField.name + "]", javaField));
       }
 
       // フィールド宣言の後ろの同じ行にあるコメント（"int x; // count" など）をこのフィールドのモジュールに入れる
@@ -1697,6 +1700,9 @@ public class JavaFileVisitor extends ASTVisitor {
         this.discardCommentsBefore(node.getStartPosition() + node.getLength());
         this.addCommentsBefore(this.endOfLine(node));
         this.moduleStack.pop();
+        // 字句化する場合と同じように，外側のモジュール（クラスファイル）にはメソッドを表すトークンを置く
+        this.addToPeekModule(
+            new FinerJavaMethodToken("MethodToken[" + javaMethod.name + "]", javaMethod));
         return false;
       }
     }

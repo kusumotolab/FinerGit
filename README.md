@@ -87,7 +87,7 @@ Generated file options:
 
 Token and file-name options:
 
-- `-t`, `--tokenize <true|false>`: tokenize generated Java method and field files. The default is `true`. With `false`, each method or field file contains the source text of the declaration as printed by the parser, so the comments inside the declaration are not kept (its Javadoc is); the comments directly before the declaration and on the same line after it are still kept.
+- `-t`, `--tokenize <true|false>`: tokenize generated Java method and field files. The default is `true`. Class, record, and peripheral files are always tokenized; their `MethodToken[...]` and `FieldToken[...]` placeholders are generated in both modes. With `false`, each method or field file contains the source text of the declaration as printed by the parser, so the comments inside the declaration are not kept (its Javadoc is); the comments directly before the declaration and on the same line after it are still kept.
 - `--access-modifier-included <true|false>`: include access modifiers in generated method and field file names. The default is `true`.
 - `--method-type-erasure-included <true|false>`: include method type parameters in generated method file names. The default is `true`.
 - `--return-type-included <true|false>`: include return types in generated method file names. The default is `true`.
@@ -266,7 +266,7 @@ $ java -jar build/libs/FinerGit-all.jar create --help
 
 字句化とファイル名に関するオプション:
 
-- `-t`, `--tokenize <true|false>`: 生成される Java メソッドファイルおよびフィールドファイルを字句化するかどうか．デフォルトは `true` です．`false` の場合，メソッドファイルとフィールドファイルにはパーサが出力する宣言のソーステキストが入るため，宣言の内部にあるコメントは保持されません（Javadoc は保持されます）．宣言の直前のコメントと，宣言の後ろの同じ行にあるコメントは保持されます．
+- `-t`, `--tokenize <true|false>`: 生成される Java メソッドファイルおよびフィールドファイルを字句化するかどうか．デフォルトは `true` です．クラスファイル・レコードファイル・周辺ファイルは常に字句化され，`MethodToken[...]` と `FieldToken[...]` の placeholder はどちらのモードでも生成されます．`false` の場合，メソッドファイルとフィールドファイルにはパーサが出力する宣言のソーステキストが入るため，宣言の内部にあるコメントは保持されません（Javadoc は保持されます）．宣言の直前のコメントと，宣言の後ろの同じ行にあるコメントは保持されます．
 - `--access-modifier-included <true|false>`: 生成されるメソッドファイル名およびフィールドファイル名にアクセス修飾子を含めるかどうか．デフォルトは `true` です．
 - `--method-type-erasure-included <true|false>`: 生成されるメソッドファイル名にメソッド型パラメータを含めるかどうか．デフォルトは `true` です．
 - `--return-type-included <true|false>`: 生成されるメソッドファイル名に戻り値型を含めるかどうか．デフォルトは `true` です．

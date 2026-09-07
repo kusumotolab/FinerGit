@@ -1126,6 +1126,36 @@ public class JavaFileVisitorTest {
   }
 
   @Test
+  public void testPlaceholdersWithoutTokenization() {
+
+    // -t false でも，クラスファイルには字句化する場合と同じメソッド・フィールドの placeholder が入る
+    final String text = "class NoTokenize {" + //
+        "  private int count;" + //
+        "  public void bar() { count++; }" + //
+        "  public int baz() { return count; }" + //
+        "}";
+
+    final String path = "dir/NoTokenize.java";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setTokenized("false");
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("true");
+    config.setMethodFileGenerated("true");
+    config.setFieldFileGenerated("true");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules(path, text);
+
+    final List<String> classTokens = tokensOf(modules, FinerJavaClass.class);
+    assertThat(classTokens).containsExactly("class", "NoTokenize", "{",
+        "FieldToken[private_int_count]", "MethodToken[public_void_bar()]",
+        "MethodToken[public_int_baz()]", "}");
+
+    // メソッドファイルとフィールドファイルは字句化されない（宣言のソーステキストが行ごとに入る）
+    assertThat(tokensOf(modules, FinerJavaMethod.class).getFirst()).startsWith("public void bar(");
+    assertThat(tokensOf(modules, FinerJavaField.class)).containsExactly("private int count;");
+  }
+
+  @Test
   public void testCommentsAroundAnnotationTypeDeclaration() {
 
     // 注釈型は独自のモジュールを作らないので，先行コメント・末尾コメントとも周辺ファイルに宣言と同じ順序で入る
