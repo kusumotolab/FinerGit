@@ -1,4 +1,6 @@
 # FinerGit
+[![CI](https://github.com/kusumotolab/FinerGit/actions/workflows/ci.yml/badge.svg)](https://github.com/kusumotolab/FinerGit/actions/workflows/ci.yml)
+
 [Click here to Japanese README](#user-content-finergit-日本語)
 
 FinerGit is a command-line tool for obtaining change histories of Java methods by using Git mechanisms.
