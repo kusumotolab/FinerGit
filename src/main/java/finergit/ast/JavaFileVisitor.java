@@ -1498,19 +1498,25 @@ public class JavaFileVisitor extends ASTVisitor {
   @Override
   public boolean visit(final MethodDeclaration node) {
 
-    // 内部クラスのメソッドでない場合は，ダミーメソッドを生成し，モジュールスタックに追加
+    final boolean topLevelMethod = 1 == this.classNestLevel;
+    final AbstractTypeDeclaration nestedType = this.namedMemberTypeOf(node);
+    final FinerJavaModule enclosingModule = this.moduleStack.peek();
+    final int nestedTokenStart = enclosingModule.getTokens().size();
     int leadingCommentCount = 0;
-    if (1 == this.classNestLevel) {
-      final FinerJavaModule outerModule = this.moduleStack.peek();
-      final FinerJavaMethod dummyMethod = new FinerJavaMethod("DummyMethod", outerModule, null);
+    if (topLevelMethod) {
+      final FinerJavaMethod dummyMethod = new FinerJavaMethod("DummyMethod", enclosingModule, null);
       this.moduleStack.push(dummyMethod);
 
       // 宣言に先行するコメント（Javadoc より前にある行コメントなど）をこのメソッドのモジュールに入れる．
       // ここまでにダミーメソッドに入ったトークンはすべて先行コメントなので，トークン化しない場合に
-      // 引き継ぐためにその数を覚えておく（内部クラスのメソッドの先行コメントは preVisit で出力済み）
+      // 引き継ぐためにその数を覚えておく．
       this.addCommentsBefore(node.getStartPosition());
       leadingCommentCount = dummyMethod.getTokens()
           .size();
+    } else if (nestedType != null) {
+      // 外側の出力にトークンを残しつつ，宣言に属する区間を別ファイルにも取り出す．
+      this.addCommentsBefore(node.getStartPosition());
+      leadingCommentCount = enclosingModule.getTokens().size() - nestedTokenStart;
     }
 
     // Javadoc コメントの処理
@@ -1633,11 +1639,10 @@ public class JavaFileVisitor extends ASTVisitor {
     methodFileName.append(")");
 
     // 内部クラスのメソッドでない場合は，ダミーメソッドをスタックから取り除く
-    if (1 == this.classNestLevel) {
+    if (topLevelMethod) {
       final FinerJavaModule dummyMethod = this.moduleStack.pop();
-      final FinerJavaModule outerModule = this.moduleStack.peek();
       final FinerJavaMethod javaMethod =
-          new FinerJavaMethod(methodFileName.toString(), outerModule, this.config);
+          new FinerJavaMethod(methodFileName.toString(), enclosingModule, this.config);
       this.moduleStack.push(javaMethod);
       this.moduleList.add(javaMethod);
 
@@ -1653,10 +1658,7 @@ public class JavaFileVisitor extends ASTVisitor {
         dummyMethod.getTokens()
             .subList(0, leadingCommentCount)
             .forEach(javaMethod::addToken);
-        Stream.of(node.toString()
-                .split("(\\r\\n|\\r|\\n)"))
-            .map(LineToken::new)
-            .forEach(javaMethod::addToken);
+        addMethodSource(node, javaMethod);
         // 宣言の範囲内にあるコメントは文字列表現に含まれているので，別途出力しないように捨てる．
         // 宣言の後ろの同じ行にあるコメント（"} // end of m" など）は文字列表現に含まれないので出力する
         this.discardCommentsBefore(node.getStartPosition() + node.getLength());
@@ -1677,17 +1679,61 @@ public class JavaFileVisitor extends ASTVisitor {
       this.addToPeekModule(new METHODDECLARATIONSEMICOLON());
     }
 
+    if (nestedType != null && !this.config.isTokenized()) {
+      this.addCommentsBefore(node.getStartPosition() + node.getLength());
+    }
+    final int trailingCommentStart = enclosingModule.getTokens().size();
     // メソッドの末尾行にあるコメント（"} // end of m" など）をこのメソッドのモジュールに入れる
     this.addCommentsBefore(this.endOfLine(node));
 
-    // 内部クラス内のメソッドではない場合は，メソッドモジュールをスタックから取り出す
-    if (1 == this.classNestLevel) {
+    if (topLevelMethod) {
       final FinerJavaMethod finerJavaMethod = (FinerJavaMethod) this.moduleStack.pop();
       this.addToPeekModule(
           new FinerJavaMethodToken("MethodToken[" + finerJavaMethod.name + "]", finerJavaMethod));
+    } else if (nestedType != null) {
+      final FinerJavaMethod nestedMethod = new FinerJavaMethod(methodFileName.toString(),
+          this.memberTypeModule(nestedType), this.config);
+      final List<JavaToken> tokens = enclosingModule.getTokens();
+      if (this.config.isTokenized()) {
+        tokens.subList(nestedTokenStart, tokens.size()).forEach(nestedMethod::addToken);
+      } else {
+        tokens.subList(nestedTokenStart, nestedTokenStart + leadingCommentCount)
+            .forEach(nestedMethod::addToken);
+        addMethodSource(node, nestedMethod);
+        tokens.subList(trailingCommentStart, tokens.size()).forEach(nestedMethod::addToken);
+      }
+      this.moduleList.add(nestedMethod);
     }
 
     return false;
+  }
+
+  private static void addMethodSource(final MethodDeclaration node, final FinerJavaMethod method) {
+    Stream.of(node.toString().split("\\r\\n|\\r|\\n"))
+        .map(LineToken::new)
+        .forEach(method::addToken);
+  }
+
+  /** トップレベルの型から名前付きメンバー型だけを経由して到達できるメソッドの所属型を返す． */
+  private AbstractTypeDeclaration namedMemberTypeOf(final MethodDeclaration node) {
+    if (this.classNestLevel <= 1 || !this.config.isMethodFileGenerated()
+        || !(node.getParent() instanceof AbstractTypeDeclaration type)) {
+      return null;
+    }
+    ASTNode containing = type.getParent();
+    while (containing instanceof AbstractTypeDeclaration) {
+      containing = containing.getParent();
+    }
+    return containing instanceof CompilationUnit ? type : null;
+  }
+
+  /** メソッドのファイル名に必要な型の階層を組み立てる．型自体は別ファイルとして出力しない． */
+  private FinerJavaModule memberTypeModule(final AbstractTypeDeclaration type) {
+    final FinerJavaModule outer = type.getParent() instanceof AbstractTypeDeclaration parent
+        ? this.memberTypeModule(parent) : this.moduleStack.firstElement();
+    final String name = type instanceof ImplicitTypeDeclaration ? outer.name : type.getName().getIdentifier();
+    return type instanceof RecordDeclaration ? new FinerJavaRecord(name, outer, this.config)
+        : new FinerJavaClass(name, outer, this.config);
   }
 
   @Override
@@ -3215,12 +3261,15 @@ public class JavaFileVisitor extends ASTVisitor {
 
   /**
    * 先行するコメントをそのノードの宣言側で出力する（preVisit では出力しない）ノードかどうかを返す．
-   * トップレベルの型（クラス・列挙・レコード・注釈型・暗黙クラス）と，トップレベルの型に直接属する
-   * メソッドとフィールドが対象である．注釈型と暗黙クラスは独自のモジュールを作らないが，コメントの
+   * トップレベルの型（クラス・列挙・レコード・注釈型・暗黙クラス），抽出するメソッド，トップレベルの型に
+   * 直接属するフィールドが対象である．注釈型と暗黙クラスは独自のモジュールを作らないが，コメントの
    * 帰属の判断を他の型宣言と同じにするために含めている．
    */
   private boolean startsNewModule(final ASTNode node) {
-    if (node instanceof MethodDeclaration || node instanceof FieldDeclaration) {
+    if (node instanceof MethodDeclaration method) {
+      return 1 == this.classNestLevel || this.namedMemberTypeOf(method) != null;
+    }
+    if (node instanceof FieldDeclaration) {
       return 1 == this.classNestLevel;
     }
     if (node instanceof AbstractTypeDeclaration || node instanceof ImplicitTypeDeclaration) {

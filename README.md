@@ -8,7 +8,7 @@ FinerGit takes a Git repository as input and generates another Git repository wh
 
 By default, the generated repository has the following features.
 
-- Each Java method or constructor is extracted as a single `.mjava` file.
+- Each Java method or constructor declared in a top-level or named member type is extracted as a single `.mjava` file.
 - Each line of an extracted Java method file contains only one token.
 - Comments (Javadoc, block, and line comments) are kept. A multi-line comment is split into one token per line. (Exception: with `--tokenize false`, the comments inside a method or field are not kept; see the option below.)
 
@@ -123,13 +123,14 @@ By default, FinerGit repositories contain `.mjava` files.
 Depending on generation options, they can also contain `.cjava`, `.rjava`, `.fjava`, and `.pjava` files.
 
 - Extension `.mjava` means that the file represents a Java method or constructor.
-- Extension `.cjava` means that the file represents Java class-level tokens. Method bodies are replaced with method tokens, and method files are generated when `--method-file-generated` is `true`.
+- Extension `.cjava` means that the file represents Java class-level tokens. Methods declared directly in the top-level class are represented by method tokens, and method files are generated when `--method-file-generated` is `true`.
 - Extension `.rjava` means that the file represents Java record-level tokens. It is generated together with `.cjava` files when `--class-file-generated` is `true`.
 - Extension `.fjava` means that the file represents a Java field declaration.
 - Extension `.pjava` means that the file represents peripheral tokens from the original Java file.
 
 By default, method file names include the class name, access modifier, return type, method name, and parameter types.
 For example, a method may be generated as `Foo#public_void_bar(int).mjava`.
+A method in a named member class uses the enclosing type names, as in `Foo$Nested#public_void_bar(int).mjava`.
 Field file names use a similar format, such as `Foo#private_String_name.fjava`.
 If generated file names are too long, FinerGit shortens them and appends a hash value.
 
@@ -191,7 +192,7 @@ FinerGit はそのリポジトリを，より細粒度なファイル構成を�
 
 デフォルトでは，FinerGit の出力リポジトリは以下の特徴をもちます．
 
-- 各 Java メソッドまたはコンストラクタが1つの `.mjava` ファイルとして抽出されている．
+- トップレベルの型または名前付きメンバー型で宣言された各 Java メソッドとコンストラクタが，それぞれ `.mjava` ファイルとして抽出されている．
 - 抽出された各 Java メソッドファイルの各行は1つの字句のみを含む．
 - コメント（Javadoc，ブロックコメント，行コメント）も保持される．複数行のコメントは1行1字句に分割される．（例外：`--tokenize false` の場合，メソッドやフィールドの内部にあるコメントは保持されない．後述のオプションの説明を参照．）
 
@@ -307,13 +308,14 @@ FinerGit はコピーを始める前にパスを検証します．
 生成オプションによっては，`.cjava`，`.rjava`，`.fjava`，`.pjava` ファイルも含まれます．
 
 - 拡張子が `.mjava` のファイルは，Java のメソッドまたはコンストラクタを表します．
-- 拡張子が `.cjava` のファイルは，Java クラスレベルのトークンを表します．メソッド本体はメソッドトークンに置き換えられ，`--method-file-generated` が `true` の場合はメソッドファイルも生成されます．
+- 拡張子が `.cjava` のファイルは，Java クラスレベルのトークンを表します．トップレベルのクラスで直接宣言されたメソッドはメソッドトークンで表され，`--method-file-generated` が `true` の場合はメソッドファイルも生成されます．
 - 拡張子が `.rjava` のファイルは，Java レコードレベルのトークンを表します．`--class-file-generated` が `true` の場合に `.cjava` ファイルとともに生成されます．
 - 拡張子が `.fjava` のファイルは，Java のフィールド宣言を表します．
 - 拡張子が `.pjava` のファイルは，元の Java ファイルに含まれる周辺トークンを表します．
 
 デフォルトでは，メソッドファイル名にはクラス名，アクセス修飾子，戻り値型，メソッド名，引数型が含まれます．
 例えば `Foo#public_void_bar(int).mjava` のようなファイル名になります．
+名前付きメンバークラスのメソッドには外側の型名も付き，例えば `Foo$Nested#public_void_bar(int).mjava` となります．
 フィールドファイル名も同様に，例えば `Foo#private_String_name.fjava` のような形式になります．
 生成されるファイル名が長すぎる場合，FinerGit はファイル名を短縮し，ハッシュ値を付与します．
 
