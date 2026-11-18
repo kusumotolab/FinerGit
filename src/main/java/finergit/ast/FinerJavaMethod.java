@@ -7,9 +7,24 @@ public class FinerJavaMethod extends FinerJavaModule {
   private static final String METHOD_EXTENSION = ".mjava";
   private static final String METHOD_DELIMITER = "#";
 
+  private final String originalSourceSha256;
+
   public FinerJavaMethod(final String name, final FinerJavaModule outerModule,
       final FinerGitConfig config) {
+    this(name, outerModule, config, null);
+  }
+
+  FinerJavaMethod(final String name, final FinerJavaModule outerModule,
+      final FinerGitConfig config, final String originalSourceSha256) {
     super(name, outerModule, config);
+    this.originalSourceSha256 = originalSourceSha256;
+  }
+
+  /**
+   * UTF-8 の元メソッド宣言の SHA-256 を返す．元ソースが渡されていない場合は null を返す．
+   */
+  public String getOriginalSourceSha256() {
+    return this.originalSourceSha256;
   }
 
   @Override

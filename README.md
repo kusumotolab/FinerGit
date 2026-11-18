@@ -140,12 +140,34 @@ If you want to see the change history of `Foo#public_void_bar(int).mjava`, type 
 $ git log "Foo#public_void_bar(int).mjava"
 ```
 
-You will get all commits where method `bar(int)` was changed.
+This shows the commits that changed the generated file for `bar(int)`.
 
 The `--follow` option is useful since it enables Git to track files even if their names got changed.
 
 ```shell-session
 $ git log --follow "Foo#public_void_bar(int).mjava"
+```
+
+### Read Original Method Text Hashes
+
+Each rewritten commit retains the `<OriginalCommitID:…>` prefix and adds a
+`FinerGit-Source-Hash-Version: 1` trailer. Each `FinerGit-Method-Source` trailer contains one JSON record.
+
+```text
+FinerGit-Source-Hash-Version: 1
+FinerGit-Method-Source: {"path":"src/Foo#public_void_bar(int).mjava","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+FinerGit-Method-Source: {"path":"src/Foo#public_void_old().mjava","sha256":null}
+```
+
+`path` is the generated repository-relative path, including any filename shortening or collision suffix.
+The SHA-256 covers the UTF-8 text in the original Java declaration's source range, including attached Javadoc, annotations, whitespace, and line endings within that range.
+Each commit records added, changed, and removed method paths relative to its first parent.
+Root commits record all generated methods, and `null` marks a removed path.
+
+Formatting can change the source hash while leaving the generated file identical. Read the commit trailers directly to include such changes.
+
+```shell-session
+$ git show -s --format=%B HEAD | git interpret-trailers --no-divider --parse
 ```
 
 ## Use in Your Research
@@ -325,7 +347,7 @@ FinerGit はコピーを始める前にパスを検証します．
 $ git log "Foo#public_void_bar(int).mjava"
 ```
 
-というコマンドを入力すると，`bar(int)` メソッドに変更を加えたコミットの一覧を得ることができます．
+というコマンドを入力すると，`bar(int)` に対応する生成ファイルを変更したコミットの一覧を得ることができます．
 
 ```shell-session
 $ git log --follow "Foo#public_void_bar(int).mjava"
@@ -333,6 +355,26 @@ $ git log --follow "Foo#public_void_bar(int).mjava"
 
 というように，`--follow` オプションを利用すれば，メソッド名やそれを含むクラス名が変わっていた場合でも追跡して，コミット一覧を表示します．
 
+### 元のメソッドテキストのハッシュを読む
+
+変換後のコミットには，件名の `<OriginalCommitID:…>` に加え，末尾に
+`FinerGit-Source-Hash-Version: 1` が付きます．`FinerGit-Method-Source` の各行に JSON レコードを1件記録します．
+
+```text
+FinerGit-Source-Hash-Version: 1
+FinerGit-Method-Source: {"path":"src/Foo#public_void_bar(int).mjava","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+FinerGit-Method-Source: {"path":"src/Foo#public_void_old().mjava","sha256":null}
+```
+
+`path` は短縮や衝突時の接尾辞を含む，生成先リポジトリ内のパスです．
+SHA-256 の対象は元 Java 宣言の範囲内にある UTF-8 テキストで，宣言に付属する Javadoc とアノテーション，範囲内の空白と改行を含みます．
+各コミットは第1親から追加・変更・削除されたメソッドのパスを記録します．ルートコミットは生成された全メソッドを記録し，削除されたパスには `null` が付きます．
+
+整形によって元テキストのハッシュが変わり，生成ファイルが同一になる場合があります．その変更も確認するには，コミットのトレーラーを直接読みます．
+
+```shell-session
+$ git show -s --format=%B HEAD | git interpret-trailers --no-divider --parse
+```
 
 ## 研究での利用
 

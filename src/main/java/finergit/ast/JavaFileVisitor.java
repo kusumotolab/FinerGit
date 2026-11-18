@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Stack;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.eclipse.jdt.core.dom.*;
 import org.eclipse.jdt.core.dom.InfixExpression.Operator;
@@ -1642,7 +1643,8 @@ public class JavaFileVisitor extends ASTVisitor {
     if (topLevelMethod) {
       final FinerJavaModule dummyMethod = this.moduleStack.pop();
       final FinerJavaMethod javaMethod =
-          new FinerJavaMethod(methodFileName.toString(), enclosingModule, this.config);
+          new FinerJavaMethod(methodFileName.toString(), enclosingModule, this.config,
+              this.originalSourceSha256(node));
       this.moduleStack.push(javaMethod);
       this.moduleList.add(javaMethod);
 
@@ -1692,7 +1694,7 @@ public class JavaFileVisitor extends ASTVisitor {
           new FinerJavaMethodToken("MethodToken[" + finerJavaMethod.name + "]", finerJavaMethod));
     } else if (nestedType != null) {
       final FinerJavaMethod nestedMethod = new FinerJavaMethod(methodFileName.toString(),
-          this.memberTypeModule(nestedType), this.config);
+          this.memberTypeModule(nestedType), this.config, this.originalSourceSha256(node));
       final List<JavaToken> tokens = enclosingModule.getTokens();
       if (this.config.isTokenized()) {
         tokens.subList(nestedTokenStart, tokens.size()).forEach(nestedMethod::addToken);
@@ -1706,6 +1708,16 @@ public class JavaFileVisitor extends ASTVisitor {
     }
 
     return false;
+  }
+
+  private String originalSourceSha256(final MethodDeclaration node) {
+    if (this.source == null || !this.config.isMethodFileGenerated()) {
+      return null;
+    }
+    final int start = node.getStartPosition();
+    final int length = node.getLength();
+    // JDT の宣言範囲には付属する Javadoc とアノテーションが含まれる．空白や改行はそのまま使う．
+    return DigestUtils.sha256Hex(this.source.substring(start, start + length));
   }
 
   private static void addMethodSource(final MethodDeclaration node, final FinerJavaMethod method) {
