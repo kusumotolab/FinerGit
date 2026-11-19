@@ -4,11 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.eclipse.jgit.lib.ObjectChecker;
 import org.junit.Test;
 import finergit.FinerGitConfig;
 
@@ -16,22 +18,6 @@ public class FinerJavaFileBuilderTest {
 
   @Test
   public void getFinerJavaModulesSuccessTest01() throws Exception {
-
-    final String text0 = "public class MethodAndConstructor {" + //
-        "  MethodAndConstructor() { new String();} // 抽出されるはず" + //
-        "  void method01() { new String(); } // 抽出されるはず" + //
-        "  void method02() {    // 抽出されるはず " + //
-        "    new String();" +
-        "    @SuppressWarnings(\"unused\") class InnerClass01 { // 抽出されないはず" + //
-        "      InnerClass01() { new String();} // 抽出されないはず" + //
-        "      void method03() { new String(); }" + //
-        "    }" + //
-        "  }" + //
-        "  class InnerClass02 { // 抽出されないはず" + //
-        "    InnerClass02() { new String(); } // 抽出されないはず" + //
-        "    void method04() { new String(); } // 抽出されないはず" + //
-        "  }" + //
-        "}";
 
     final Path targetPath =
         Paths.get("src/test/resources/finergit/ast/token/MethodAndConstructor.java");
@@ -49,7 +35,9 @@ public class FinerJavaFileBuilderTest {
         .collect(Collectors.toSet());
     assertThat(moduleNames).containsExactlyInAnyOrder("MethodAndConstructor.cjava",
         "MethodAndConstructor#MethodAndConstructor().mjava",
-        "MethodAndConstructor#void_method01().mjava", "MethodAndConstructor#void_method02().mjava");
+        "MethodAndConstructor#void_method01().mjava", "MethodAndConstructor#void_method02().mjava",
+        "~MethodAndConstructor.InnerClass02#InnerClass02()~.mjava",
+        "~MethodAndConstructor.InnerClass02#void_method04()~.mjava");
   }
 
   @Test
@@ -73,6 +61,14 @@ public class FinerJavaFileBuilderTest {
           break;
         case "void_method01()":
           break;
+        case "InnerClass02()":
+          assertThat(tokens).containsExactly("// 抽出されるはず", "InnerClass02", "(", ")", "{",
+              "new", "String", "(", ")", ";", "}");
+          break;
+        case "void_method04()":
+          assertThat(tokens).containsExactly("// 抽出されるはず", "void", "method04", "(", ")", "{",
+              "new", "String", "(", ")", ";", "}");
+          break;
         case "void_method02()":
           // メソッドに先行する行コメントと，メソッド内の行コメントもトークンとして含まれる
           assertThat(tokens).containsExactly("// 抽出されるはず", "void", "method02", "(", ")", "{",
@@ -85,6 +81,268 @@ public class FinerJavaFileBuilderTest {
           assertThat(true).isEqualTo(false);
       }
     }
+  }
+
+  @Test
+  public void extractsMemberMethodsThroughMixedTypesInBothTokenModes() {
+    final String source = """
+        record Outer(int value) {
+          static class Left {
+            // leading
+            /** Method documentation. */
+            int get() {
+              // inside
+              return 1;
+            } // trailing
+          }
+          record Right(int value) {
+            Right {}
+            interface Reader { int get(); }
+          }
+          enum Mode { ON; int get() { return 2; } }
+        }
+        """;
+
+    for (final boolean tokenized : new boolean[] {true, false}) {
+      final FinerGitConfig config = new FinerGitConfig();
+      config.setClassFileGenerated("true");
+      config.setTokenized(Boolean.toString(tokenized));
+      final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+      final List<FinerJavaModule> modules = builder.getFinerJavaModules("src/Outer.java", source);
+      assertThat(modules).extracting(FinerJavaModule::getPathName).containsExactlyInAnyOrder(
+          "src/Outer.rjava", "src/~Outer.Left#int_get()~.mjava", "src/~Outer.Right#Right(int)~.mjava",
+          "src/~Outer.Right.Reader#int_get()~.mjava", "src/~Outer.Mode#int_get()~.mjava");
+
+      final List<String> method = moduleLines(modules, "src/~Outer.Left#int_get()~.mjava");
+      if (tokenized) {
+        assertThat(method).containsExactly("// leading", "/**", " * Method documentation.", " */",
+            "int", "get", "(", ")", "{", "// inside", "return", "1", ";", "}", "// trailing");
+      } else {
+        assertThat(method).startsWith("// leading").endsWith("// trailing");
+        assertThat(String.join("\n", method)).contains("Method documentation.", "return 1;")
+            .doesNotContain("// inside");
+      }
+
+      config.setMethodFileGenerated("false");
+      final FinerJavaModule outer = builder.getFinerJavaModules("src/Outer.java", source).getFirst();
+      assertThat(modules.getFirst().getLines()).isEqualTo(outer.getLines());
+    }
+  }
+
+  @Test
+  public void usesSourceFileNameForMemberOfImplicitClass() {
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules("src/Launch.java", """
+        void main() {}
+        class Helper { int get() { return 1; } }
+        """);
+    assertThat(modules).extracting(FinerJavaModule::getPathName).containsExactlyInAnyOrder(
+        "src/Launch#void_main().mjava", "src/~Launch.Helper#int_get()~.mjava");
+  }
+
+  @Test
+  public void distinguishesMemberPathsFromTopLevelPaths() {
+    final Map<String, String> sources = Map.of(
+        "src/Outer.java", "package one; class Outer { static class Inner { void run() {} } }",
+        "src/Outer$Inner.java", "package two; class Outer$Inner { void run() {} }",
+        "src/Outer.Inner.java", "void run() {}",
+        "src/~Outer.Inner.java", "void run() {}");
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+
+    assertThat(builder.getFinerJavaModules(sources)).extracting(FinerJavaModule::getPathName)
+        .containsExactlyInAnyOrder("src/~Outer.Inner#void_run()~.mjava",
+            "src/Outer$Inner#void_run().mjava", "src/Outer.Inner#void_run().mjava",
+            "src/~Outer.Inner#void_run().mjava");
+  }
+
+  @Test
+  public void producesWindowsSafeMemberPathsAndKeepsTheMarkerAfterShortening() throws Exception {
+    final String path = "src/Aux.java";
+    final String source = "class Aux { static class Inner { void run() {} } }";
+    final FinerGitConfig config = new FinerGitConfig();
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+    final ObjectChecker windows = new ObjectChecker().setSafeForWindows(true);
+    final FinerJavaModule method = builder.getFinerJavaModules(path, source).getFirst();
+
+    assertThat(method.getPathName()).isEqualTo("src/~Aux.Inner#void_run()~.mjava");
+    windows.checkPath(method.getPathName());
+
+    config.setMaxFileNameLength(15);
+    final FinerJavaModule shortened = builder.getFinerJavaModules(path, source).getFirst();
+    assertThat(shortened.getFileName()).matches("_[0-9a-f]{7}~\\.mjava");
+    assertThat(shortened.getExtension()).isEqualTo(".mjava");
+    windows.checkPath(shortened.getPathName());
+  }
+
+  @Test
+  public void preservesLegacyModuleContentsWithMemberExtractionOnAndOff() {
+    final String path = "src/Outer.java";
+    final String source = """
+        class Outer {
+          int root() { return 0; }
+          static class Inner {
+            int one() { return 1; /* first body */ }
+            int two() { return 2; } // second method
+          }
+        }
+        record Pair(int x) {
+          static class Helper {
+            int value() { return 3; }
+          }
+        }
+        """;
+    final List<String> classLines = List.of("class", "Outer", "{", "MethodToken[int_root()]",
+        "static", "class", "Inner", "{", "int", "one", "(", ")", "{", "return", "1", ";",
+        "/* first body */", "}", "int", "two", "(", ")", "{", "return", "2", ";", "}",
+        "// second method", "}", "}");
+    final List<String> recordLines = List.of("record", "Pair", "(", "int", "x", ")", "{", "static",
+        "class", "Helper", "{", "int", "value", "(", ")", "{", "return", "3", ";", "}", "}", "}");
+
+    for (final boolean tokenized : new boolean[] {true, false}) {
+      final FinerGitConfig config = new FinerGitConfig();
+      config.setClassFileGenerated("true");
+      config.setTokenized(Boolean.toString(tokenized));
+      final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+      final List<FinerJavaModule> expanded = builder.getFinerJavaModules(path, source);
+      assertThat(expanded).extracting(FinerJavaModule::getPathName)
+          .containsExactlyInAnyOrder("src/Outer.cjava", "src/Outer#int_root().mjava",
+              "src/~Outer.Inner#int_one()~.mjava", "src/~Outer.Inner#int_two()~.mjava",
+              "src/[Outer]Pair.rjava", "src/~[Outer]Pair.Helper#int_value()~.mjava");
+      assertThat(moduleLines(expanded, "src/Outer.cjava")).containsExactlyElementsOf(classLines);
+      assertThat(moduleLines(expanded, "src/[Outer]Pair.rjava")).containsExactlyElementsOf(recordLines);
+
+      config.setMemberMethodFileGenerated("false");
+      final List<FinerJavaModule> legacy = builder.getFinerJavaModules(path, source);
+      assertThat(legacy).extracting(FinerJavaModule::getPathName)
+          .containsExactly("src/Outer.cjava", "src/Outer#int_root().mjava", "src/[Outer]Pair.rjava");
+      assertThat(moduleLines(legacy, "src/Outer.cjava")).containsExactlyElementsOf(classLines);
+      assertThat(moduleLines(legacy, "src/[Outer]Pair.rjava")).containsExactlyElementsOf(recordLines);
+      assertThat(moduleLines(legacy, "src/Outer#int_root().mjava")).containsExactlyElementsOf(
+          tokenized ? List.of("int", "root", "(", ")", "{", "return", "0", ";", "}")
+              : List.of("int root(){", "  return 0;", "}"));
+    }
+  }
+
+  @Test
+  public void memberMethodsKeepTheirOwnCommentsInBothTokenModes() {
+    final String source = """
+        class Outer {
+          static class Pair { int a() { return 1; } int b() { return 2; /* belongs to b */ } }
+          static class Fail extends RuntimeException { Fail(String text) { super(text); } } // belongs to Fail
+        }
+        """;
+
+    for (final boolean tokenized : new boolean[] {true, false}) {
+      final FinerGitConfig config = new FinerGitConfig();
+      config.setTokenized(Boolean.toString(tokenized));
+      final List<FinerJavaModule> modules =
+          new FinerJavaFileBuilder(config).getFinerJavaModules("src/Outer.java", source);
+
+      assertThat(moduleLines(modules, "src/~Outer.Pair#int_a()~.mjava"))
+          .doesNotContain("/* belongs to b */");
+      if (tokenized) {
+        assertThat(moduleLines(modules, "src/~Outer.Pair#int_b()~.mjava"))
+            .containsExactly("int", "b", "(", ")", "{", "return", "2", ";", "/* belongs to b */", "}");
+      }
+      assertThat(moduleLines(modules, "src/~Outer.Fail#Fail(String)~.mjava"))
+          .doesNotContain("// belongs to Fail");
+    }
+  }
+
+  @Test
+  public void retainsMemberMethodTrailingCommentAfterAnAnonymousBody() {
+    final String source = """
+        class Outer {
+          static class Inner {
+            Runnable r() { return new Runnable() { public void run() {} }; } // trailing r
+          }
+        }
+        """;
+
+    for (final boolean tokenized : new boolean[] {true, false}) {
+      final FinerGitConfig config = new FinerGitConfig();
+      config.setTokenized(Boolean.toString(tokenized));
+      final List<FinerJavaModule> modules =
+          new FinerJavaFileBuilder(config).getFinerJavaModules("src/Outer.java", source);
+
+      assertThat(modules).extracting(FinerJavaModule::getPathName)
+          .containsExactly("src/~Outer.Inner#Runnable_r()~.mjava");
+      assertThat(moduleLines(modules, "src/~Outer.Inner#Runnable_r()~.mjava"))
+          .endsWith("// trailing r");
+    }
+  }
+
+  @Test
+  public void leavesTheNextAttachedJavadocAndCommentWithTheirMethod() {
+    final String source = """
+        class Outer {
+          static class Inner {
+            void a() {} /** Documentation for b. */ /* belongs to b */ void b() {}
+          }
+        }
+        """;
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(new FinerGitConfig());
+    final List<FinerJavaModule> modules = builder.getFinerJavaModules("src/Outer.java", source);
+
+    assertThat(moduleLines(modules, "src/~Outer.Inner#void_a()~.mjava"))
+        .containsExactly("void", "a", "(", ")", "{", "}");
+    assertThat(moduleLines(modules, "src/~Outer.Inner#void_b()~.mjava"))
+        .containsExactly("/**", " * Documentation for b.", " */", "/* belongs to b */",
+            "void", "b", "(", ")", "{", "}");
+  }
+
+  @Test
+  public void keepsSnippetFallbackStableWhenMovingABodyIntoAMemberType() {
+    final String path = "src/Snip.java";
+    final String declaration = """
+        /**
+         * Example.
+
+         * {@snippet lang=java :
+         *   code: // @replace substring="code:" replacement="..."
+         * }
+         */
+        int value() { return 42; }
+        """;
+    final String topLevel = "class Snip {\n" + declaration.indent(2) + "}\n";
+    final String nested =
+        "class Snip {\n  static class Inner {\n" + declaration.indent(4) + "  }\n}\n";
+    final String topPath = "src/Snip#int_value().mjava";
+    final String memberPath = "src/~Snip.Inner#int_value()~.mjava";
+    final List<String> javadoc = List.of("/**", " * Example.", "", " * {@snippet lang=java :",
+        " *   code: // @replace substring=\"code:\" replacement=\"...\"", " * }", " */");
+
+    for (final boolean tokenized : new boolean[] {true, false}) {
+      final FinerGitConfig config = new FinerGitConfig();
+      config.setTokenized(Boolean.toString(tokenized));
+      config.setClassFileGenerated("true");
+      final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+
+      final List<String> expected = new ArrayList<>(javadoc);
+      expected.addAll(tokenized
+          ? List.of("int", "value", "(", ")", "{", "return", "42", ";", "}")
+          : List.of("int value(){", "  return 42;", "}"));
+      assertThat(moduleLines(builder.getFinerJavaModules(path, topLevel), topPath))
+          .containsExactlyElementsOf(expected);
+      final List<FinerJavaModule> nestedModules = builder.getFinerJavaModules(path, nested);
+      assertThat(moduleLines(nestedModules, memberPath)).containsExactlyElementsOf(expected);
+      final List<String> outer = moduleLines(nestedModules, "src/Snip.cjava").stream()
+          .map(line -> line.replaceFirst("^!org\\.eclipse\\.jdt\\.core\\.dom\\.Javadoc@[0-9a-f]+$",
+              "!Javadoc"))
+          .toList();
+      assertThat(outer).containsExactly("class", "Snip", "{", "static", "class", "Inner", "{",
+          "!Javadoc", "int", "value", "(", ")", "{", "return", "42", ";", "}", "}", "}");
+
+      config.setMemberMethodFileGenerated("false");
+      final List<String> legacy = moduleLines(builder.getFinerJavaModules(path, topLevel), topPath);
+      assertThat(legacy.getFirst()).startsWith("!org.eclipse.jdt.core.dom."
+          + (tokenized ? "Javadoc" : "MethodDeclaration") + "@");
+    }
+  }
+
+  private static List<String> moduleLines(final List<FinerJavaModule> modules, final String path) {
+    return modules.stream().filter(module -> module.getPathName().equals(path)).findFirst()
+        .orElseThrow(() -> new AssertionError("no module at " + path)).getLines();
   }
 
   @Test

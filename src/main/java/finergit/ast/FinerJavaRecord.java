@@ -6,7 +6,6 @@ public class FinerJavaRecord extends FinerJavaModule {
 
 
   private static final String RECORD_EXTENSION = ".rjava";
-  private static final String RECORD_DELIMITER = "$";
 
   public FinerJavaRecord(final String name, final FinerJavaModule outerModule,
       final FinerGitConfig config) {
@@ -45,9 +44,10 @@ public class FinerJavaRecord extends FinerJavaModule {
     }
 
     // 内部レコードの場合は外側のクラス名を含める
-    else if (FinerJavaClass.class == this.outerModule.getClass()) {
+    else if (FinerJavaClass.class == this.outerModule.getClass()
+        || FinerJavaRecord.class == this.outerModule.getClass()) {
       builder.append(this.outerModule.getBaseName())
-          .append(RECORD_DELIMITER);
+          .append('.');
     }
 
     builder.append(this.name);

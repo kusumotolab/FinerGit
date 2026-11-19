@@ -101,10 +101,22 @@ public abstract class FinerJavaModule {
     final int hashLength = this.config.getHashLength();
     final String sha1 = DigestUtils.sha1Hex(name)
         .substring(0, hashLength);
-    return name.substring(0, maxFileNameLength - (hashLength + getExtension().length() + 1))
+    final String suffix = this.getShortenedNameSuffix();
+    final int prefixEnd = maxFileNameLength - (hashLength + suffix.length() + 1);
+    return name.substring(0, this.adjustShortenedPrefixEnd(name, prefixEnd))
         + "_"
         + sha1
-        + getExtension();
+        + suffix;
+  }
+
+  /** 短縮後に残す接尾辞．通常は拡張子だけを残す． */
+  protected String getShortenedNameSuffix() {
+    return this.getExtension();
+  }
+
+  /** 短縮時の接頭辞の末尾を必要に応じて文字境界まで戻す． */
+  protected int adjustShortenedPrefixEnd(final String name, final int prefixEnd) {
+    return prefixEnd;
   }
 
   /**

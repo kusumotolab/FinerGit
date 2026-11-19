@@ -31,15 +31,15 @@ public class MethodAndConstructor {
     }
   }
 
-  // 抽出されないはず
+  // 型自体は別ファイルにしない
   class InnerClass02 {
 
-    // 抽出されないはず
+    // 抽出されるはず
     InnerClass02() {
       new String();
     }
 
-    // 抽出されないはず
+    // 抽出されるはず
     void method04() {
       new String();
     }
