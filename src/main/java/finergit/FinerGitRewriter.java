@@ -9,8 +9,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 import org.eclipse.jgit.errors.ObjectWritingException;
+import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.FileMode;
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +34,8 @@ public class FinerGitRewriter extends RepositoryRewriter {
 
   private final FinerJavaFileBuilder builder;
 
+  private String commentPrefix = "#";
+
   public FinerGitRewriter(final FinerGitConfig config) {
     this.config = config;
     this.builder = new FinerJavaFileBuilder(config);
@@ -43,14 +47,55 @@ public class FinerGitRewriter extends RepositoryRewriter {
   }
 
   @Override
+  public void initialize(final Repository sourceRepository, final Repository targetRepository) {
+    super.initialize(sourceRepository, targetRepository);
+    if (config.isMethodSourceHashEnabled()) {
+      final var gitConfig = targetRepository.getConfig();
+      String prefix = gitConfig.getString("core", null, "commentString");
+      if (prefix == null) {
+        prefix = gitConfig.getString("core", null, "commentChar");
+      }
+      this.commentPrefix = prefix == null || prefix.isEmpty() || "auto".equalsIgnoreCase(prefix)
+          ? "#" : prefix;
+    }
+  }
+
+  @Override
+  protected ObjectId rewriteCommit(final RevCommit commit, final Context c) {
+    final ObjectId rewritten = super.rewriteCommit(commit, c);
+    if (config.isMethodSourceHashEnabled()) {
+      // git-stein updates refs only after rewriting all commits. Check the encoded object
+      // before it can become reachable, without trying to parse a potentially oversized body.
+      try (var reader = c.getInserter().newReader()) {
+        checkSourceHashCommitSize(commit, reader.getObjectSize(rewritten, Constants.OBJ_COMMIT),
+            reader.getStreamFileThreshold());
+      } catch (final IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    }
+    return rewritten;
+  }
+
+  static void checkSourceHashCommitSize(final ObjectId original, final long size, final long limit) {
+    if (size >= limit) {
+      throw new IllegalStateException("commit " + original.name() + " with method source hash trailers"
+          + " is " + size + " bytes, at or above JGit's " + limit
+          + "-byte streaming threshold; retry with --method-source-hash-enabled false");
+    }
+  }
+
+  @Override
   protected String rewriteCommitMessage(final String message, final Context c) {
     final RevCommit commit = c.getCommit();
     final String prefixed =
         "<OriginalCommitID:" + RevCommitUtil.getAbbreviatedID(commit) + "> " + message;
+    if (!config.isMethodSourceHashEnabled()) {
+      return prefixed;
+    }
     final MethodSourceTree current = sourceHashes(commit, c);
     final MethodSourceTree previous = commit.getParentCount() == 0 ? MethodSourceTree.EMPTY
         : sourceHashes(commit.getParent(0), c);
-    return SourceHashTrailers.append(prefixed, current.changesFrom(previous));
+    return SourceHashTrailers.append(prefixed, current.changesFrom(previous), this.commentPrefix);
   }
 
   private MethodSourceTree sourceHashes(final RevCommit commit, final Context c) {
@@ -127,6 +172,9 @@ public class FinerGitRewriter extends RepositoryRewriter {
 
   @Override
   protected AnyColdEntry rewriteTreeEntry(final Entry entry, final Context c) {
+    if (!config.isMethodSourceHashEnabled()) {
+      return super.rewriteTreeEntry(entry, c);
+    }
     final String directory = entry.isRoot() ? "" : c.getPath() + "/" + entry.name;
     final Context directoryContext = c.with(Context.Key.path, directory);
     final List<Entry> entries = new ArrayList<>();
@@ -143,6 +191,15 @@ public class FinerGitRewriter extends RepositoryRewriter {
         Entry.of(entry.mode, rewriteName(entry.name, c), treeId, entry.directory);
     rewritten.data = MethodSourceTree.of(entries, resolved);
     return rewritten;
+  }
+
+  @Override
+  protected ObjectId rewriteTree(final ObjectId treeId, final Context c) {
+    try {
+      return super.rewriteTree(treeId, c);
+    } catch (final UncheckedIOException e) {
+      return retryOnConcurrentInsertion(e, () -> super.rewriteTree(treeId, c), c);
+    }
   }
 
   private ObjectId writeTree(final List<Entry> entries, final Context c) {

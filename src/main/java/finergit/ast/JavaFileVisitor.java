@@ -1711,7 +1711,7 @@ public class JavaFileVisitor extends ASTVisitor {
   }
 
   private String originalSourceSha256(final MethodDeclaration node) {
-    if (this.source == null || !this.config.isMethodFileGenerated()) {
+    if (this.source == null || !this.config.isMethodSourceHashEnabled()) {
       return null;
     }
     final int start = node.getStartPosition();

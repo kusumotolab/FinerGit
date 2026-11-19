@@ -86,6 +86,7 @@ Input and repository options:
 Generated file options:
 
 - `--method-file-generated <true|false>`: generate method files. The default is `true`.
+- `--method-source-hash-enabled <true|false>`: record original method text hashes in commit trailers when method files are generated. The default is `false`.
 - `--class-file-generated <true|false>`: generate class files (`.cjava`) and record files (`.rjava`). The default is `false`.
 - `--field-file-generated <true|false>`: generate field files. The default is `false`.
 - `--peripheral-file-generated <true|false>`: generate files for peripheral tokens outside generated class, method, and field files. The default is `false`.
@@ -98,7 +99,7 @@ Token and file-name options:
 - `--return-type-included <true|false>`: include return types in generated method file names. The default is `true`.
 - `--token-type-included <true|false>`: append token type names to tokenized lines. The default is `false`.
 - `--method-token-included <true|false>`: include method boundary tokens in generated method files. The default is `true`.
-- `--max-file-name-length <num>`: maximum generated file name length. The value must be between `15` and `255`, and at least `--hash-length` + 8 so that a shortened name keeps at least one character of the original name. The default is `255`.
+- `--max-file-name-length <num>`: maximum generated file name length in UTF-16 code units. The value must be between `15` and `255`, and at least `--hash-length` + 8. A shortened prefix ends at a Unicode code point boundary. The default is `255`.
 - `--hash-length <num>`: length of the hash value attached to shortened file names. The value must be between `7` and `40`. The default is `7`.
 
 ### Exit Status
@@ -150,8 +151,10 @@ $ git log --follow "Foo#public_void_bar(int).mjava"
 
 ### Read Original Method Text Hashes
 
-Each rewritten commit retains the `<OriginalCommitID:…>` prefix and adds a
+Enable this feature with `--method-source-hash-enabled true`. When method files are generated,
+each rewritten commit retains the `<OriginalCommitID:…>` prefix and adds a
 `FinerGit-Source-Hash-Version: 1` trailer. Each `FinerGit-Method-Source` trailer contains one JSON record.
+Adding trailers changes rewritten commit IDs. The default keeps the original FinerGit message format.
 
 ```text
 FinerGit-Source-Hash-Version: 1
@@ -163,6 +166,9 @@ FinerGit-Method-Source: {"path":"src/Foo#public_void_old().mjava","sha256":null}
 The SHA-256 covers the UTF-8 text in the original Java declaration's source range, including attached Javadoc, annotations, whitespace, and line endings within that range.
 Each commit records added, changed, and removed method paths relative to its first parent.
 Root commits record all generated methods, and `null` marks a removed path.
+
+If a rewritten commit with trailers reaches JGit's object streaming threshold (50 MiB with the
+default configuration), FinerGit stops before updating the rewritten refs and reports the commit ID and size.
 
 Formatting can change the source hash while leaving the generated file identical. Read the commit trailers directly to include such changes.
 
@@ -293,6 +299,7 @@ $ java -jar build/libs/FinerGit-all.jar create --help
 生成ファイルに関するオプション:
 
 - `--method-file-generated <true|false>`: メソッドファイルを生成するかどうか．デフォルトは `true` です．
+- `--method-source-hash-enabled <true|false>`: メソッドファイルを生成する場合に，元のメソッドテキストのハッシュをコミットのトレーラーに記録します．デフォルトは `false` です．
 - `--class-file-generated <true|false>`: クラスファイル（`.cjava`）とレコードファイル（`.rjava`）を生成するかどうか．デフォルトは `false` です．
 - `--field-file-generated <true|false>`: フィールドファイルを生成するかどうか．デフォルトは `false` です．
 - `--peripheral-file-generated <true|false>`: 生成されたクラス，メソッド，フィールドファイルの外側にある周辺トークンのファイルを生成するかどうか．デフォルトは `false` です．
@@ -305,7 +312,7 @@ $ java -jar build/libs/FinerGit-all.jar create --help
 - `--return-type-included <true|false>`: 生成されるメソッドファイル名に戻り値型を含めるかどうか．デフォルトは `true` です．
 - `--token-type-included <true|false>`: 字句化された各行に字句の種類を付加するかどうか．デフォルトは `false` です．
 - `--method-token-included <true|false>`: 生成されるメソッドファイルにメソッド境界トークンを含めるかどうか．デフォルトは `true` です．
-- `--max-file-name-length <num>`: 生成されるファイル名の最大長．`15` から `255` の範囲で，かつ `--hash-length` + 8 以上の値を指定できます（短縮後のファイル名に元の名前が1文字以上残るようにするためです）．デフォルトは `255` です．
+- `--max-file-name-length <num>`: 生成されるファイル名の最大長（UTF-16 コードユニット数）．`15` から `255` の範囲で，かつ `--hash-length` + 8 以上の値を指定できます．短縮時は Unicode コードポイントの境界で区切ります．デフォルトは `255` です．
 - `--hash-length <num>`: 短縮されたファイル名に付与するハッシュ値の長さ．`7` から `40` の範囲で指定できます．デフォルトは `7` です．
 
 ### 終了コード
@@ -357,8 +364,10 @@ $ git log --follow "Foo#public_void_bar(int).mjava"
 
 ### 元のメソッドテキストのハッシュを読む
 
+この機能は `--method-source-hash-enabled true` で有効になります．メソッドファイルを生成する場合，
 変換後のコミットには，件名の `<OriginalCommitID:…>` に加え，末尾に
 `FinerGit-Source-Hash-Version: 1` が付きます．`FinerGit-Method-Source` の各行に JSON レコードを1件記録します．
+トレーラーを付けると，変換後のコミット ID が変わります．デフォルトでは従来のメッセージ形式を使います．
 
 ```text
 FinerGit-Source-Hash-Version: 1
@@ -369,6 +378,9 @@ FinerGit-Method-Source: {"path":"src/Foo#public_void_old().mjava","sha256":null}
 `path` は短縮や衝突時の接尾辞を含む，生成先リポジトリ内のパスです．
 SHA-256 の対象は元 Java 宣言の範囲内にある UTF-8 テキストで，宣言に付属する Javadoc とアノテーション，範囲内の空白と改行を含みます．
 各コミットは第1親から追加・変更・削除されたメソッドのパスを記録します．ルートコミットは生成された全メソッドを記録し，削除されたパスには `null` が付きます．
+
+トレーラー付きの変換後コミットが JGit のストリーミング閾値（既定の設定では50 MiB）に達すると，
+FinerGit は書き換えた参照を更新する前に変換を中止し，元のコミット ID とサイズを報告します．
 
 整形によって元テキストのハッシュが変わり，生成ファイルが同一になる場合があります．その変更も確認するには，コミットのトレーラーを直接読みます．
 

@@ -1,6 +1,8 @@
 package finergit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -9,6 +11,8 @@ import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.MergeCommand;
+import org.eclipse.jgit.api.MergeResult.MergeStatus;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -21,6 +25,7 @@ import org.junit.rules.TemporaryFolder;
 public class FinerGitSourceHashTest {
 
   private static final PersonIdent PERSON = new PersonIdent("FinerGit", "finergit@example.com");
+  private static final String HASH_OPTION = "--method-source-hash-enabled";
   private static final String SOURCE = "src/Foo.java";
   private static final String VALUE = "src/Foo#public_int_value().mjava";
 
@@ -46,7 +51,7 @@ public class FinerGitSourceHashTest {
       unrelated = commit(git, "README.txt", "unrelated\n", "unrelated");
       rename = commit(git, SOURCE, sourceWithMember(renamed, constructor), "rename");
     }
-    convert(src, des);
+    convert(src, des, HASH_OPTION, "true");
 
     try (final Git git = Git.open(des.toFile());
         final RevWalk walk = new RevWalk(git.getRepository())) {
@@ -70,6 +75,10 @@ public class FinerGitSourceHashTest {
   public void writesMergeDeltaRelativeToTheFirstParent() throws Exception {
     final String original = "public int value() { return 1; }";
     final String formatted = original.replace("return 1", "return  1");
+    final String unchanged = "public int unchanged() { return 2; }";
+    final String firstParentOnly = "public int firstParentOnly() { return 3; }";
+    final String extraSource = "src/Extra.java";
+    final String extraMethod = "src/Extra#public_int_firstParentOnly().mjava";
     final Path src = this.folder.newFolder("src").toPath();
     final Path des = this.folder.getRoot().toPath().resolve("des");
     final RevCommit firstParent;
@@ -77,27 +86,34 @@ public class FinerGitSourceHashTest {
     final RevCommit merge;
     try (final Git git = init(src);
         final RevWalk walk = new RevWalk(git.getRepository())) {
-      commit(git, SOURCE, "public class Foo { " + original + " }\n", "root");
+      commit(git, SOURCE, "public class Foo { " + original + " " + unchanged + " }\n", "root");
       final String firstBranch = git.getRepository().getBranch();
+      final var config = git.getRepository().getConfig();
+      config.setString("merge", null, "ff", "only");
+      config.save();
       git.branchCreate().setName("format-topic").call();
-      firstParent = commit(git, "README.txt", "first parent\n", "first parent");
+      firstParent = commit(git, extraSource, "public class Extra { " + firstParentOnly + " }\n",
+          "first parent");
       git.checkout().setName("format-topic").call();
-      secondParent = commit(git, SOURCE, "public class Foo { " + formatted + " }\n",
+      secondParent = commit(git, SOURCE, "public class Foo { " + formatted + " " + unchanged + " }\n",
           "second parent");
       git.checkout().setName(firstBranch).call();
-      final ObjectId mergeId = git.merge().include(secondParent).setMessage("merge").call()
-          .getNewHead();
-      assertThat(mergeId).isNotNull();
-      merge = walk.parseCommit(mergeId);
+      assertThat(git.merge().include(secondParent).setFastForward(MergeCommand.FastForwardMode.NO_FF)
+          .setCommit(false).call().getMergeStatus()).isEqualTo(MergeStatus.MERGED_NOT_COMMITTED);
+      git.rm().addFilepattern(extraSource).call();
+      final RevCommit mergeCommit =
+          git.commit().setMessage("merge").setAuthor(PERSON).setCommitter(PERSON).call();
+      merge = walk.parseCommit(mergeCommit);
       assertThat(merge.getParents()).containsExactly(firstParent, secondParent);
     }
-    convert(src, des);
+    convert(src, des, HASH_OPTION, "true");
 
     try (final Git git = Git.open(des.toFile());
         final RevWalk walk = new RevWalk(git.getRepository())) {
       final RevCommit newMerge = walk.parseCommit(git.getRepository().resolve("HEAD"));
-      assertTrailers(newMerge, merge, entry(VALUE, formatted));
-      assertTrailers(walk.parseCommit(newMerge.getParent(0)), firstParent);
+      assertTrailers(newMerge, merge, entry(VALUE, formatted), entry(extraMethod, null));
+      assertTrailers(walk.parseCommit(newMerge.getParent(0)), firstParent,
+          entry(extraMethod, firstParentOnly));
       assertTrailers(walk.parseCommit(newMerge.getParent(1)), secondParent,
           entry(VALUE, formatted));
     }
@@ -113,7 +129,7 @@ public class FinerGitSourceHashTest {
     try (final Git git = init(src)) {
       root = commit(git, SOURCE, "public class Foo { " + first + " " + second + " }\n", "root");
     }
-    convert(src, des);
+    convert(src, des, HASH_OPTION, "true");
 
     try (final Git git = Git.open(des.toFile());
         final RevWalk walk = new RevWalk(git.getRepository())) {
@@ -124,7 +140,26 @@ public class FinerGitSourceHashTest {
   }
 
   @Test
-  public void emitsNoMethodEntriesWhenMethodFilesAreDisabled() throws Exception {
+  public void preservesPreviousCommitMessageByDefault() throws Exception {
+    final Path src = this.folder.newFolder("src").toPath();
+    final Path des = this.folder.getRoot().toPath().resolve("des");
+    final RevCommit root;
+    try (final Git git = init(src)) {
+      root = commit(git, SOURCE, "public class Foo { public int value() { return 1; } }\n",
+          "subject\n\nBody\n\nReviewed-by: Example <example@example.com>\n");
+    }
+    convert(src, des);
+
+    try (final Git git = Git.open(des.toFile());
+        final RevWalk walk = new RevWalk(git.getRepository())) {
+      final RevCommit newRoot = walk.parseCommit(git.getRepository().resolve("HEAD"));
+      assertOriginalMessage(newRoot, root);
+      assertThat(blobId(git, newRoot, VALUE)).isNotNull();
+    }
+  }
+
+  @Test
+  public void preservesPreviousCommitMessageWhenMethodFilesAreDisabled() throws Exception {
     final String declaration = "public int value() { return 1; }";
     final Path src = this.folder.newFolder("src").toPath();
     final Path des = this.folder.getRoot().toPath().resolve("des");
@@ -132,16 +167,29 @@ public class FinerGitSourceHashTest {
     try (final Git git = init(src)) {
       root = commit(git, SOURCE, "public class Foo { " + declaration + " }\n", "root");
     }
-    convert(src, des, "--method-file-generated", "false");
+    convert(src, des, HASH_OPTION, "true", "--method-file-generated", "false");
 
     try (final Git git = Git.open(des.toFile());
         final RevWalk walk = new RevWalk(git.getRepository())) {
       final RevCommit newRoot = walk.parseCommit(git.getRepository().resolve("HEAD"));
-      assertTrailers(newRoot, root);
+      assertOriginalMessage(newRoot, root);
       try (final TreeWalk tree = TreeWalk.forPath(git.getRepository(), VALUE, newRoot.getTree())) {
         assertThat(tree).isNull();
       }
     }
+  }
+
+  @Test
+  public void checksTheEncodedCommitSizeAtTheLimit() {
+    final ObjectId original = ObjectId.fromString("1234567890123456789012345678901234567890");
+    assertThatCode(() -> FinerGitRewriter.checkSourceHashCommitSize(original, 199, 200))
+        .doesNotThrowAnyException();
+    assertThatThrownBy(() -> FinerGitRewriter.checkSourceHashCommitSize(original, 200, 200))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining(original.name());
+    assertThatThrownBy(() -> FinerGitRewriter.checkSourceHashCommitSize(original, 201, 200))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContainingAll(original.name(), "201", "200");
   }
 
   private static Git init(final Path path) throws Exception {
@@ -182,6 +230,14 @@ public class FinerGitSourceHashTest {
     assertThat(rewritten.getFooterLines("FinerGit-Source-Hash-Version")).containsExactly("1");
     assertThat(rewritten.getFooterLines("FinerGit-Method-Source"))
         .containsExactlyInAnyOrder(entries);
+  }
+
+  private static void assertOriginalMessage(final RevCommit rewritten, final RevCommit original) {
+    assertThat(rewritten.getFullMessage())
+        .isEqualTo("<OriginalCommitID:" + original.abbreviate(7).name() + "> "
+            + original.getFullMessage());
+    assertThat(rewritten.getFooterLines("FinerGit-Source-Hash-Version")).isEmpty();
+    assertThat(rewritten.getFooterLines("FinerGit-Method-Source")).isEmpty();
   }
 
   private static String entry(final String path, final String declaration) throws Exception {
