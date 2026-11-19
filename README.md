@@ -91,7 +91,7 @@ Generated file options:
 - `--member-method-file-generated <true|false>` controls whether to include methods and constructors of named member types when method file generation is enabled. The default is `true`. Set it to `false` to extract only top-level methods and constructors.
 - `--class-file-generated <true|false>`: generate class files (`.cjava`) and record files (`.rjava`). The default is `false`.
 - `--field-file-generated <true|false>`: generate field files. The default is `false`.
-- `--peripheral-file-generated <true|false>` controls whether to generate `.pjava` files for peripheral tokens. The default is `false`.
+- `--peripheral-file-generated <true|false>` controls whether to generate `.pjava` files for peripheral tokens, such as imports, outside the class, record, method, and field files. The default is `false`. The member-type exception is described below.
 
 Token and file-name options:
 
@@ -101,7 +101,7 @@ Token and file-name options:
 - `--return-type-included <true|false>`: include return types in generated method file names. The default is `true`.
 - `--token-type-included <true|false>`: append token type names to tokenized lines. The default is `false`.
 - `--method-token-included <true|false>`: include method boundary tokens in generated method files. The default is `true`.
-- `--max-file-name-length <num>`: maximum generated file name length. The value must be between `15` and `255`, and at least `--hash-length` + 8 so that a shortened name keeps at least one character of the original name. The default is `255`.
+- `--max-file-name-length <num>`: maximum generated file name length. The value must be between `15` and `255`, and at least `--hash-length` + 8. A shortened member-type name can consist of a hash and the final `~.mjava` marker. The default is `255`.
 - `--hash-length <num>`: length of the hash value attached to shortened file names. The value must be between `7` and `40`. The default is `7`.
 
 ### Exit Status
@@ -132,14 +132,18 @@ Depending on generation options, they can also contain `.cjava`, `.rjava`, `.fja
 - Extension `.pjava` means that the file represents peripheral tokens from the original Java file.
 
 When class, record, or peripheral files are generated, member-type method tokens also remain in the enclosing `.cjava`, `.rjava`, or `.pjava` file. A change to a member-type method can therefore appear in both files.
-If JDT cannot render a member-type method's Javadoc, the tokenized method file uses the original Javadoc text.
-With `--tokenize false`, a rendering failure uses the original declaration text, including its internal comments.
+
+With member-type extraction enabled, if JDT cannot render a Javadoc comment, the method file uses the source Javadoc with the enclosing indentation removed. This applies to methods in both top-level and member types.
+With `--tokenize false`, FinerGit renders the rest of the declaration separately when possible and uses the source declaration as a fallback.
 
 By default, method file names include the class name, access modifier, return type, method name, and parameter types.
 For example, a method may be generated as `Foo#public_void_bar(int).mjava`.
-A method in a named member type uses its type hierarchy with `.` between the names, as in `Foo.Nested#public_void_bar(int).mjava`.
+A method in a named member type uses its type hierarchy with `.` between the names, as in `~Foo.Nested#public_void_bar(int)~.mjava`.
+The leading `~` avoids Windows device names, and the trailing `~` before `.mjava` distinguishes member-type files from top-level method files even after shortening.
 Field file names use a similar format, such as `Foo#private_String_name.fjava`.
 If generated file names are too long, FinerGit shortens them and appends a hash value.
+
+Member-type extraction is enabled by default. Repeating a conversion with the same options as before this feature can change generated paths and commit IDs. Use `--member-method-file-generated false` to reproduce the earlier output.
 
 If you want to see the change history of `Foo#public_void_bar(int).mjava`, type the following command.
 
@@ -152,7 +156,7 @@ You will get all commits where method `bar(int)` was changed.
 The `--follow` option lets Git track the method across file renames. Here is an example for a method in a named member type.
 
 ```shell-session
-$ git log --follow -- 'Foo.Nested#public_void_bar(int).mjava'
+$ git log --follow -- '~Foo.Nested#public_void_bar(int)~.mjava'
 ```
 
 ## Use in Your Research
@@ -283,7 +287,7 @@ $ java -jar build/libs/FinerGit-all.jar create --help
 - `--member-method-file-generated <true|false>` は，メソッドファイルの生成時に名前付きメンバー型のメソッドとコンストラクタも抽出するかを指定します．デフォルトは `true` です．トップレベルの型のメソッドとコンストラクタのみを抽出する場合は `false` を指定します．
 - `--class-file-generated <true|false>`: クラスファイル（`.cjava`）とレコードファイル（`.rjava`）を生成するかどうか．デフォルトは `false` です．
 - `--field-file-generated <true|false>`: フィールドファイルを生成するかどうか．デフォルトは `false` です．
-- `--peripheral-file-generated <true|false>` は，周辺トークンの `.pjava` ファイルを生成するかを指定します．デフォルトは `false` です．
+- `--peripheral-file-generated <true|false>` は，import 宣言など，クラス・レコード・メソッド・フィールドの各ファイルに含まれない周辺トークンを `.pjava` に出力するかを指定します．デフォルトは `false` です．メンバー型の例外は後述します．
 
 字句化とファイル名に関するオプション:
 
@@ -293,7 +297,7 @@ $ java -jar build/libs/FinerGit-all.jar create --help
 - `--return-type-included <true|false>`: 生成されるメソッドファイル名に戻り値型を含めるかどうか．デフォルトは `true` です．
 - `--token-type-included <true|false>`: 字句化された各行に字句の種類を付加するかどうか．デフォルトは `false` です．
 - `--method-token-included <true|false>`: 生成されるメソッドファイルにメソッド境界トークンを含めるかどうか．デフォルトは `true` です．
-- `--max-file-name-length <num>`: 生成されるファイル名の最大長．`15` から `255` の範囲で，かつ `--hash-length` + 8 以上の値を指定できます（短縮後のファイル名に元の名前が1文字以上残るようにするためです）．デフォルトは `255` です．
+- `--max-file-name-length <num>`: 生成されるファイル名の最大長．`15` から `255` の範囲で，かつ `--hash-length` + 8 以上の値を指定できます．メンバー型の名前を短縮した場合，ハッシュ値と末尾の `~.mjava` だけになることがあります．デフォルトは `255` です．
 - `--hash-length <num>`: 短縮されたファイル名に付与するハッシュ値の長さ．`7` から `40` の範囲で指定できます．デフォルトは `7` です．
 
 ### 終了コード
@@ -324,14 +328,18 @@ FinerGit はコピーを始める前にパスを検証します．
 - 拡張子が `.pjava` のファイルは，元の Java ファイルに含まれる周辺トークンを表します．
 
 クラス，レコード，周辺トークンのファイルを生成する場合，メンバー型のメソッドのトークンは，その `.mjava` と，宣言を含む `.cjava`，`.rjava` または `.pjava` の両方に記録されます．そのため，1つのメソッドの変更が2つのファイルに現れる場合があります．
-字句化時に JDT がメンバー型のメソッドの Javadoc を出力できない場合は，元ソースの Javadoc を使います．
-`--tokenize false` で宣言の出力に失敗した場合は，内部のコメントも含めて元ソースの宣言を使います．
+
+メンバー型の抽出を有効にしていて JDT が Javadoc を出力できない場合は，元ソースの Javadoc から外側の宣言による字下げを取り除いてメソッドファイルに出力します．トップレベル型とメンバー型のどちらのメソッドにも適用します．
+`--tokenize false` の場合は，可能であれば宣言の残りを個別に出力し，それもできない場合は元ソースの宣言を使います．
 
 デフォルトでは，メソッドファイル名にはクラス名，アクセス修飾子，戻り値型，メソッド名，引数型が含まれます．
 例えば `Foo#public_void_bar(int).mjava` のようなファイル名になります．
-名前付きメンバー型のメソッドでは，`Foo.Nested#public_void_bar(int).mjava` のように，外側から順に型名を `.` でつなぎます．
+名前付きメンバー型のメソッドでは，`~Foo.Nested#public_void_bar(int)~.mjava` のように，外側から順に型名を `.` でつなぎます．
+先頭の `~` は Windows のデバイス予約名を避けるために付けます．拡張子の直前の `~` は，ファイル名を短縮した場合にもメンバー型のメソッドをトップレベル型のメソッドと区別するために残します．
 フィールドファイル名も同様に，例えば `Foo#private_String_name.fjava` のような形式になります．
 生成されるファイル名が長すぎる場合，FinerGit はファイル名を短縮し，ハッシュ値を付与します．
+
+メンバー型の抽出はデフォルトで有効です．この機能が追加される前と同じコマンドで変換しても，生成されるパスやコミット ID が変わる場合があります．従来の出力を再現するには `--member-method-file-generated false` を指定してください．
 
 例えば，
 
@@ -342,7 +350,7 @@ $ git log -- 'Foo#public_void_bar(int).mjava'
 というコマンドを入力すると，`bar(int)` メソッドに変更を加えたコミットの一覧を得ることができます．
 
 ```shell-session
-$ git log --follow -- 'Foo.Nested#public_void_bar(int).mjava'
+$ git log --follow -- '~Foo.Nested#public_void_bar(int)~.mjava'
 ```
 
 というように，名前付きメンバー型のメソッドにも `--follow` を使うと，ファイル名が変わった前後の履歴を追跡できます．

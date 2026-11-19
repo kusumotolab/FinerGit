@@ -1506,12 +1506,13 @@ public class JavaFileVisitor extends ASTVisitor {
 
     final boolean topLevelMethod = 1 == this.classNestLevel;
     final AbstractTypeDeclaration nestedType = this.namedMemberTypeOf(node);
+    final CompilationUnit memberUnit = nestedType == null ? null : (CompilationUnit) node.getRoot();
     final FinerJavaModule enclosingModule = this.moduleStack.peek();
-    if (nestedType != null && this.config.isTokenized()) {
+    if (memberUnit != null && this.config.isTokenized()) {
       // このメソッドの内側にあるローカル型・匿名クラスは別の抽出対象にならない．
       final int start = node.getStartPosition();
       this.memberMethodTokens = new MemberMethodTokens(new ArrayList<>(),
-          new ArrayDeque<>(this.commentsStartingInRange(start, start + node.getLength())));
+          new ArrayDeque<>(this.commentsStartingInRange(memberUnit, start, start + node.getLength())));
     }
     int leadingCommentCount = 0;
     if (topLevelMethod) {
@@ -1665,7 +1666,7 @@ public class JavaFileVisitor extends ASTVisitor {
         dummyMethod.getTokens()
             .subList(0, leadingCommentCount)
             .forEach(javaMethod::addToken);
-        addMethodSource(node.toString(), javaMethod);
+        this.addMethodSource(node, javaMethod);
         // 宣言の範囲内にあるコメントは文字列表現に含まれているので，別途出力しないように捨てる．
         // 宣言の後ろの同じ行にあるコメント（"} // end of m" など）は文字列表現に含まれないので出力する
         this.discardCommentsBefore(node.getStartPosition() + node.getLength());
@@ -1693,44 +1694,60 @@ public class JavaFileVisitor extends ASTVisitor {
       final FinerJavaMethod finerJavaMethod = (FinerJavaMethod) this.moduleStack.pop();
       this.addToPeekModule(
           new FinerJavaMethodToken("MethodToken[" + finerJavaMethod.name + "]", finerJavaMethod));
-    } else if (nestedType != null) {
-      this.addMemberMethod(node, nestedType, methodFileName.toString());
+    } else if (memberUnit != null) {
+      this.addMemberMethod(node, nestedType, memberUnit, methodFileName.toString());
     }
 
     return false;
   }
 
-  private static void addMethodSource(final String text, final FinerJavaMethod method) {
-    Stream.of(text.split("\\r\\n|\\r|\\n"))
+  private void addMethodSource(final MethodDeclaration node, final FinerJavaMethod method) {
+    Stream.of(this.renderMethodSource(node).split("\\r\\n|\\r|\\n"))
         .map(LineToken::new)
         .forEach(method::addToken);
   }
 
+  private String renderMethodSource(final MethodDeclaration node) {
+    final String rendered = node.toString();
+    if (!this.usesDeterministicMethodFallback() || !isJdtFallback(node, rendered)) {
+      return rendered;
+    }
+    final Javadoc javadoc = node.getJavadoc();
+    if (javadoc != null) {
+      // Javadoc を除いた複製で本文を出力し，元の AST と本文の整形を維持する．
+      final MethodDeclaration copy = (MethodDeclaration) ASTNode.copySubtree(node.getAST(), node);
+      copy.setJavadoc(null);
+      final String declaration = copy.toString();
+      if (!isJdtFallback(copy, declaration)) {
+        return this.dedentedSourceText(javadoc) + "\n" + declaration;
+      }
+    }
+    return this.dedentedSourceText(node);
+  }
+
   private void addMemberMethod(final MethodDeclaration node, final AbstractTypeDeclaration type,
-      final String name) {
+      final CompilationUnit unit, final String name) {
     final FinerJavaMethod method =
-        new FinerJavaMethod(name, this.memberTypeModule(type), this.config);
+        new FinerJavaMethod(name, this.memberTypeModule(type), this.config, true);
     final MemberMethodTokens collected = this.memberMethodTokens;
     this.memberMethodTokens = null;
     final int start = node.getStartPosition();
     final int end = start + node.getLength();
-    this.addMemberComments(method, this.compilationUnit.getExtendedStartPosition(node), start, false);
+    this.addMemberComments(unit, method, unit.getExtendedStartPosition(node), start, false);
     if (collected != null) {
       collected.tokens().forEach(method::addToken);
     } else {
-      final String rendered = node.toString();
-      addMethodSource(this.source != null && isJdtFallback(node, rendered)
-          ? this.sourceText(node) : rendered, method);
+      this.addMethodSource(node, method);
     }
-    this.addMemberComments(method, end, this.endOfLine(node), true);
+    this.addMemberComments(unit, method, end, this.endOfLine(node), true);
     this.moduleList.add(method);
   }
 
   /** ソース上の位置でコメントを選ぶ．末尾コメントの前に別の宣言や閉じ括弧があれば打ち切る． */
-  private void addMemberComments(final FinerJavaMethod method, final int from, final int to,
-      final boolean trailing) {
+  private void addMemberComments(final CompilationUnit unit, final FinerJavaMethod method,
+      final int from, final int to, final boolean trailing) {
     int previousEnd = from;
-    for (final Comment comment : this.commentsStartingInRange(from, to)) {
+    for (final Comment comment : this.commentsStartingInRange(unit, from, to)) {
       final int position = comment.getStartPosition();
       final boolean attachedJavadoc = isAttachedJavadoc(comment);
       if (trailing && (attachedJavadoc || !this.source.substring(previousEnd, position).isBlank())) {
@@ -1743,12 +1760,16 @@ public class JavaFileVisitor extends ASTVisitor {
     }
   }
 
-  private List<Comment> commentsStartingInRange(final int from, final int to) {
+  private List<Comment> commentsStartingInRange(final CompilationUnit unit, final int from,
+      final int to) {
     if (this.source == null || from >= to) {
       return List.of();
     }
     @SuppressWarnings("unchecked")
-    final List<Comment> comments = this.compilationUnit.getCommentList();
+    final List<Comment> comments = unit.getCommentList();
+    if (comments == null) {
+      return List.of();
+    }
     return comments.subList(firstCommentAtOrAfter(comments, from),
         firstCommentAtOrAfter(comments, to));
   }
@@ -1772,7 +1793,43 @@ public class JavaFileVisitor extends ASTVisitor {
   }
 
   private static boolean isJdtFallback(final ASTNode node, final String text) {
-    return text.startsWith("!" + node.getClass().getName() + "@");
+    return text.startsWith("!") && text.startsWith("!" + node.getClass().getName() + "@");
+  }
+
+  private boolean usesDeterministicMethodFallback() {
+    return this.source != null && this.config.isMethodFileGenerated()
+        && this.config.isMemberMethodFileGenerated();
+  }
+
+  /** 元ソースの各行から共通の字下げだけを除き，行間の相対位置を残す． */
+  private String dedentedSourceText(final ASTNode node) {
+    final String text = this.sourceText(node);
+    final int start = node.getStartPosition();
+    final int lineStart = 1 + Math.max(this.source.lastIndexOf('\r', start - 1),
+        this.source.lastIndexOf('\n', start - 1));
+    final String indent = this.source.substring(lineStart, start);
+    if (indent.isEmpty() || !indent.isBlank()) {
+      return text;
+    }
+
+    final String[] lines = text.split("\\r\\n|\\r|\\n", -1);
+    int commonIndent = indent.length();
+    for (int i = 1; i < lines.length && commonIndent > 0; i++) {
+      final String line = lines[i];
+      if (!line.isBlank()) {
+        int matching = 0;
+        while (matching < commonIndent && matching < line.length()
+            && indent.charAt(matching) == line.charAt(matching)) {
+          matching++;
+        }
+        commonIndent = matching;
+      }
+    }
+    for (int i = 1; i < lines.length; i++) {
+      final String line = lines[i];
+      lines[i] = line.isBlank() ? "" : line.substring(commonIndent);
+    }
+    return String.join("\n", lines);
   }
 
   private String sourceText(final ASTNode node) {
@@ -3218,13 +3275,19 @@ public class JavaFileVisitor extends ASTVisitor {
    */
   private void addJavadoc(final Javadoc javadoc) {
     final String text = javadoc.toString();
-    if (this.memberMethodTokens != null && this.source != null && isJdtFallback(javadoc, text)) {
+    if (this.usesDeterministicMethodFallback() && isJdtFallback(javadoc, text)) {
       // 外側の出力は保持し，抽出したメソッドへコピーするときだけ元ソースを使う．
-      this.addJavadocLines(text, this.moduleStack.peek()::addToken);
-      this.addJavadocLines(this.sourceText(javadoc), this.memberMethodTokens.tokens()::add);
-    } else {
-      this.addJavadocLines(text, this::addToPeekModule);
+      if (this.memberMethodTokens != null) {
+        this.addJavadocLines(text, this.moduleStack.peek()::addToken);
+        this.addJavadocLines(this.dedentedSourceText(javadoc), this.memberMethodTokens.tokens()::add);
+        return;
+      }
+      if (this.moduleStack.peek() instanceof FinerJavaMethod) {
+        this.addJavadocLines(this.dedentedSourceText(javadoc), this::addToPeekModule);
+        return;
+      }
     }
+    this.addJavadocLines(text, this::addToPeekModule);
   }
 
   private void addJavadocLines(final String text, final Consumer<JavaToken> output) {
@@ -3335,7 +3398,7 @@ public class JavaFileVisitor extends ASTVisitor {
         || this.memberMethodTokens.pendingComments().isEmpty())) {
       return;
     }
-    final int position = this.startsNewModule(node)
+    final int position = this.compilationUnit != null && this.startsNewModule(node)
         ? this.compilationUnit.getExtendedStartPosition(node)
         : node.getStartPosition();
     this.addCommentsBefore(position);
