@@ -86,7 +86,7 @@ Input and repository options:
 Generated file options:
 
 - `--method-file-generated <true|false>`: generate method files. The default is `true`.
-- `--method-source-hash-enabled <true|false>`: record original method text hashes in commit trailers when method files are generated. The default is `false`.
+- `--method-source-hash-enabled <true|false>`: record original method text hashes in commit trailers. Setting this option to `true` requires `--method-file-generated true`. The default is `false`.
 - `--class-file-generated <true|false>`: generate class files (`.cjava`) and record files (`.rjava`). The default is `false`.
 - `--field-file-generated <true|false>`: generate field files. The default is `false`.
 - `--peripheral-file-generated <true|false>`: generate files for peripheral tokens outside generated class, method, and field files. The default is `false`.
@@ -99,7 +99,7 @@ Token and file-name options:
 - `--return-type-included <true|false>`: include return types in generated method file names. The default is `true`.
 - `--token-type-included <true|false>`: append token type names to tokenized lines. The default is `false`.
 - `--method-token-included <true|false>`: include method boundary tokens in generated method files. The default is `true`.
-- `--max-file-name-length <num>`: maximum generated file name length in UTF-16 code units. The value must be between `15` and `255`, and at least `--hash-length` + 8. A shortened prefix ends at a Unicode code point boundary. The default is `255`.
+- `--max-file-name-length <num>`: maximum generated file name length in UTF-16 code units before the `@N` suffix used to resolve collisions. The value must be between `15` and `255`, and at least `--hash-length` + 8. A shortened prefix ends at a Unicode code point boundary and can be empty when the first code point exceeds the space available. This can change generated names and commit IDs where earlier versions split a surrogate pair, even with method source hashes disabled. The default is `255`.
 - `--hash-length <num>`: length of the hash value attached to shortened file names. The value must be between `7` and `40`. The default is `7`.
 
 ### Exit Status
@@ -151,9 +151,13 @@ $ git log --follow "Foo#public_void_bar(int).mjava"
 
 ### Read Original Method Text Hashes
 
-Enable this feature with `--method-source-hash-enabled true`. When method files are generated,
-each rewritten commit retains the `<OriginalCommitID:…>` prefix and adds a
+Enable this feature with `--method-source-hash-enabled true` and method file generation enabled.
+Each rewritten commit retains the `<OriginalCommitID:…>` prefix and adds a
 `FinerGit-Source-Hash-Version: 1` trailer. Each `FinerGit-Method-Source` trailer contains one JSON record.
+FinerGit puts these records in the Git trailer block, which may precede a trailing comment paragraph,
+a scissors section, or a legacy `Conflicts:` list.
+FinerGit normalizes the line ending of a CRLF scissors marker to LF so Git recognizes it across platforms.
+Whitespace-only lines immediately after the added trailers become empty lines.
 Adding trailers changes rewritten commit IDs. The default keeps the original FinerGit message format.
 
 ```text
@@ -174,13 +178,19 @@ Each commit records changes to method hashes by path relative to its first paren
 record all generated method hashes. A `sha256` value of `null` removes the method hash record for
 that path. The same path can still contain an ordinary file.
 
-If a rewritten commit with trailers reaches JGit's object streaming threshold (50 MiB with the
-default configuration), FinerGit stops before updating the rewritten refs and reports the commit ID and size.
+The CLI uses a fixed JGit object streaming threshold of 50 MiB. If a rewritten commit with trailers
+reaches that size, FinerGit stops before updating refs and reports the original commit ID and size.
+If an original commit already has a `FinerGit-Source-Hash-Version` or `FinerGit-Method-Source`
+trailer, FinerGit stops and reports the original commit ID and the conflicting key.
+FinerGit also stops if a scissors lookalike precedes a real scissors line and Git readers can
+disagree about where a trailer block ends.
 
-Formatting can change the source hash while leaving the generated file identical. Read the commit trailers directly to include such changes.
+Formatting can change the source hash while leaving the generated file identical. Read the records
+with native Git using `#` as the comment prefix and `:` as the trailer separator, as FinerGit does.
+JGit's `getFooterLines()` can omit the records when another paragraph follows the trailer block.
 
 ```shell-session
-$ git show -s --format=%B HEAD | git interpret-trailers --no-divider --parse
+$ git show -s --format=%B HEAD | git -c 'core.commentChar=#' -c 'core.commentString=#' -c 'trailer.separators=:' interpret-trailers --no-divider --parse
 ```
 
 ## Use in Your Research
@@ -306,7 +316,7 @@ $ java -jar build/libs/FinerGit-all.jar create --help
 生成ファイルに関するオプション:
 
 - `--method-file-generated <true|false>`: メソッドファイルを生成するかどうか．デフォルトは `true` です．
-- `--method-source-hash-enabled <true|false>`: メソッドファイルを生成する場合に，元のメソッドテキストのハッシュをコミットのトレーラーに記録します．デフォルトは `false` です．
+- `--method-source-hash-enabled <true|false>`: 元のメソッドテキストのハッシュをコミットのトレーラーに記録します．`true` を指定するには `--method-file-generated true` が必要です．デフォルトは `false` です．
 - `--class-file-generated <true|false>`: クラスファイル（`.cjava`）とレコードファイル（`.rjava`）を生成するかどうか．デフォルトは `false` です．
 - `--field-file-generated <true|false>`: フィールドファイルを生成するかどうか．デフォルトは `false` です．
 - `--peripheral-file-generated <true|false>`: 生成されたクラス，メソッド，フィールドファイルの外側にある周辺トークンのファイルを生成するかどうか．デフォルトは `false` です．
@@ -319,7 +329,7 @@ $ java -jar build/libs/FinerGit-all.jar create --help
 - `--return-type-included <true|false>`: 生成されるメソッドファイル名に戻り値型を含めるかどうか．デフォルトは `true` です．
 - `--token-type-included <true|false>`: 字句化された各行に字句の種類を付加するかどうか．デフォルトは `false` です．
 - `--method-token-included <true|false>`: 生成されるメソッドファイルにメソッド境界トークンを含めるかどうか．デフォルトは `true` です．
-- `--max-file-name-length <num>`: 生成されるファイル名の最大長（UTF-16 コードユニット数）．`15` から `255` の範囲で，かつ `--hash-length` + 8 以上の値を指定できます．短縮時は Unicode コードポイントの境界で区切ります．デフォルトは `255` です．
+- `--max-file-name-length <num>`: ファイル名の衝突を解消する接尾辞 `@N` を付ける前の最大長（UTF-16 コードユニット数）．`15` から `255` の範囲で，かつ `--hash-length` + 8 以上の値を指定できます．短縮時は Unicode コードポイントの境界で区切ります．先頭のコードポイントが使える長さを超える場合，名前の先頭部分は空になります．以前のバージョンがサロゲートペアの途中で区切っていたケースでは，メソッドハッシュの記録が無効でも，生成ファイル名とコミット ID が変わる場合があります．デフォルトは `255` です．
 - `--hash-length <num>`: 短縮されたファイル名に付与するハッシュ値の長さ．`7` から `40` の範囲で指定できます．デフォルトは `7` です．
 
 ### 終了コード
@@ -371,9 +381,12 @@ $ git log --follow "Foo#public_void_bar(int).mjava"
 
 ### 元のメソッドテキストのハッシュを読む
 
-この機能は `--method-source-hash-enabled true` で有効になります．メソッドファイルを生成する場合，
-変換後のコミットには，件名の `<OriginalCommitID:…>` に加え，末尾に
-`FinerGit-Source-Hash-Version: 1` が付きます．`FinerGit-Method-Source` の各行に JSON レコードを1件記録します．
+メソッドファイルの生成を有効にしたうえで `--method-source-hash-enabled true` を指定します．
+変換後のコミットには，件名の `<OriginalCommitID:…>` に加え，`FinerGit-Source-Hash-Version: 1` が付きます．
+`FinerGit-Method-Source` の各行に JSON レコードを1件記録します．トレーラーの後ろに，元からあった
+コメント段落，scissors 行以降のテキスト，旧形式の `Conflicts:` 一覧が続く場合もあります．
+Git が各プラットフォームで同じように認識できるよう，scissors 行の改行が CRLF の場合は LF に変換します．
+追加したトレーラーの直後にある空白文字だけの行は，空行にします．
 トレーラーを付けると，変換後のコミット ID が変わります．デフォルトでは従来のメッセージ形式を使います．
 
 ```text
@@ -393,13 +406,18 @@ FinerGit-Method-Source: {"path":"src/Foo#public_void_old().mjava","sha256":null}
 生成された全メソッドのハッシュを記録します．`sha256` の値が `null` の場合は，そのパスの
 メソッドハッシュ記録を削除します．同じパスに通常ファイルが残る場合もあります．
 
-トレーラー付きの変換後コミットが JGit のストリーミング閾値（既定の設定では50 MiB）に達すると，
-FinerGit は書き換えた参照を更新する前に変換を中止し，元のコミット ID とサイズを報告します．
+CLI では JGit のオブジェクトのストリーミング閾値を 50 MiB に固定しています．トレーラー付きの変換後コミットが
+このサイズに達すると，FinerGit は参照を更新する前に変換を中止し，元のコミット ID とサイズを報告します．
+元のコミットに `FinerGit-Source-Hash-Version` または `FinerGit-Method-Source` のトレーラーがある場合も，
+変換を中止し，元のコミット ID と該当するキーを報告します．
+scissors に似た行が実際の scissors 行に先行し，Git によってトレーラーの終端の判定が異なる場合も変換を中止します．
 
-整形によって元テキストのハッシュが変わり，生成ファイルが同一になる場合があります．その変更も確認するには，コミットのトレーラーを直接読みます．
+整形によって元テキストのハッシュが変わり，生成ファイルが同一になる場合があります．その変更も確認するには，
+FinerGit と同じく `#` をコメント接頭辞，`:` を区切り文字として，ネイティブ Git でレコードを読み取ります．
+JGit の `getFooterLines()` では，トレーラーブロックの後ろに別の段落がある場合，レコードが抜け落ちることがあります．
 
 ```shell-session
-$ git show -s --format=%B HEAD | git interpret-trailers --no-divider --parse
+$ git show -s --format=%B HEAD | git -c 'core.commentChar=#' -c 'core.commentString=#' -c 'trailer.separators=:' interpret-trailers --no-divider --parse
 ```
 
 ## 研究での利用

@@ -1,9 +1,11 @@
 package finergit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -49,24 +51,25 @@ public class SourceHashTrailersTest {
         + "Refs: JIRA-1\n"
         + "#123 also fixed\n"
         + "Reviewed-by: Alice <alice@example.com>\n\n"
-        + "# trailing comment\n";
+        + "# Conflicts:\n#\tsrc/Foo.java\n";
     final String message = SourceHashTrailers.append(original, Map.of(METHOD, HASH));
 
-    assertThat(message).contains("#123 also fixed\n").endsWith("# trailing comment\n");
+    assertThat(message).contains("#123 also fixed\n").endsWith("# Conflicts:\n#\tsrc/Foo.java\n");
     assertThat(nativeTrailers(message, "#"))
         .containsExactly("Refs: JIRA-1", "Reviewed-by: Alice <alice@example.com>", VERSION,
             METHOD_TRAILER);
+    // JGit reads only the final paragraph in this shape.
+    assertThat(parseCommit(message).getFooterLines("FinerGit-Method-Source")).isEmpty();
   }
 
   @Test
-  public void respectsConfiguredGitCommentPrefix() throws Exception {
+  public void treatsNonCanonicalCommentPrefixesAsLiteralText() throws Exception {
     final String original = "<OriginalCommitID:1234567> Fix parser\n\n"
         + "Refs: JIRA-1\n;123 also fixed\nReviewed-by: Alice <alice@example.com>\n";
-    final String message = SourceHashTrailers.append(original, Map.of(METHOD, HASH), ";");
+    final String message = SourceHashTrailers.append(original, Map.of(METHOD, HASH));
 
-    assertThat(nativeTrailers(message, ";"))
-        .containsExactly("Refs: JIRA-1", "Reviewed-by: Alice <alice@example.com>", VERSION,
-            METHOD_TRAILER);
+    assertThat(message).startsWith(original + "\n");
+    assertThat(nativeTrailers(message, "#")).containsExactly(VERSION, METHOD_TRAILER);
   }
 
   @Test
@@ -74,10 +77,10 @@ public class SourceHashTrailersTest {
     for (final String commentPrefix : List.of("#", ";")) {
       final String original = "<OriginalCommitID:1234567> Fix parser\n\nBody.\n\n"
           + commentPrefix + "123 also fixed\n";
-      final String message = SourceHashTrailers.append(original, Map.of(METHOD, HASH), commentPrefix);
+      final String message = SourceHashTrailers.append(original, Map.of(METHOD, HASH));
 
       assertThat(message).isEqualTo(original + "\n" + VERSION + "\n" + METHOD_TRAILER + "\n");
-      assertThat(nativeTrailers(message, commentPrefix)).containsExactly(VERSION, METHOD_TRAILER);
+      assertThat(nativeTrailers(message, "#")).containsExactly(VERSION, METHOD_TRAILER);
     }
   }
 
@@ -124,6 +127,16 @@ public class SourceHashTrailersTest {
   }
 
   @Test
+  public void separatesTrailersFromAUrlAtTheEndOfTheBody() throws Exception {
+    final String original = "<OriginalCommitID:1234567> Fix parser\n\n"
+        + "https://example.com/issues/1\n";
+    final String message = SourceHashTrailers.append(original, Map.of(METHOD, HASH));
+
+    assertThat(message).isEqualTo(original + "\n" + VERSION + "\n" + METHOD_TRAILER + "\n");
+    assertThat(nativeTrailers(message, "#")).containsExactly(VERSION, METHOD_TRAILER);
+  }
+
+  @Test
   public void preservesTrailersBeforeTheGitScissorsLine() throws Exception {
     final String ignored = "# ------------------------ >8 ------------------------\n"
         + "This content is retained below the Git scissors line.\n";
@@ -132,6 +145,39 @@ public class SourceHashTrailersTest {
 
     assertThat(message).endsWith(ignored);
     assertThat(nativeTrailers(message, "#")).containsExactly("Refs: JIRA-1", VERSION, METHOD_TRAILER);
+  }
+
+  @Test
+  public void appendsTrailersAfterAScissorsLikeLineWithTrailingText() throws Exception {
+    final String original = "<OriginalCommitID:1234567> Fix parser\n\n"
+        + "# ------------------------ >8 ------------------------ quoted marker\n"
+        + "Body continues.\n";
+    final String message = SourceHashTrailers.append(original, Map.of(METHOD, HASH));
+
+    assertThat(message).startsWith(original + "\n");
+    assertThat(nativeTrailers(message, "#")).containsExactly(VERSION, METHOD_TRAILER);
+  }
+
+  @Test
+  public void rejectsScissorsBoundariesThatGitReadersDisagreeOn() {
+    final String scissors = "# ------------------------ >8 ------------------------";
+    final String original = "Subject\n\n" + scissors + " quoted marker\n"
+        + scissors + "\nText below scissors.\n";
+    assertThatThrownBy(() -> SourceHashTrailers.append(original, Map.of(METHOD, HASH)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("ambiguous scissors boundary");
+  }
+
+  @Test
+  public void normalizesTheGitScissorsLineEndingForPortableReading() throws Exception {
+    final String content = "<OriginalCommitID:1234567> Fix parser\r\n\r\nBody.\r\n";
+    final String scissors = "# ------------------------ >8 ------------------------";
+    final String ignored = "This content is retained below the Git scissors line.\r\n";
+    final String original = content + scissors + "\r\n" + ignored;
+    final String message = SourceHashTrailers.append(original, Map.of(METHOD, HASH));
+
+    assertThat(message).startsWith(content).endsWith(scissors + "\n" + ignored);
+    assertThat(nativeTrailers(message, "#")).containsExactly(VERSION, METHOD_TRAILER);
   }
 
   @Test
@@ -163,6 +209,41 @@ public class SourceHashTrailersTest {
   }
 
   @Test
+  public void insertsTrailersBeforeAnUnterminatedLegacyConflictsHeading() throws Exception {
+    final String reviewedBy = "Reviewed-by: Alice <alice@example.com>";
+    final String original = "<OriginalCommitID:1234567> Merge branches\n\n" + reviewedBy
+        + "\n\nConflicts:";
+    final String message = SourceHashTrailers.append(original, Map.of(METHOD, HASH));
+
+    assertThat(nativeTrailers(original, "#")).containsExactly(reviewedBy);
+    assertThat(message).endsWith("Conflicts:");
+    assertThat(nativeTrailers(message, "#")).containsExactly(reviewedBy, VERSION, METHOD_TRAILER);
+  }
+
+  @Test
+  public void usesAnEmptySeparatorAfterWhitespaceBeforeNewTrailers() throws Exception {
+    final String original = "<OriginalCommitID:1234567> Fix parser\n \n";
+    final String message = SourceHashTrailers.append(original, Map.of(METHOD, HASH));
+
+    assertThat(message).startsWith(original + "\n");
+    assertThat(parseCommit(message).getShortMessage())
+        .isEqualTo(parseCommit(original).getShortMessage());
+    assertThat(nativeTrailers(message, "#")).containsExactly(VERSION, METHOD_TRAILER);
+  }
+
+  @Test
+  public void keepsTrailingWhitespaceOutOfTheLastJGitTrailerValue() throws Exception {
+    final String reviewedBy = "Reviewed-by: Alice <alice@example.com>";
+    final String original = "<OriginalCommitID:1234567> Fix parser\r\n\r\n"
+        + reviewedBy + "\r\n \r\n";
+    final String message = SourceHashTrailers.append(original, Map.of(METHOD, HASH));
+
+    assertThat(nativeTrailers(message, "#")).containsExactly(reviewedBy, VERSION, METHOD_TRAILER);
+    assertThat(parseCommit(message).getFooterLines("FinerGit-Method-Source"))
+        .containsExactly(METHOD_VALUE);
+  }
+
+  @Test
   public void terminatesNewTrailersWithLfInCrlfMessages() throws IOException {
     final String original = "<OriginalCommitID:1234567> Fix parser\r\n\r\nBody\r\n";
     final String withoutMethods = SourceHashTrailers.append(original, Map.of());
@@ -189,9 +270,12 @@ public class SourceHashTrailersTest {
 
   private List<String> nativeGit(final String input, final String... arguments) throws Exception {
     final var root = folder.getRoot();
+    final var stdout = Files.createTempFile(root.toPath(), "git-", ".out");
+    final var stderr = Files.createTempFile(root.toPath(), "git-", ".err");
     final ProcessBuilder builder = new ProcessBuilder("git")
         .directory(root)
-        .redirectErrorStream(true);
+        .redirectOutput(stdout.toFile())
+        .redirectError(stderr.toFile());
     builder.command().addAll(List.of(arguments));
     builder.environment().put("GIT_CONFIG_NOSYSTEM", "1");
     builder.environment().put("GIT_CONFIG_GLOBAL", root.toPath().resolve("absent-config").toString());
@@ -207,11 +291,11 @@ public class SourceHashTrailersTest {
       try (final var stdin = process.getOutputStream()) {
         stdin.write(input.getBytes(StandardCharsets.UTF_8));
       }
-      assertThat(process.waitFor(10, TimeUnit.SECONDS)).isTrue();
-      final String output = new String(process.getInputStream().readAllBytes(),
-          StandardCharsets.UTF_8);
-      assertThat(process.exitValue()).as(output).isZero();
-      return output.lines().toList();
+      assertThat(process.waitFor(10, TimeUnit.SECONDS)).as("git %s timed out", List.of(arguments))
+          .isTrue();
+      final String diagnostics = new String(Files.readAllBytes(stderr), StandardCharsets.UTF_8);
+      assertThat(process.exitValue()).as("git %s%n%s", List.of(arguments), diagnostics).isZero();
+      return Files.readString(stdout, StandardCharsets.UTF_8).lines().toList();
     } finally {
       if (process.isAlive()) {
         process.destroyForcibly();

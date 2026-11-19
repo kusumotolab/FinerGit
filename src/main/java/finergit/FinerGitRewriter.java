@@ -12,7 +12,6 @@ import org.eclipse.jgit.errors.ObjectWritingException;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.FileMode;
 import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,8 +33,6 @@ public class FinerGitRewriter extends RepositoryRewriter {
 
   private final FinerJavaFileBuilder builder;
 
-  private String commentPrefix = "#";
-
   public FinerGitRewriter(final FinerGitConfig config) {
     this.config = config;
     this.builder = new FinerJavaFileBuilder(config);
@@ -44,20 +41,6 @@ public class FinerGitRewriter extends RepositoryRewriter {
     steinConfig.nthreads = config.getNumberOfThreads();
     setConfig(steinConfig);
     this.isPathSensitive = true;
-  }
-
-  @Override
-  public void initialize(final Repository sourceRepository, final Repository targetRepository) {
-    super.initialize(sourceRepository, targetRepository);
-    if (config.isMethodSourceHashEnabled()) {
-      final var gitConfig = targetRepository.getConfig();
-      String prefix = gitConfig.getString("core", null, "commentString");
-      if (prefix == null) {
-        prefix = gitConfig.getString("core", null, "commentChar");
-      }
-      this.commentPrefix = prefix == null || prefix.isEmpty() || "auto".equalsIgnoreCase(prefix)
-          ? "#" : prefix;
-    }
   }
 
   @Override
@@ -92,10 +75,19 @@ public class FinerGitRewriter extends RepositoryRewriter {
     if (!config.isMethodSourceHashEnabled()) {
       return prefixed;
     }
-    final MethodSourceTree current = sourceHashes(commit, c);
-    final MethodSourceTree previous = commit.getParentCount() == 0 ? MethodSourceTree.EMPTY
-        : sourceHashes(commit.getParent(0), c);
-    return SourceHashTrailers.append(prefixed, current.changesFrom(previous), this.commentPrefix);
+    try {
+      final String reserved = SourceHashTrailers.findReservedTrailer(prefixed);
+      if (reserved != null) {
+        throw new IllegalStateException("commit " + commit.name() + " already contains reserved trailer "
+            + reserved);
+      }
+      final MethodSourceTree current = sourceHashes(commit, c);
+      final MethodSourceTree previous = commit.getParentCount() == 0 ? MethodSourceTree.EMPTY
+          : sourceHashes(commit.getParent(0), c);
+      return SourceHashTrailers.append(prefixed, current.changesFrom(previous));
+    } catch (final IllegalArgumentException e) {
+      throw new IllegalStateException("commit " + commit.name() + " " + e.getMessage(), e);
+    }
   }
 
   private MethodSourceTree sourceHashes(final RevCommit commit, final Context c) {

@@ -271,7 +271,8 @@ public class FinerGitConfig {
   }
 
   @Option(name = "--method-source-hash-enabled", metaVar = "<true|false>",
-      usage = "record original method source hashes in commit trailers (default: false)")
+      usage = "record original method source hashes in commit trailers (off by default). "
+          + "Requires --method-file-generated true")
   public void setMethodSourceHashEnabled(final String flag) {
     final String errorMessage = "\"--method-source-hash-enabled\" option can take only true or false";
     this.methodSourceHashEnabled = getBooleanValue(flag, errorMessage);
@@ -358,6 +359,9 @@ public class FinerGitConfig {
     if (this.maxFileNameLength < minimumFileNameLength) {
       return "option \"--max-file-name-length\" must be at least " + minimumFileNameLength
           + " (hash length + 8) when option \"--hash-length\" is " + this.hashLength;
+    }
+    if (this.methodSourceHashEnabled && !this.isMethodFileGenerated) {
+      return "option \"--method-source-hash-enabled true\" requires \"--method-file-generated true\"";
     }
     return null;
   }

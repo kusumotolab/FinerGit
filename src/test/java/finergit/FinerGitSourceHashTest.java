@@ -159,23 +159,93 @@ public class FinerGitSourceHashTest {
   }
 
   @Test
-  public void preservesPreviousCommitMessageWhenMethodFilesAreDisabled() throws Exception {
+  public void rejectsEnablingSourceHashesWhenMethodFilesAreDisabled() throws Exception {
+    final Path src = this.folder.newFolder("src").toPath();
+    final Path des = this.folder.getRoot().toPath().resolve("des");
+    try (final Git git = init(src)) {
+      commit(git, SOURCE, "public class Foo { public int value() { return 1; } }\n", "root");
+    }
+
+    final String[] args = {"-s", src.toString(), "-d", des.toString(),
+        HASH_OPTION, "true", "--method-file-generated", "false"};
+    assertThat(FinerGitMain.run(args)).isEqualTo(FinerGitMain.EXIT_FAILURE);
+    assertThat(des).doesNotExist();
+  }
+
+  @Test
+  public void producesTheSameHashCommitWithDifferentRepositoryCommentSettings() throws Exception {
+    final String declaration = "public int value() { return 1; }";
+    final Path src = this.folder.newFolder("src").toPath();
+    final Path des = this.folder.getRoot().toPath().resolve("des");
+    final Path other = this.folder.getRoot().toPath().resolve("other");
+    final RevCommit root;
+    try (final Git git = init(src)) {
+      root = commit(git, SOURCE, "public class Foo { " + declaration + " }\n",
+          "subject\n\nRefs: JIRA-1\n; issue note\nReviewed-by: Example <example@example.com>\n");
+      final var config = git.getRepository().getConfig();
+      config.setString("core", null, "commentChar", "#");
+      config.save();
+      convert(src, des, HASH_OPTION, "true");
+
+      config.setString("core", null, "commentChar", ";");
+      config.save();
+      convert(src, other, HASH_OPTION, "true");
+    }
+
+    try (final Git git = Git.open(des.toFile());
+        final Git alternative = Git.open(other.toFile());
+        final RevWalk walk = new RevWalk(git.getRepository())) {
+      final ObjectId head = git.getRepository().resolve("HEAD");
+      assertThat(alternative.getRepository().resolve("HEAD")).isEqualTo(head);
+      assertTrailers(walk.parseCommit(head), root, entry(VALUE, declaration));
+    }
+  }
+
+  @Test
+  public void rejectsExistingSourceHashTrailersBeforeUpdatingRefs() throws Exception {
+    for (final String key : List.of("FinerGit-Source-Hash-Version", "FinerGit-Method-Source")) {
+      final Path src = this.folder.newFolder().toPath();
+      final Path des = src.resolveSibling(src.getFileName() + "-out");
+      final RevCommit original;
+      try (final Git git = init(src)) {
+        commit(git, SOURCE, "public class Foo { public int value() { return 1; } }\n", "root");
+        original = commit(git, SOURCE, "public class Foo { public int value() { return 2; } }\n",
+            "existing records\n\n" + key + ": 1\n");
+      }
+      final var config = new FinerGitConfig();
+      config.setSrcPath(src.toString());
+      config.setDesPath(des.toString());
+      config.setMethodSourceHashEnabled("true");
+
+      assertThatThrownBy(() -> new FinerRepoBuilder(config).exec())
+          .isInstanceOf(ConversionException.class)
+          .hasMessageContainingAll(original.name(), key);
+      try (final Git input = Git.open(src.toFile());
+          final Git output = Git.open(des.toFile())) {
+        assertThat(input.getRepository().resolve("HEAD")).isEqualTo(original);
+        assertThat(output.getRepository().resolve("HEAD")).isEqualTo(original);
+      }
+    }
+  }
+
+  @Test
+  public void allowsReservedTrailerKeysMentionedInTheBody() throws Exception {
     final String declaration = "public int value() { return 1; }";
     final Path src = this.folder.newFolder("src").toPath();
     final Path des = this.folder.getRoot().toPath().resolve("des");
     final RevCommit root;
     try (final Git git = init(src)) {
-      root = commit(git, SOURCE, "public class Foo { " + declaration + " }\n", "root");
+      root = commit(git, SOURCE, "public class Foo { " + declaration + " }\n",
+          "subject\n\nFinerGit-Source-Hash-Version: 1\nFinerGit-Method-Source: example\n"
+              + "\nExplain the two trailer keys above.\n");
     }
-    convert(src, des, HASH_OPTION, "true", "--method-file-generated", "false");
+    convert(src, des, HASH_OPTION, "true");
 
     try (final Git git = Git.open(des.toFile());
         final RevWalk walk = new RevWalk(git.getRepository())) {
       final RevCommit newRoot = walk.parseCommit(git.getRepository().resolve("HEAD"));
-      assertOriginalMessage(newRoot, root);
-      try (final TreeWalk tree = TreeWalk.forPath(git.getRepository(), VALUE, newRoot.getTree())) {
-        assertThat(tree).isNull();
-      }
+      assertThat(newRoot.getFullMessage()).contains(root.getFullMessage());
+      assertTrailers(newRoot, root, entry(VALUE, declaration));
     }
   }
 
