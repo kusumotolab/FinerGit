@@ -25,6 +25,7 @@ public class FinerGitConfig {
   private boolean isPeripheralFileGenerated = false;
   private boolean isClassFileGenerated = false;
   private boolean isMethodFileGenerated = true;
+  private boolean isMemberMethodFileGenerated = true;
   private boolean methodSourceHashEnabled;
   private boolean isFieldFileGenerated = false;
   private int maxFileNameLength = 255;
@@ -262,6 +263,20 @@ public class FinerGitConfig {
   public void setMethodFileGenerated(final String flag) {
     final String errorMessage = "\"--method-file-generated\" option can take only true or false";
     this.isMethodFileGenerated = getBooleanValue(flag, errorMessage);
+  }
+
+  // ===== "--member-method-file-generated" =====
+
+  public boolean isMemberMethodFileGenerated() {
+    return this.isMemberMethodFileGenerated;
+  }
+
+  @Option(name = "--member-method-file-generated", metaVar = "<true|false>",
+      usage = "include methods and constructors of named member types when generating method files (default: true)")
+  public void setMemberMethodFileGenerated(final String flag) {
+    final String errorMessage =
+        "\"--member-method-file-generated\" option can take only true or false";
+    this.isMemberMethodFileGenerated = getBooleanValue(flag, errorMessage);
   }
 
   // ===== "--method-source-hash-enabled" =====

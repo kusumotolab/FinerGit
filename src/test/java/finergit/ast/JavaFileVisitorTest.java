@@ -9,12 +9,54 @@ import java.util.Map;
 import java.util.Stack;
 import java.util.stream.Collectors;
 import org.eclipse.jdt.core.dom.AST;
+import org.eclipse.jdt.core.dom.ASTNode;
+import org.eclipse.jdt.core.dom.ASTParser;
+import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.TagElement;
 import org.junit.Test;
 import finergit.FinerGitConfig;
 import finergit.ast.token.ModifierFactory;
 
 public class JavaFileVisitorTest {
+
+  @Test
+  public void extractsMemberMethodsWhenVisitingATypeSubtree() {
+    final String source = """
+        class Outer {
+          int top() { return 0; }
+          static class Inner {
+            int get() { return 1; } // member detail
+          }
+        }
+        """;
+    final ASTParser parser = ASTParser.newParser(AST.getJLSLatest());
+    parser.setSource(source.toCharArray());
+    final CompilationUnit unit = (CompilationUnit) parser.createAST(null);
+    final ASTNode type = (ASTNode) unit.types().getFirst();
+
+    for (final boolean tokenized : new boolean[] {true, false}) {
+      final FinerGitConfig config = new FinerGitConfig();
+      config.setClassFileGenerated("true");
+      config.setTokenized(Boolean.toString(tokenized));
+
+      for (final String suppliedSource : new String[] {source, null}) {
+        final JavaFileVisitor visitor = new JavaFileVisitor("dir", "Outer", config, suppliedSource);
+        type.accept(visitor);
+
+        final List<FinerJavaModule> modules = visitor.getFinerJavaModules();
+        final String memberPath = "dir/~Outer.Inner#int_get()~.mjava";
+        assertThat(modules).extracting(FinerJavaModule::getPathName)
+            .containsExactlyInAnyOrder("dir/Outer.cjava", "dir/Outer#int_top().mjava", memberPath);
+        final List<String> lines = modules.stream().filter(m -> m.getPathName().equals(memberPath))
+            .findFirst().orElseThrow().getLines();
+        if (suppliedSource == null) {
+          assertThat(lines).doesNotContain("// member detail");
+        } else {
+          assertThat(lines).endsWith("// member detail");
+        }
+      }
+    }
+  }
 
   @Test
   public void testArrayAccess() {

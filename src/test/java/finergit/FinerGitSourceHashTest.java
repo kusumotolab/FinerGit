@@ -28,6 +28,7 @@ public class FinerGitSourceHashTest {
   private static final String HASH_OPTION = "--method-source-hash-enabled";
   private static final String SOURCE = "src/Foo.java";
   private static final String VALUE = "src/Foo#public_int_value().mjava";
+  private static final String MEMBER = "src/~Foo.Inner#public_Inner()~.mjava";
 
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
@@ -59,8 +60,8 @@ public class FinerGitSourceHashTest {
       final RevCommit newUnrelated = walk.parseCommit(newRename.getParent(0));
       final RevCommit newFormat = walk.parseCommit(newUnrelated.getParent(0));
       final RevCommit newRoot = walk.parseCommit(newFormat.getParent(0));
-      assertTrailers(newRoot, root, entry(VALUE, original),
-          entry("src/Foo$Inner#public_Inner().mjava", constructor));
+      assertTrailers(newRoot, root, entry(VALUE, original), entry(MEMBER, constructor));
+      assertThat(blobId(git, newRoot, MEMBER)).isEqualTo(blobId(git, newFormat, MEMBER));
       assertThat(newRoot.getFooterLines("Signed-off-by"))
           .containsExactly("FinerGit <finergit@example.com>");
       assertTrailers(newFormat, format, entry(VALUE, formatted));
@@ -68,6 +69,27 @@ public class FinerGitSourceHashTest {
       assertTrailers(newUnrelated, unrelated);
       assertTrailers(newRename, rename, entry(VALUE, null),
           entry("src/Foo#public_int_read().mjava", renamed));
+    }
+  }
+
+  @Test
+  public void recordsTopLevelHashesWhenMemberMethodsAreDisabled() throws Exception {
+    final String declaration = "public int value() { return 1; }";
+    final Path src = this.folder.newFolder("src").toPath();
+    final Path des = this.folder.getRoot().toPath().resolve("des");
+    final RevCommit original;
+    try (final Git git = init(src)) {
+      original = commit(git, SOURCE, sourceWithMember(declaration, "public Inner() {}"), "root");
+    }
+    convert(src, des, HASH_OPTION, "true", "--member-method-file-generated", "false");
+
+    try (final Git git = Git.open(des.toFile());
+        final RevWalk walk = new RevWalk(git.getRepository())) {
+      final RevCommit rewritten = walk.parseCommit(git.getRepository().resolve("HEAD"));
+      assertTrailers(rewritten, original, entry(VALUE, declaration));
+      try (final TreeWalk tree = TreeWalk.forPath(git.getRepository(), MEMBER, rewritten.getTree())) {
+        assertThat(tree).isNull();
+      }
     }
   }
 
