@@ -24,14 +24,23 @@ final class SourceHashTrailers {
 
   static String append(final String message, final Map<String, String> hashes,
       final String commentPrefix) {
-    final int end = endOfMessageContent(message, commentPrefix);
-    final String content = message.substring(0, end);
-    final StringBuilder result = new StringBuilder(content);
-    if (!content.isEmpty()) {
-      result.append(message.startsWith("\r\n", end) ? "\r\n" : "\n");
-      if (!hasTrailerBlock(content, commentPrefix)) {
-        result.append('\n');
-      }
+    final int suffixStart = startOfIgnoredSuffix(message, commentPrefix);
+    final int contentEnd = lastContentLineEnd(message, suffixStart, null);
+    // Git can see an existing trailer block above trailing comment-prefix lines.
+    final int trailerEnd = lastContentLineEnd(message, contentEnd, commentPrefix);
+    final boolean hasTrailers = hasTrailerBlock(message.substring(0, trailerEnd), commentPrefix);
+    int insertion = suffixStart;
+    if (hasTrailers) {
+      final boolean sameBlock = trailerEnd == contentEnd
+          || hasTrailerBlock(message.substring(0, contentEnd), commentPrefix);
+      insertion = afterLine(message, sameBlock ? contentEnd : trailerEnd);
+    }
+    final StringBuilder result = new StringBuilder(message.substring(0, insertion));
+    if (insertion > 0 && message.charAt(insertion - 1) != '\n') {
+      result.append('\n');
+    }
+    if (!hasTrailers && contentEnd > 0 && insertion == afterLine(message, contentEnd)) {
+      result.append('\n');
     }
     result.append(VERSION);
     new TreeMap<>(hashes).forEach((path, hash) -> {
@@ -47,18 +56,37 @@ final class SourceHashTrailers {
     });
     // JGit includes a CR in the last trailer value if the new line ends in CRLF.
     result.append('\n');
-    if (end < message.length()) {
-      final int tailStart = end == 0 ? 0 : message.indexOf('\n', end) + 1;
-      result.append(message, tailStart, message.length());
-    }
+    result.append(message, insertion, message.length());
     return result.toString();
   }
 
-  // Keep trailing comments and blank lines after the inserted trailers.
-  private static int endOfMessageContent(final String message, final String commentPrefix) {
+  /** Find the suffix that must stay after the trailers to match Git's footer parsing. */
+  private static int startOfIgnoredSuffix(final String message, final String commentPrefix) {
     final String scissors = commentPrefix + " ------------------------ >8 ------------------------";
     final int cut = message.indexOf("\n" + scissors);
-    int end = message.startsWith(scissors) ? 0 : cut >= 0 ? cut + 1 : message.length();
+    final int end = message.startsWith(scissors) ? 0 : cut >= 0 ? cut + 1 : message.length();
+    int conflicts = end;
+    for (int start = 0; start < end; start = afterLine(message, start)) {
+      final char first = message.charAt(start);
+      if (first == '\n' || message.startsWith(commentPrefix, start)) {
+        continue;
+      }
+      // Git recognizes this legacy heading with LF, followed by tab-indented paths.
+      if (message.startsWith("Conflicts:\n", start)) {
+        conflicts = Math.min(conflicts, start);
+      } else if (first != '\t') {
+        conflicts = end;
+      }
+    }
+    return conflicts;
+  }
+
+  private static int afterLine(final String message, final int start) {
+    final int newline = message.indexOf('\n', start);
+    return newline < 0 ? message.length() : newline + 1;
+  }
+
+  private static int lastContentLineEnd(final String message, int end, final String commentPrefix) {
     while (end > 0) {
       int lineEnd = end;
       if (message.charAt(lineEnd - 1) == '\n') {
@@ -69,7 +97,7 @@ final class SourceHashTrailers {
       }
       final int start = message.lastIndexOf('\n', lineEnd - 1) + 1;
       final String line = message.substring(start, lineEnd);
-      if (!line.startsWith(commentPrefix) && !isGitBlank(line)) {
+      if (!isGitBlank(line) && (commentPrefix == null || !line.startsWith(commentPrefix))) {
         return lineEnd;
       }
       end = start;

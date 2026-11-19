@@ -163,9 +163,16 @@ FinerGit-Method-Source: {"path":"src/Foo#public_void_old().mjava","sha256":null}
 ```
 
 `path` is the generated repository-relative path, including any filename shortening or collision suffix.
-The SHA-256 covers the UTF-8 text in the original Java declaration's source range, including attached Javadoc, annotations, whitespace, and line endings within that range.
-Each commit records added, changed, and removed method paths relative to its first parent.
-Root commits record all generated methods, and `null` marks a removed path.
+For version 1, FinerGit decodes the original Java file as UTF-8, takes the source range reported by
+JDT's `MethodDeclaration`, and computes SHA-256 over that text encoded as UTF-8. The range includes
+attached Javadoc, annotations, and the whitespace and line endings within it. Editing a comment
+outside the range can change the generated `.mjava` file without changing the method hash.
+Different invalid UTF-8 byte sequences can decode to the same replacement characters and produce
+the same hash.
+
+Each commit records changes to method hashes by path relative to its first parent. Root commits
+record all generated method hashes. A `sha256` value of `null` removes the method hash record for
+that path. The same path can still contain an ordinary file.
 
 If a rewritten commit with trailers reaches JGit's object streaming threshold (50 MiB with the
 default configuration), FinerGit stops before updating the rewritten refs and reports the commit ID and size.
@@ -376,8 +383,15 @@ FinerGit-Method-Source: {"path":"src/Foo#public_void_old().mjava","sha256":null}
 ```
 
 `path` は短縮や衝突時の接尾辞を含む，生成先リポジトリ内のパスです．
-SHA-256 の対象は元 Java 宣言の範囲内にある UTF-8 テキストで，宣言に付属する Javadoc とアノテーション，範囲内の空白と改行を含みます．
-各コミットは第1親から追加・変更・削除されたメソッドのパスを記録します．ルートコミットは生成された全メソッドを記録し，削除されたパスには `null` が付きます．
+バージョン 1 では，元の Java ファイルを UTF-8 としてデコードし，JDT の `MethodDeclaration` が示す
+宣言範囲のテキストを UTF-8 に再エンコードして SHA-256 を計算します．宣言に付属する Javadoc と
+アノテーション，範囲内の空白と改行を含みます．範囲外のコメントを変更すると，メソッドハッシュが
+同じでも，生成される `.mjava` ファイルが変わる場合があります．異なる不正な UTF-8 バイト列が
+同じ置換文字列にデコードされ，同じハッシュになる場合もあります．
+
+各コミットは，第1親と比較したパスごとのメソッドハッシュの差分を記録します．ルートコミットは
+生成された全メソッドのハッシュを記録します．`sha256` の値が `null` の場合は，そのパスの
+メソッドハッシュ記録を削除します．同じパスに通常ファイルが残る場合もあります．
 
 トレーラー付きの変換後コミットが JGit のストリーミング閾値（既定の設定では50 MiB）に達すると，
 FinerGit は書き換えた参照を更新する前に変換を中止し，元のコミット ID とサイズを報告します．

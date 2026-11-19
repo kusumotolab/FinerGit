@@ -7,7 +7,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.CommitBuilder;
+import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -68,6 +70,50 @@ public class SourceHashTrailersTest {
   }
 
   @Test
+  public void appendsAfterLiteralCommentPrefixLinesInTheBody() throws Exception {
+    for (final String commentPrefix : List.of("#", ";")) {
+      final String original = "<OriginalCommitID:1234567> Fix parser\n\nBody.\n\n"
+          + commentPrefix + "123 also fixed\n";
+      final String message = SourceHashTrailers.append(original, Map.of(METHOD, HASH), commentPrefix);
+
+      assertThat(message).isEqualTo(original + "\n" + VERSION + "\n" + METHOD_TRAILER + "\n");
+      assertThat(nativeTrailers(message, commentPrefix)).containsExactly(VERSION, METHOD_TRAILER);
+    }
+  }
+
+  @Test
+  public void preservesACommentPrefixLineInTheSubject() throws Exception {
+    final String original = "<OriginalCommitID:1234567> Fix parser\n#123 also fixed\n";
+    final String message = SourceHashTrailers.append(original, Map.of(METHOD, HASH));
+
+    assertThat(message).startsWith(original + "\n");
+    try (final var git = Git.init().setDirectory(folder.getRoot()).call();
+        final var inserter = git.getRepository().newObjectInserter()) {
+      final ObjectId tree = inserter.insert(Constants.OBJ_TREE, new byte[0]);
+      final ObjectId originalId = inserter.insert(buildCommit(original, tree));
+      final ObjectId rewrittenId = inserter.insert(buildCommit(message, tree));
+      inserter.flush();
+
+      final List<String> originalSubject = nativeGit("", "log", "-1", "--format=%s", originalId.name());
+      assertThat(originalSubject).containsExactly("<OriginalCommitID:1234567> Fix parser #123 also fixed");
+      assertThat(nativeGit("", "log", "-1", "--format=%s", rewrittenId.name()))
+          .containsExactlyElementsOf(originalSubject);
+    }
+    assertThat(nativeTrailers(message, "#")).containsExactly(VERSION, METHOD_TRAILER);
+  }
+
+  @Test
+  public void appendsAfterCommentPrefixLinesAdjoiningExistingTrailers() throws Exception {
+    final String original = "<OriginalCommitID:1234567> Fix parser\n\n"
+        + "Reviewed-by: Alice <alice@example.com>\n#123 also fixed\n";
+    final String message = SourceHashTrailers.append(original, Map.of(METHOD, HASH));
+
+    assertThat(message).isEqualTo(original + VERSION + "\n" + METHOD_TRAILER + "\n");
+    assertThat(nativeTrailers(message, "#"))
+        .containsExactly("Reviewed-by: Alice <alice@example.com>", VERSION, METHOD_TRAILER);
+  }
+
+  @Test
   public void separatesTrailersAfterFullWidthSpaceInBody() throws Exception {
     final String original = "<OriginalCommitID:1234567> Fix parser\n\n本文\n\u3000\n"
         + "Reviewed-by: Alice <alice@example.com>\n";
@@ -86,6 +132,34 @@ public class SourceHashTrailersTest {
 
     assertThat(message).endsWith(ignored);
     assertThat(nativeTrailers(message, "#")).containsExactly("Refs: JIRA-1", VERSION, METHOD_TRAILER);
+  }
+
+  @Test
+  public void insertsTrailersBeforeALegacyConflictsBlock() throws Exception {
+    final String conflicts = "Conflicts:\n\tsrc/A.java\n\tsrc/B.java\n";
+    final String original = "<OriginalCommitID:1234567> Merge branches\n\nBody.\n\n" + conflicts;
+    final String message = SourceHashTrailers.append(original, Map.of(METHOD, HASH));
+
+    assertThat(nativeTrailers(original, "#")).isEmpty();
+    assertThat(message).endsWith(conflicts);
+    assertThat(message.lines().toList()).containsSubsequence("Body.", VERSION, METHOD_TRAILER,
+        "Conflicts:", "\tsrc/A.java", "\tsrc/B.java");
+    assertThat(nativeTrailers(message, "#")).containsExactly(VERSION, METHOD_TRAILER);
+  }
+
+  @Test
+  public void joinsExistingTrailersBeforeALegacyConflictsBlock() throws Exception {
+    final String conflicts = "Conflicts:\n\tsrc/A.java\n\tsrc/B.java\n";
+    final String reviewedBy = "Reviewed-by: Alice <alice@example.com>";
+    final String original = "<OriginalCommitID:1234567> Merge branches\n\n" + reviewedBy
+        + "\n\n" + conflicts;
+    final String message = SourceHashTrailers.append(original, Map.of(METHOD, HASH));
+
+    assertThat(nativeTrailers(original, "#")).containsExactly(reviewedBy);
+    assertThat(message).endsWith(conflicts);
+    assertThat(message.lines().toList()).containsSubsequence(reviewedBy, VERSION, METHOD_TRAILER,
+        "Conflicts:", "\tsrc/A.java", "\tsrc/B.java");
+    assertThat(nativeTrailers(message, "#")).containsExactly(reviewedBy, VERSION, METHOD_TRAILER);
   }
 
   @Test
@@ -108,12 +182,17 @@ public class SourceHashTrailersTest {
 
   private List<String> nativeTrailers(final String message, final String commentPrefix)
       throws Exception {
+    return nativeGit(message, "-c", "core.commentChar=" + commentPrefix,
+        "-c", "core.commentString=" + commentPrefix, "-c", "trailer.separators=:",
+        "interpret-trailers", "--no-divider", "--parse");
+  }
+
+  private List<String> nativeGit(final String input, final String... arguments) throws Exception {
     final var root = folder.getRoot();
-    final ProcessBuilder builder = new ProcessBuilder("git",
-        "-c", "core.commentChar=" + commentPrefix, "-c", "core.commentString=" + commentPrefix,
-        "-c", "trailer.separators=:", "interpret-trailers", "--no-divider", "--parse")
+    final ProcessBuilder builder = new ProcessBuilder("git")
         .directory(root)
         .redirectErrorStream(true);
+    builder.command().addAll(List.of(arguments));
     builder.environment().put("GIT_CONFIG_NOSYSTEM", "1");
     builder.environment().put("GIT_CONFIG_GLOBAL", root.toPath().resolve("absent-config").toString());
     builder.environment().put("GIT_CEILING_DIRECTORIES", root.getParentFile().getCanonicalPath());
@@ -125,8 +204,8 @@ public class SourceHashTrailersTest {
       throw e;
     }
     try {
-      try (final var input = process.getOutputStream()) {
-        input.write(message.getBytes(StandardCharsets.UTF_8));
+      try (final var stdin = process.getOutputStream()) {
+        stdin.write(input.getBytes(StandardCharsets.UTF_8));
       }
       assertThat(process.waitFor(10, TimeUnit.SECONDS)).isTrue();
       final String output = new String(process.getInputStream().readAllBytes(),
@@ -141,12 +220,16 @@ public class SourceHashTrailersTest {
   }
 
   private static RevCommit parseCommit(final String message) throws IOException {
+    return RevCommit.parse(buildCommit(message, ObjectId.zeroId()).build());
+  }
+
+  private static CommitBuilder buildCommit(final String message, final ObjectId tree) {
     final var author = new PersonIdent("Example", "example@example.com");
     final var commit = new CommitBuilder();
     commit.setAuthor(author);
     commit.setCommitter(author);
-    commit.setTreeId(ObjectId.zeroId());
+    commit.setTreeId(tree);
     commit.setMessage(message);
-    return RevCommit.parse(commit.build());
+    return commit;
   }
 }
