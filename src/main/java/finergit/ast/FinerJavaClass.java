@@ -5,7 +5,6 @@ import finergit.FinerGitConfig;
 public class FinerJavaClass extends FinerJavaModule {
 
   private static final String CLASS_EXTENSION = ".cjava";
-  private static final String CLASS_DELIMITER = "$";
 
   public FinerJavaClass(final String name, final FinerJavaModule outerModule,
       final FinerGitConfig config) {
@@ -47,7 +46,7 @@ public class FinerJavaClass extends FinerJavaModule {
     else if (FinerJavaClass.class == this.outerModule.getClass()
         || FinerJavaRecord.class == this.outerModule.getClass()) {
       builder.append(this.outerModule.getBaseName())
-          .append(CLASS_DELIMITER);
+          .append('.');
     }
 
     builder.append(this.name);
