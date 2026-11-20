@@ -89,6 +89,7 @@ Generated file options:
 
 - `--method-file-generated <true|false>`: generate method files. The default is `true`.
 - `--member-method-file-generated <true|false>` controls whether to include methods and constructors of named member types when method file generation is enabled. The default is `true`. Set it to `false` to extract only top-level methods and constructors.
+- `--method-source-hash-enabled <true|false>`: record original method text hashes in commit trailers. Setting this option to `true` requires `--method-file-generated true`. The default is `false`.
 - `--class-file-generated <true|false>`: generate class files (`.cjava`) and record files (`.rjava`). The default is `false`.
 - `--field-file-generated <true|false>`: generate field files. The default is `false`.
 - `--peripheral-file-generated <true|false>` controls whether to generate `.pjava` files for peripheral tokens, such as imports, outside the class, record, method, and field files. The default is `false`. The member-type exception is described below.
@@ -101,7 +102,7 @@ Token and file-name options:
 - `--return-type-included <true|false>`: include return types in generated method file names. The default is `true`.
 - `--token-type-included <true|false>`: append token type names to tokenized lines. The default is `false`.
 - `--method-token-included <true|false>`: include method boundary tokens in generated method files. The default is `true`.
-- `--max-file-name-length <num>`: maximum generated file name length. The value must be between `15` and `255`, and at least `--hash-length` + 8. A shortened member-type name can consist of a hash and the final `~.mjava` marker. The default is `255`.
+- `--max-file-name-length <num>`: maximum generated file name length in UTF-16 code units before the `@N` suffix used to resolve collisions. The value must be between `15` and `255`, and at least `--hash-length` + 8. A shortened prefix ends at a Unicode code point boundary and can be empty when the space available is too small. Shortened member-type names retain `~.mjava` and may have the form `_hash~.mjava`. The code point boundary can change generated names and commit IDs where earlier versions split a surrogate pair, even with method source hashes disabled. The default is `255`.
 - `--hash-length <num>`: length of the hash value attached to shortened file names. The value must be between `7` and `40`. The default is `7`.
 
 ### Exit Status
@@ -143,7 +144,7 @@ The leading `~` avoids Windows device names, and the trailing `~` before `.mjava
 Field file names use a similar format, such as `Foo#private_String_name.fjava`.
 If generated file names are too long, FinerGit shortens them and appends a hash value.
 
-Member-type extraction is enabled by default. Repeating a conversion with the same options as before this feature can change generated paths and commit IDs. Use `--member-method-file-generated false` to reproduce the earlier output.
+Member-type extraction is enabled by default. Repeating a conversion with the same options as before this feature can change generated paths and commit IDs. Use `--member-method-file-generated false` to keep the previous extraction scope when reproducing a dataset.
 
 If you want to see the change history of `Foo#public_void_bar(int).mjava`, type the following command.
 
@@ -151,12 +152,56 @@ If you want to see the change history of `Foo#public_void_bar(int).mjava`, type 
 $ git log -- 'Foo#public_void_bar(int).mjava'
 ```
 
-You will get all commits where method `bar(int)` was changed.
+This shows the commits that changed the generated file for `bar(int)`.
 
 The `--follow` option lets Git track the method across file renames. Here is an example for a method in a named member type.
 
 ```shell-session
 $ git log --follow -- '~Foo.Nested#public_void_bar(int)~.mjava'
+```
+
+### Read Original Method Text Hashes
+
+Enable this feature with `--method-source-hash-enabled true` and method file generation enabled.
+Each rewritten commit retains the `<OriginalCommitID:…>` prefix and adds a
+`FinerGit-Source-Hash-Version: 1` trailer. Each `FinerGit-Method-Source` trailer contains one JSON record.
+FinerGit puts these records in the Git trailer block, which may precede a trailing comment paragraph,
+a scissors section, or a legacy `Conflicts:` list.
+FinerGit normalizes the line ending of a CRLF scissors marker to LF so Git recognizes it across platforms.
+Whitespace-only lines immediately after the added trailers become empty lines.
+Adding trailers changes rewritten commit IDs. The default keeps the original FinerGit message format.
+
+```text
+FinerGit-Source-Hash-Version: 1
+FinerGit-Method-Source: {"path":"src/Foo#public_void_bar(int).mjava","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+FinerGit-Method-Source: {"path":"src/Foo#public_void_old().mjava","sha256":null}
+```
+
+`path` is the generated repository-relative path, including any filename shortening or collision suffix.
+For version 1, FinerGit decodes the original Java file as UTF-8, takes the source range reported by
+JDT's `MethodDeclaration`, and computes SHA-256 over that text encoded as UTF-8. The range includes
+attached Javadoc, annotations, and the whitespace and line endings within it. Editing a comment
+outside the range can change the generated `.mjava` file without changing the method hash.
+Different invalid UTF-8 byte sequences can decode to the same replacement characters and produce
+the same hash.
+
+Each commit records changes to method hashes by path relative to its first parent. Root commits
+record all generated method hashes. A `sha256` value of `null` removes the method hash record for
+that path. The same path can still contain an ordinary file.
+
+The CLI uses a fixed JGit object streaming threshold of 50 MiB. If a rewritten commit with trailers
+reaches that size, FinerGit stops before updating refs and reports the original commit ID and size.
+If an original commit already has a `FinerGit-Source-Hash-Version` or `FinerGit-Method-Source`
+trailer, FinerGit stops and reports the original commit ID and the conflicting key.
+FinerGit also stops if a scissors lookalike precedes a real scissors line and Git readers can
+disagree about where a trailer block ends.
+
+Formatting can change the source hash while leaving the generated file identical. Read the records
+with native Git using `#` as the comment prefix and `:` as the trailer separator, as FinerGit does.
+JGit's `getFooterLines()` can omit the records when another paragraph follows the trailer block.
+
+```shell-session
+$ git show -s --format=%B HEAD | git -c 'core.commentChar=#' -c 'core.commentString=#' -c 'trailer.separators=:' interpret-trailers --no-divider --parse
 ```
 
 ## Use in Your Research
@@ -285,6 +330,7 @@ $ java -jar build/libs/FinerGit-all.jar create --help
 
 - `--method-file-generated <true|false>`: メソッドファイルを生成するかどうか．デフォルトは `true` です．
 - `--member-method-file-generated <true|false>` は，メソッドファイルの生成時に名前付きメンバー型のメソッドとコンストラクタも抽出するかを指定します．デフォルトは `true` です．トップレベルの型のメソッドとコンストラクタのみを抽出する場合は `false` を指定します．
+- `--method-source-hash-enabled <true|false>`: 元のメソッドテキストのハッシュをコミットのトレーラーに記録します．`true` を指定するには `--method-file-generated true` が必要です．デフォルトは `false` です．
 - `--class-file-generated <true|false>`: クラスファイル（`.cjava`）とレコードファイル（`.rjava`）を生成するかどうか．デフォルトは `false` です．
 - `--field-file-generated <true|false>`: フィールドファイルを生成するかどうか．デフォルトは `false` です．
 - `--peripheral-file-generated <true|false>` は，import 宣言など，クラス・レコード・メソッド・フィールドの各ファイルに含まれない周辺トークンを `.pjava` に出力するかを指定します．デフォルトは `false` です．メンバー型の例外は後述します．
@@ -297,7 +343,7 @@ $ java -jar build/libs/FinerGit-all.jar create --help
 - `--return-type-included <true|false>`: 生成されるメソッドファイル名に戻り値型を含めるかどうか．デフォルトは `true` です．
 - `--token-type-included <true|false>`: 字句化された各行に字句の種類を付加するかどうか．デフォルトは `false` です．
 - `--method-token-included <true|false>`: 生成されるメソッドファイルにメソッド境界トークンを含めるかどうか．デフォルトは `true` です．
-- `--max-file-name-length <num>`: 生成されるファイル名の最大長．`15` から `255` の範囲で，かつ `--hash-length` + 8 以上の値を指定できます．メンバー型の名前を短縮した場合，ハッシュ値と末尾の `~.mjava` だけになることがあります．デフォルトは `255` です．
+- `--max-file-name-length <num>`: ファイル名の衝突を解消する接尾辞 `@N` を付ける前の最大長（UTF-16 コードユニット数）．`15` から `255` の範囲で，かつ `--hash-length` + 8 以上の値を指定できます．短縮時は Unicode コードポイントの境界で区切ります．使える長さによっては短縮した先頭部分が空になります．メンバー型の短縮名には末尾の `~.mjava` が残り，`_ハッシュ値~.mjava` だけになる場合があります．以前のバージョンがサロゲートペアの途中で区切っていたケースでは，メソッドハッシュの記録が無効でも，生成ファイル名とコミット ID が変わる場合があります．デフォルトは `255` です．
 - `--hash-length <num>`: 短縮されたファイル名に付与するハッシュ値の長さ．`7` から `40` の範囲で指定できます．デフォルトは `7` です．
 
 ### 終了コード
@@ -339,7 +385,7 @@ FinerGit はコピーを始める前にパスを検証します．
 フィールドファイル名も同様に，例えば `Foo#private_String_name.fjava` のような形式になります．
 生成されるファイル名が長すぎる場合，FinerGit はファイル名を短縮し，ハッシュ値を付与します．
 
-メンバー型の抽出はデフォルトで有効です．この機能が追加される前と同じコマンドで変換しても，生成されるパスやコミット ID が変わる場合があります．従来の出力を再現するには `--member-method-file-generated false` を指定してください．
+メンバー型の抽出はデフォルトで有効です．この機能が追加される前と同じコマンドで変換しても，生成されるパスやコミット ID が変わる場合があります．過去のデータセットを再現する際に従来の抽出範囲を使うには，`--member-method-file-generated false` を指定してください．
 
 例えば，
 
@@ -347,7 +393,7 @@ FinerGit はコピーを始める前にパスを検証します．
 $ git log -- 'Foo#public_void_bar(int).mjava'
 ```
 
-というコマンドを入力すると，`bar(int)` メソッドに変更を加えたコミットの一覧を得ることができます．
+というコマンドを入力すると，`bar(int)` に対応する生成ファイルを変更したコミットの一覧を得ることができます．
 
 ```shell-session
 $ git log --follow -- '~Foo.Nested#public_void_bar(int)~.mjava'
@@ -355,6 +401,46 @@ $ git log --follow -- '~Foo.Nested#public_void_bar(int)~.mjava'
 
 というように，名前付きメンバー型のメソッドにも `--follow` を使うと，ファイル名が変わった前後の履歴を追跡できます．
 
+### 元のメソッドテキストのハッシュを読む
+
+メソッドファイルの生成を有効にしたうえで `--method-source-hash-enabled true` を指定します．
+変換後のコミットには，件名の `<OriginalCommitID:…>` に加え，`FinerGit-Source-Hash-Version: 1` が付きます．
+`FinerGit-Method-Source` の各行に JSON レコードを1件記録します．トレーラーの後ろに，元からあった
+コメント段落，scissors 行以降のテキスト，旧形式の `Conflicts:` 一覧が続く場合もあります．
+Git が各プラットフォームで同じように認識できるよう，scissors 行の改行が CRLF の場合は LF に変換します．
+追加したトレーラーの直後にある空白文字だけの行は，空行にします．
+トレーラーを付けると，変換後のコミット ID が変わります．デフォルトでは従来のメッセージ形式を使います．
+
+```text
+FinerGit-Source-Hash-Version: 1
+FinerGit-Method-Source: {"path":"src/Foo#public_void_bar(int).mjava","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+FinerGit-Method-Source: {"path":"src/Foo#public_void_old().mjava","sha256":null}
+```
+
+`path` は短縮や衝突時の接尾辞を含む，生成先リポジトリ内のパスです．
+バージョン 1 では，元の Java ファイルを UTF-8 としてデコードし，JDT の `MethodDeclaration` が示す
+宣言範囲のテキストを UTF-8 に再エンコードして SHA-256 を計算します．宣言に付属する Javadoc と
+アノテーション，範囲内の空白と改行を含みます．範囲外のコメントを変更すると，メソッドハッシュが
+同じでも，生成される `.mjava` ファイルが変わる場合があります．異なる不正な UTF-8 バイト列が
+同じ置換文字列にデコードされ，同じハッシュになる場合もあります．
+
+各コミットは，第1親と比較したパスごとのメソッドハッシュの差分を記録します．ルートコミットは
+生成された全メソッドのハッシュを記録します．`sha256` の値が `null` の場合は，そのパスの
+メソッドハッシュ記録を削除します．同じパスに通常ファイルが残る場合もあります．
+
+CLI では JGit のオブジェクトのストリーミング閾値を 50 MiB に固定しています．トレーラー付きの変換後コミットが
+このサイズに達すると，FinerGit は参照を更新する前に変換を中止し，元のコミット ID とサイズを報告します．
+元のコミットに `FinerGit-Source-Hash-Version` または `FinerGit-Method-Source` のトレーラーがある場合も，
+変換を中止し，元のコミット ID と該当するキーを報告します．
+scissors に似た行が実際の scissors 行に先行し，Git によってトレーラーの終端の判定が異なる場合も変換を中止します．
+
+整形によって元テキストのハッシュが変わり，生成ファイルが同一になる場合があります．その変更も確認するには，
+FinerGit と同じく `#` をコメント接頭辞，`:` を区切り文字として，ネイティブ Git でレコードを読み取ります．
+JGit の `getFooterLines()` では，トレーラーブロックの後ろに別の段落がある場合，レコードが抜け落ちることがあります．
+
+```shell-session
+$ git show -s --format=%B HEAD | git -c 'core.commentChar=#' -c 'core.commentString=#' -c 'trailer.separators=:' interpret-trailers --no-divider --parse
+```
 
 ## 研究での利用
 

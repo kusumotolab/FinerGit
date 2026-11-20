@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.eclipse.jgit.lib.ObjectChecker;
 import org.junit.Test;
 import finergit.FinerGitConfig;
@@ -1059,5 +1060,29 @@ public class FinerJavaFileBuilderTest {
         "Names#List[#-super-Integer]_sinks.fjava", //
         "Names#[T-extends-Comparable[T]]_List[#-extends-T]_pick(List[#-super-T],T[]).mjava", //
         "Names#void_plain().mjava");
+  }
+
+  @Test
+  public void shortensMethodFileNameAtCodePointBoundary() {
+    final String supplementary = "\uD840\uDC00";
+    final String prefix = "A#void_aaaa";
+    final String methodName = "aaaa" + supplementary + "b".repeat(30);
+    final String source = "class A { void " + methodName + "() {} }";
+    final String fullName = "A#void_" + methodName + "().mjava";
+    final FinerGitConfig config = new FinerGitConfig();
+    config.setPeripheralFileGenerated("false");
+    config.setClassFileGenerated("false");
+    config.setMethodFileGenerated("true");
+    final String suffix = "_" + DigestUtils.sha1Hex(fullName).substring(0, config.getHashLength())
+        + ".mjava";
+    final FinerJavaFileBuilder builder = new FinerJavaFileBuilder(config);
+
+    config.setMaxFileNameLength(prefix.length() + 1 + suffix.length());
+    assertThat(builder.getFinerJavaModules("dir/A.java", source))
+        .extracting(FinerJavaModule::getFileName).containsExactly(prefix + suffix);
+
+    config.setMaxFileNameLength(prefix.length() + supplementary.length() + suffix.length());
+    assertThat(builder.getFinerJavaModules("dir/A.java", source))
+        .extracting(FinerJavaModule::getFileName).containsExactly(prefix + supplementary + suffix);
   }
 }

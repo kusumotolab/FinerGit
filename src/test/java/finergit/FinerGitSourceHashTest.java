@@ -1,0 +1,350 @@
+package finergit;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.HexFormat;
+import java.util.List;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.MergeCommand;
+import org.eclipse.jgit.api.MergeResult.MergeStatus;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.PersonIdent;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.treewalk.TreeWalk;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+public class FinerGitSourceHashTest {
+
+  private static final PersonIdent PERSON = new PersonIdent("FinerGit", "finergit@example.com");
+  private static final String HASH_OPTION = "--method-source-hash-enabled";
+  private static final String SOURCE = "src/Foo.java";
+  private static final String VALUE = "src/Foo#public_int_value().mjava";
+  private static final String MEMBER = "src/~Foo.Inner#public_Inner()~.mjava";
+
+  @Rule
+  public final TemporaryFolder folder = new TemporaryFolder();
+
+  @Test
+  public void writesRawDeclarationHashesAndRecordsOnlyChangedPaths() throws Exception {
+    final String original = "/** 説明 */\r\n  @Deprecated\r\n  public int value() { return 1; }";
+    final String formatted = original.replace("return 1", "return  1");
+    final String renamed = formatted.replace("value()", "read()");
+    final String constructor = "public Inner() {}";
+    final Path src = this.folder.newFolder("src").toPath();
+    final Path des = this.folder.getRoot().toPath().resolve("des");
+    final RevCommit root;
+    final RevCommit format;
+    final RevCommit unrelated;
+    final RevCommit rename;
+    try (final Git git = init(src)) {
+      root = commit(git, SOURCE, sourceWithMember(original, constructor),
+          "root\n\nSigned-off-by: FinerGit <finergit@example.com>");
+      format = commit(git, SOURCE, sourceWithMember(formatted, constructor), "format");
+      unrelated = commit(git, "README.txt", "unrelated\n", "unrelated");
+      rename = commit(git, SOURCE, sourceWithMember(renamed, constructor), "rename");
+    }
+    convert(src, des, HASH_OPTION, "true");
+
+    try (final Git git = Git.open(des.toFile());
+        final RevWalk walk = new RevWalk(git.getRepository())) {
+      final RevCommit newRename = walk.parseCommit(git.getRepository().resolve("HEAD"));
+      final RevCommit newUnrelated = walk.parseCommit(newRename.getParent(0));
+      final RevCommit newFormat = walk.parseCommit(newUnrelated.getParent(0));
+      final RevCommit newRoot = walk.parseCommit(newFormat.getParent(0));
+      assertTrailers(newRoot, root, entry(VALUE, original), entry(MEMBER, constructor));
+      assertThat(blobId(git, newRoot, MEMBER)).isEqualTo(blobId(git, newFormat, MEMBER));
+      assertThat(newRoot.getFooterLines("Signed-off-by"))
+          .containsExactly("FinerGit <finergit@example.com>");
+      assertTrailers(newFormat, format, entry(VALUE, formatted));
+      assertThat(blobId(git, newFormat, VALUE)).isEqualTo(blobId(git, newRoot, VALUE));
+      assertTrailers(newUnrelated, unrelated);
+      assertTrailers(newRename, rename, entry(VALUE, null),
+          entry("src/Foo#public_int_read().mjava", renamed));
+    }
+  }
+
+  @Test
+  public void recordsTopLevelHashesWhenMemberMethodsAreDisabled() throws Exception {
+    final String declaration = "public int value() { return 1; }";
+    final Path src = this.folder.newFolder("src").toPath();
+    final Path des = this.folder.getRoot().toPath().resolve("des");
+    final RevCommit original;
+    try (final Git git = init(src)) {
+      original = commit(git, SOURCE, sourceWithMember(declaration, "public Inner() {}"), "root");
+    }
+    convert(src, des, HASH_OPTION, "true", "--member-method-file-generated", "false");
+
+    try (final Git git = Git.open(des.toFile());
+        final RevWalk walk = new RevWalk(git.getRepository())) {
+      final RevCommit rewritten = walk.parseCommit(git.getRepository().resolve("HEAD"));
+      assertTrailers(rewritten, original, entry(VALUE, declaration));
+      try (final TreeWalk tree = TreeWalk.forPath(git.getRepository(), MEMBER, rewritten.getTree())) {
+        assertThat(tree).isNull();
+      }
+    }
+  }
+
+  @Test
+  public void writesMergeDeltaRelativeToTheFirstParent() throws Exception {
+    final String original = "public int value() { return 1; }";
+    final String formatted = original.replace("return 1", "return  1");
+    final String unchanged = "public int unchanged() { return 2; }";
+    final String firstParentOnly = "public int firstParentOnly() { return 3; }";
+    final String extraSource = "src/Extra.java";
+    final String extraMethod = "src/Extra#public_int_firstParentOnly().mjava";
+    final Path src = this.folder.newFolder("src").toPath();
+    final Path des = this.folder.getRoot().toPath().resolve("des");
+    final RevCommit firstParent;
+    final RevCommit secondParent;
+    final RevCommit merge;
+    try (final Git git = init(src);
+        final RevWalk walk = new RevWalk(git.getRepository())) {
+      commit(git, SOURCE, "public class Foo { " + original + " " + unchanged + " }\n", "root");
+      final String firstBranch = git.getRepository().getBranch();
+      final var config = git.getRepository().getConfig();
+      config.setString("merge", null, "ff", "only");
+      config.save();
+      git.branchCreate().setName("format-topic").call();
+      firstParent = commit(git, extraSource, "public class Extra { " + firstParentOnly + " }\n",
+          "first parent");
+      git.checkout().setName("format-topic").call();
+      secondParent = commit(git, SOURCE, "public class Foo { " + formatted + " " + unchanged + " }\n",
+          "second parent");
+      git.checkout().setName(firstBranch).call();
+      assertThat(git.merge().include(secondParent).setFastForward(MergeCommand.FastForwardMode.NO_FF)
+          .setCommit(false).call().getMergeStatus()).isEqualTo(MergeStatus.MERGED_NOT_COMMITTED);
+      git.rm().addFilepattern(extraSource).call();
+      final RevCommit mergeCommit =
+          git.commit().setMessage("merge").setAuthor(PERSON).setCommitter(PERSON).call();
+      merge = walk.parseCommit(mergeCommit);
+      assertThat(merge.getParents()).containsExactly(firstParent, secondParent);
+    }
+    convert(src, des, HASH_OPTION, "true");
+
+    try (final Git git = Git.open(des.toFile());
+        final RevWalk walk = new RevWalk(git.getRepository())) {
+      final RevCommit newMerge = walk.parseCommit(git.getRepository().resolve("HEAD"));
+      assertTrailers(newMerge, merge, entry(VALUE, formatted), entry(extraMethod, null));
+      assertTrailers(walk.parseCommit(newMerge.getParent(0)), firstParent,
+          entry(extraMethod, firstParentOnly));
+      assertTrailers(walk.parseCommit(newMerge.getParent(1)), secondParent,
+          entry(VALUE, formatted));
+    }
+  }
+
+  @Test
+  public void usesActualPathsForDuplicateGeneratedNames() throws Exception {
+    final String first = "public int value() { return 1; }";
+    final String second = first.replace("return 1", "return  1");
+    final Path src = this.folder.newFolder("src").toPath();
+    final Path des = this.folder.getRoot().toPath().resolve("des");
+    final RevCommit root;
+    try (final Git git = init(src)) {
+      root = commit(git, SOURCE, "public class Foo { " + first + " " + second + " }\n", "root");
+    }
+    convert(src, des, HASH_OPTION, "true");
+
+    try (final Git git = Git.open(des.toFile());
+        final RevWalk walk = new RevWalk(git.getRepository())) {
+      final RevCommit newRoot = walk.parseCommit(git.getRepository().resolve("HEAD"));
+      assertTrailers(newRoot, root, entry(VALUE, first), entry(VALUE + "@2", second));
+      assertThat(blobId(git, newRoot, VALUE)).isEqualTo(blobId(git, newRoot, VALUE + "@2"));
+    }
+  }
+
+  @Test
+  public void preservesPreviousCommitMessageByDefault() throws Exception {
+    final Path src = this.folder.newFolder("src").toPath();
+    final Path des = this.folder.getRoot().toPath().resolve("des");
+    final RevCommit root;
+    try (final Git git = init(src)) {
+      root = commit(git, SOURCE, "public class Foo { public int value() { return 1; } }\n",
+          "subject\n\nBody\n\nReviewed-by: Example <example@example.com>\n");
+    }
+    convert(src, des);
+
+    try (final Git git = Git.open(des.toFile());
+        final RevWalk walk = new RevWalk(git.getRepository())) {
+      final RevCommit newRoot = walk.parseCommit(git.getRepository().resolve("HEAD"));
+      assertOriginalMessage(newRoot, root);
+      assertThat(blobId(git, newRoot, VALUE)).isNotNull();
+    }
+  }
+
+  @Test
+  public void rejectsEnablingSourceHashesWhenMethodFilesAreDisabled() throws Exception {
+    final Path src = this.folder.newFolder("src").toPath();
+    final Path des = this.folder.getRoot().toPath().resolve("des");
+    try (final Git git = init(src)) {
+      commit(git, SOURCE, "public class Foo { public int value() { return 1; } }\n", "root");
+    }
+
+    final String[] args = {"-s", src.toString(), "-d", des.toString(),
+        HASH_OPTION, "true", "--method-file-generated", "false"};
+    assertThat(FinerGitMain.run(args)).isEqualTo(FinerGitMain.EXIT_FAILURE);
+    assertThat(des).doesNotExist();
+  }
+
+  @Test
+  public void producesTheSameHashCommitWithDifferentRepositoryCommentSettings() throws Exception {
+    final String declaration = "public int value() { return 1; }";
+    final Path src = this.folder.newFolder("src").toPath();
+    final Path des = this.folder.getRoot().toPath().resolve("des");
+    final Path other = this.folder.getRoot().toPath().resolve("other");
+    final RevCommit root;
+    try (final Git git = init(src)) {
+      root = commit(git, SOURCE, "public class Foo { " + declaration + " }\n",
+          "subject\n\nRefs: JIRA-1\n; issue note\nReviewed-by: Example <example@example.com>\n");
+      final var config = git.getRepository().getConfig();
+      config.setString("core", null, "commentChar", "#");
+      config.save();
+      convert(src, des, HASH_OPTION, "true");
+
+      config.setString("core", null, "commentChar", ";");
+      config.save();
+      convert(src, other, HASH_OPTION, "true");
+    }
+
+    try (final Git git = Git.open(des.toFile());
+        final Git alternative = Git.open(other.toFile());
+        final RevWalk walk = new RevWalk(git.getRepository())) {
+      final ObjectId head = git.getRepository().resolve("HEAD");
+      assertThat(alternative.getRepository().resolve("HEAD")).isEqualTo(head);
+      assertTrailers(walk.parseCommit(head), root, entry(VALUE, declaration));
+    }
+  }
+
+  @Test
+  public void rejectsExistingSourceHashTrailersBeforeUpdatingRefs() throws Exception {
+    for (final String key : List.of("FinerGit-Source-Hash-Version", "FinerGit-Method-Source")) {
+      final Path src = this.folder.newFolder().toPath();
+      final Path des = src.resolveSibling(src.getFileName() + "-out");
+      final RevCommit original;
+      try (final Git git = init(src)) {
+        commit(git, SOURCE, "public class Foo { public int value() { return 1; } }\n", "root");
+        original = commit(git, SOURCE, "public class Foo { public int value() { return 2; } }\n",
+            "existing records\n\n" + key + ": 1\n");
+      }
+      final var config = new FinerGitConfig();
+      config.setSrcPath(src.toString());
+      config.setDesPath(des.toString());
+      config.setMethodSourceHashEnabled("true");
+
+      assertThatThrownBy(() -> new FinerRepoBuilder(config).exec())
+          .isInstanceOf(ConversionException.class)
+          .hasMessageContainingAll(original.name(), key);
+      try (final Git input = Git.open(src.toFile());
+          final Git output = Git.open(des.toFile())) {
+        assertThat(input.getRepository().resolve("HEAD")).isEqualTo(original);
+        assertThat(output.getRepository().resolve("HEAD")).isEqualTo(original);
+      }
+    }
+  }
+
+  @Test
+  public void allowsReservedTrailerKeysMentionedInTheBody() throws Exception {
+    final String declaration = "public int value() { return 1; }";
+    final Path src = this.folder.newFolder("src").toPath();
+    final Path des = this.folder.getRoot().toPath().resolve("des");
+    final RevCommit root;
+    try (final Git git = init(src)) {
+      root = commit(git, SOURCE, "public class Foo { " + declaration + " }\n",
+          "subject\n\nFinerGit-Source-Hash-Version: 1\nFinerGit-Method-Source: example\n"
+              + "\nExplain the two trailer keys above.\n");
+    }
+    convert(src, des, HASH_OPTION, "true");
+
+    try (final Git git = Git.open(des.toFile());
+        final RevWalk walk = new RevWalk(git.getRepository())) {
+      final RevCommit newRoot = walk.parseCommit(git.getRepository().resolve("HEAD"));
+      assertThat(newRoot.getFullMessage()).contains(root.getFullMessage());
+      assertTrailers(newRoot, root, entry(VALUE, declaration));
+    }
+  }
+
+  @Test
+  public void checksTheEncodedCommitSizeAtTheLimit() {
+    final ObjectId original = ObjectId.fromString("1234567890123456789012345678901234567890");
+    assertThatCode(() -> FinerGitRewriter.checkSourceHashCommitSize(original, 199, 200))
+        .doesNotThrowAnyException();
+    assertThatThrownBy(() -> FinerGitRewriter.checkSourceHashCommitSize(original, 200, 200))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining(original.name());
+    assertThatThrownBy(() -> FinerGitRewriter.checkSourceHashCommitSize(original, 201, 200))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContainingAll(original.name(), "201", "200");
+  }
+
+  private static Git init(final Path path) throws Exception {
+    final Git git = Git.init().setDirectory(path.toFile()).call();
+    final var config = git.getRepository().getConfig();
+    config.setBoolean("core", null, "autocrlf", false);
+    config.setString("user", null, "name", PERSON.getName());
+    config.setString("user", null, "email", PERSON.getEmailAddress());
+    config.save();
+    return git;
+  }
+
+  private static RevCommit commit(final Git git, final String path, final String contents,
+      final String message) throws Exception {
+    final Path file = git.getRepository().getWorkTree().toPath().resolve(path);
+    Files.createDirectories(file.getParent());
+    Files.writeString(file, contents, StandardCharsets.UTF_8);
+    git.add().addFilepattern(path).call();
+    return git.commit().setMessage(message).setAuthor(PERSON).setCommitter(PERSON).call();
+  }
+
+  private static void convert(final Path src, final Path des, final String... more) {
+    final var args = new ArrayList<>(List.of("-s", src.toString(), "-d", des.toString()));
+    args.addAll(List.of(more));
+    assertThat(FinerGitMain.run(args.toArray(String[]::new))).isEqualTo(FinerGitMain.EXIT_SUCCESS);
+  }
+
+  private static String sourceWithMember(final String method, final String constructor) {
+    return "public class Foo {\r\n  " + method + "\r\n  static class Inner {\r\n    " + constructor
+        + "\r\n  }\r\n}\r\n";
+  }
+
+  private static void assertTrailers(final RevCommit rewritten, final RevCommit original,
+      final String... entries) {
+    assertThat(rewritten.getFullMessage())
+        .startsWith("<OriginalCommitID:" + original.abbreviate(7).name() + "> "
+            + original.getShortMessage());
+    assertThat(rewritten.getFooterLines("FinerGit-Source-Hash-Version")).containsExactly("1");
+    assertThat(rewritten.getFooterLines("FinerGit-Method-Source"))
+        .containsExactlyInAnyOrder(entries);
+  }
+
+  private static void assertOriginalMessage(final RevCommit rewritten, final RevCommit original) {
+    assertThat(rewritten.getFullMessage())
+        .isEqualTo("<OriginalCommitID:" + original.abbreviate(7).name() + "> "
+            + original.getFullMessage());
+    assertThat(rewritten.getFooterLines("FinerGit-Source-Hash-Version")).isEmpty();
+    assertThat(rewritten.getFooterLines("FinerGit-Method-Source")).isEmpty();
+  }
+
+  private static String entry(final String path, final String declaration) throws Exception {
+    final String hash = declaration == null ? "null" : "\""
+        + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+            .digest(declaration.getBytes(StandardCharsets.UTF_8)))
+        + "\"";
+    return "{\"path\":\"" + path + "\",\"sha256\":" + hash + "}";
+  }
+
+  private static ObjectId blobId(final Git git, final RevCommit commit, final String path)
+      throws Exception {
+    try (final TreeWalk tree = TreeWalk.forPath(git.getRepository(), path, commit.getTree())) {
+      assertThat(tree).isNotNull();
+      return tree.getObjectId(0);
+    }
+  }
+}

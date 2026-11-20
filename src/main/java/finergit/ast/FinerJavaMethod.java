@@ -10,15 +10,30 @@ public class FinerJavaMethod extends FinerJavaModule {
 
   private final boolean memberTypeMethod;
 
+  private final String originalSourceSha256;
+
   public FinerJavaMethod(final String name, final FinerJavaModule outerModule,
       final FinerGitConfig config) {
-    this(name, outerModule, config, false);
+    this(name, outerModule, config, false, null);
+  }
+
+  FinerJavaMethod(final String name, final FinerJavaModule outerModule,
+      final FinerGitConfig config, final String originalSourceSha256) {
+    this(name, outerModule, config, false, originalSourceSha256);
   }
 
   FinerJavaMethod(final String name, final FinerJavaModule outerModule, final FinerGitConfig config,
-      final boolean memberTypeMethod) {
+      final boolean memberTypeMethod, final String originalSourceSha256) {
     super(name, outerModule, config);
     this.memberTypeMethod = memberTypeMethod;
+    this.originalSourceSha256 = originalSourceSha256;
+  }
+
+  /**
+   * UTF-8 の元メソッド宣言の SHA-256 を返す．元ソースが渡されていない場合は null を返す．
+   */
+  public String getOriginalSourceSha256() {
+    return this.originalSourceSha256;
   }
 
   @Override
@@ -46,14 +61,5 @@ public class FinerJavaMethod extends FinerJavaModule {
   @Override
   protected String getShortenedNameSuffix() {
     return this.memberTypeMethod ? MEMBER_TYPE_MARKER + this.getExtension() : this.getExtension();
-  }
-
-  @Override
-  protected int adjustShortenedPrefixEnd(final String name, final int prefixEnd) {
-    if (this.memberTypeMethod && prefixEnd > 0
-        && Character.isSurrogatePair(name.charAt(prefixEnd - 1), name.charAt(prefixEnd))) {
-      return prefixEnd - 1;
-    }
-    return prefixEnd;
   }
 }

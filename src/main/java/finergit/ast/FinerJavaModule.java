@@ -102,8 +102,13 @@ public abstract class FinerJavaModule {
     final String sha1 = DigestUtils.sha1Hex(name)
         .substring(0, hashLength);
     final String suffix = this.getShortenedNameSuffix();
-    final int prefixEnd = maxFileNameLength - (hashLength + suffix.length() + 1);
-    return name.substring(0, this.adjustShortenedPrefixEnd(name, prefixEnd))
+    int prefixEnd = maxFileNameLength - (hashLength + suffix.length() + 1);
+    if (prefixEnd > 0 && Character.isSurrogatePair(name.charAt(prefixEnd - 1),
+        name.charAt(prefixEnd))) {
+      // UTF-8 に変換するときに補助文字が置換されないよう，文字の境界まで切り詰める．
+      prefixEnd--;
+    }
+    return name.substring(0, prefixEnd)
         + "_"
         + sha1
         + suffix;
@@ -112,11 +117,6 @@ public abstract class FinerJavaModule {
   /** 短縮後に残す接尾辞．通常は拡張子だけを残す． */
   protected String getShortenedNameSuffix() {
     return this.getExtension();
-  }
-
-  /** 短縮時の接頭辞の末尾を必要に応じて文字境界まで戻す． */
-  protected int adjustShortenedPrefixEnd(final String name, final int prefixEnd) {
-    return prefixEnd;
   }
 
   /**

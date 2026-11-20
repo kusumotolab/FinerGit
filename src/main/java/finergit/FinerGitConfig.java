@@ -26,6 +26,7 @@ public class FinerGitConfig {
   private boolean isClassFileGenerated = false;
   private boolean isMethodFileGenerated = true;
   private boolean isMemberMethodFileGenerated = true;
+  private boolean methodSourceHashEnabled;
   private boolean isFieldFileGenerated = false;
   private int maxFileNameLength = 255;
   private int hashLength = 7;
@@ -278,6 +279,20 @@ public class FinerGitConfig {
     this.isMemberMethodFileGenerated = getBooleanValue(flag, errorMessage);
   }
 
+  // ===== "--method-source-hash-enabled" =====
+
+  public boolean isMethodSourceHashEnabled() {
+    return this.methodSourceHashEnabled && this.isMethodFileGenerated;
+  }
+
+  @Option(name = "--method-source-hash-enabled", metaVar = "<true|false>",
+      usage = "record original method source hashes in commit trailers (off by default). "
+          + "Requires --method-file-generated true")
+  public void setMethodSourceHashEnabled(final String flag) {
+    final String errorMessage = "\"--method-source-hash-enabled\" option can take only true or false";
+    this.methodSourceHashEnabled = getBooleanValue(flag, errorMessage);
+  }
+
   // ===== "--field-file-generated" =====
 
   public boolean isFieldFileGenerated() {
@@ -343,7 +358,7 @@ public class FinerGitConfig {
 
   /**
    * 短縮されたファイル名は "ベースネームの先頭 + '_' + ハッシュ値 + 拡張子" という形になるので，
-   * ベースネームが1文字以上残るためには，ファイル名の最大長は "ハッシュ値の長さ + 8" 以上でなければならない．
+   * ベースネームに1 UTF-16 コードユニット以上の枠を割くため，ファイル名の最大長は "ハッシュ値の長さ + 8" 以上とする．
    * ハッシュ値の長さの最小値は7なので，ファイル名の最大長の最小値は15である．
    */
   public static final int MINIMUM_FILE_NAME_LENGTH = 7 + 1 + 1 + EXTENSION_LENGTH;
@@ -359,6 +374,9 @@ public class FinerGitConfig {
     if (this.maxFileNameLength < minimumFileNameLength) {
       return "option \"--max-file-name-length\" must be at least " + minimumFileNameLength
           + " (hash length + 8) when option \"--hash-length\" is " + this.hashLength;
+    }
+    if (this.methodSourceHashEnabled && !this.isMethodFileGenerated) {
+      return "option \"--method-source-hash-enabled true\" requires \"--method-file-generated true\"";
     }
     return null;
   }
